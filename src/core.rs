@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use winit::application::ApplicationHandler;
 use winit::event::{WindowEvent, KeyEvent, ElementState};
@@ -6,7 +7,15 @@ use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::Window;
 
+use crate::draw::DrawPass;
+use crate::color;
+
 use super::input::*;
+
+pub trait ReignState {
+    fn update(&mut self, handle: &ReignHandle);
+    fn render(&mut self, handle: &mut ReignHandle);
+}
 
 pub struct ReignHandle {
     surface: wgpu::Surface<'static>,
@@ -17,7 +26,9 @@ pub struct ReignHandle {
     window: Arc<Window>,
     keyboard: Keyboard,
     mouse: Mouse,
-    update: fn(&mut ReignHandle),
+    draw_pass: DrawPass,
+    last_time: Instant,
+    delta_time: Duration,
 }
 
 impl ReignHandle {
@@ -72,9 +83,11 @@ impl ReignHandle {
             config,
             is_surface_configured: false,
             window,
+            draw_pass: DrawPass::new(),
             keyboard: Keyboard::new(),
             mouse: Mouse::new(),
-            update: update,
+            last_time: Instant::now(),
+            delta_time: Duration::ZERO,
         })
     }
 
@@ -105,24 +118,32 @@ impl ReignHandle {
             label: Some("render_encoder"),
         });
 
+        /* handles clear background */
+        let clear_background_op = if let Some(color) = &self.draw_pass.clear_background_color {
+            let wgpu_color = color::Color::reign_color_to_wgpu_color(color);
+            wgpu::Operations {
+                load: wgpu::LoadOp::Clear(wgpu_color),
+                store: wgpu::StoreOp::Store,
+            }
+        } else {
+            wgpu::Operations {
+                load: wgpu::LoadOp::Load,
+                store: wgpu::StoreOp::Store,
+            }
+        };
+
+        let base_color_attachment = Some(wgpu::RenderPassColorAttachment {
+            view: &view,
+            depth_slice: None,
+            resolve_target: None,
+            ops: clear_background_op,
+        });
+
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("render_pass"),
                 color_attachments: &[
-                    Some(wgpu::RenderPassColorAttachment {
-                        view: &view,
-                        depth_slice: None,
-                        resolve_target: None,
-                        ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(wgpu::Color {
-                                r: 0.1,
-                                g: 0.2,
-                                b: 0.3,
-                                a: 1.0,
-                            }),
-                            store: wgpu::StoreOp::Store,
-                        }
-                    })
+                    base_color_attachment
                 ],
                 depth_stencil_attachment: None,
                 occlusion_query_set: None,
@@ -159,25 +180,40 @@ impl ReignHandle {
             button.released = true;
         }
     }
+
+    pub fn clear_background(color: color::Color) {
+        
+    }
 }
 
 fn update(reign_handle: &mut ReignHandle) {
 
 }
 
-struct ReignApp {
-    handle: Option<ReignHandle>
+pub struct ReignApp<F> 
+where 
+    F: ReignState + 'static
+{
+    handle: Option<ReignHandle>,
+    state: Option<F>,
 }
 
-impl ReignApp {
-    fn new() -> Self {
+impl<F> ReignApp<F>
+where
+    F: ReignState + 'static,
+{
+    pub fn new(state: F) -> Self {
         Self {
             handle: None,
+            state: Some(state),
         }
     }
 }
 
-impl ApplicationHandler<ReignHandle> for ReignApp {
+impl<F> ApplicationHandler<ReignHandle> for ReignApp<F>
+where 
+    F: ReignState + 'static
+{
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let window_attributes = Window::default_attributes();
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
@@ -199,7 +235,7 @@ impl ApplicationHandler<ReignHandle> for ReignApp {
         event: WindowEvent,
     ) {
         let handle = match &mut self.handle {
-            Some(canvas) => canvas,
+            Some(h) => h,
             None => return,
         };
 
@@ -207,7 +243,9 @@ impl ApplicationHandler<ReignHandle> for ReignApp {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::Resized(size) => handle.resize(size.width, size.height),
             WindowEvent::RedrawRequested => {
-                handle.update();
+                if let Some(s) = &mut self.state {
+                    s.render(handle);
+                }
                 match handle.render() {
                     Ok(_) => {}
                     Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
@@ -238,16 +276,19 @@ impl ApplicationHandler<ReignHandle> for ReignApp {
             _ => {}
         }
     }
-}
 
-pub fn run() -> anyhow::Result<()> {
-    {
-        env_logger::init();
+    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+        let handle = match &mut self.handle {
+            Some(h) => h,
+            None => return,
+        };
+
+        let now = Instant::now();
+        handle.delta_time = now - handle.last_time;
+        handle.last_time = now;
+
+        if let Some(s) = &mut self.state {
+            s.update(handle);
+        }
     }
-
-    let event_loop = EventLoop::with_user_event().build()?;
-    let mut app = ReignApp::new();
-    event_loop.run_app(&mut app)?;
-
-    Ok(())
 }
