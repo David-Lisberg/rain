@@ -6,6 +6,15 @@ pub struct Color {
 }
 
 impl Color {
+    pub fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
+        Self {
+            r,
+            g,
+            b,
+            a
+        }
+    }
+
     pub fn reign_color_to_wgpu_color(color: &Self) -> wgpu::Color {
         wgpu::Color {
             r: color.r as f64 / 255.0,

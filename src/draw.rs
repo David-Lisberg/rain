@@ -15,5 +15,5 @@ impl DrawPass {
 }
 
 pub enum DrawCall {
-    ClearBackground
+    RectangleColor(f64, f64, f64, f64, Color)
 }
