@@ -6,4 +6,19 @@
 
 - Systems are scheduled in RedrawRequested event
 
-- ECS for game specific components
+- ECS for game specific components 
+
+# Components
+
+## ECS
+
+## Renderer
+
+## Resource Manager
+
+- Load textures and audio
+- Maintain textures and audio
+
+## Audio
+
+## Utilities
