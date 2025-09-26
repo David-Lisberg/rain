@@ -6,14 +6,14 @@ pub struct DrawPass {
 }
 
 impl DrawPass {
-    pub fn new() -> Self {
+    pub fn new(clear_background_color: Option<Color>) -> Self {
         Self {
             draw_calls: Vec::new(),
-            clear_background_color: None,
+            clear_background_color,
         }
     }
 }
 
-pub enum DrawCall {
-    RectangleColor(f64, f64, f64, f64, Color)
+pub struct DrawCall {
+    
 }

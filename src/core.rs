@@ -11,12 +11,12 @@ use crate::renderer::Renderer;
 
 use super::input::*;
 
-pub trait ReignState {
-    fn update(&mut self, handle: &ReignHandle);
-    fn render(&mut self, handle: &mut ReignHandle);
+pub trait RainState {
+    fn update(&mut self, handle: &RainHandle);
+    fn render(&mut self, handle: &mut RainHandle);
 }
 
-pub struct ReignHandle {
+pub struct RainHandle {
     pub renderer: Renderer,
     window: Arc<Window>,
     keyboard: Keyboard,
@@ -25,8 +25,8 @@ pub struct ReignHandle {
     delta_time: Duration,
 }
 
-impl ReignHandle {
-    async fn new(window: Arc<Window>) -> anyhow::Result<ReignHandle> {
+impl RainHandle {
+    async fn new(window: Arc<Window>) -> anyhow::Result<RainHandle> {
         let renderer = Renderer::new(Arc::clone(&window)).await?;
 
         Ok(Self {
@@ -68,17 +68,17 @@ impl ReignHandle {
     }
 }
 
-pub struct ReignApp<F> 
+pub struct RainApp<F> 
 where 
-    F: ReignState + 'static
+    F: RainState + 'static
 {
-    handle: Option<ReignHandle>,
+    handle: Option<RainHandle>,
     state: Option<F>,
 }
 
-impl<F> ReignApp<F>
+impl<F> RainApp<F>
 where
-    F: ReignState + 'static,
+    F: RainState + 'static,
 {
     pub fn new(state: F) -> Self {
         Self {
@@ -88,9 +88,9 @@ where
     }
 }
 
-impl<F> ApplicationHandler<ReignHandle> for ReignApp<F>
+impl<F> ApplicationHandler<RainHandle> for RainApp<F>
 where 
-    F: ReignState + 'static
+    F: RainState + 'static
 {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let window_attributes = Window::default_attributes();
@@ -98,11 +98,11 @@ where
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            self.handle = Some(pollster::block_on(ReignHandle::new(window)).unwrap());
+            self.handle = Some(pollster::block_on(RainHandle::new(window)).unwrap());
         }
     }
 
-    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: ReignHandle) {
+    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: RainHandle) {
         self.handle = Some(event);
     }
 

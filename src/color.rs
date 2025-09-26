@@ -15,7 +15,7 @@ impl Color {
         }
     }
 
-    pub fn reign_color_to_wgpu_color(color: &Self) -> wgpu::Color {
+    pub fn rain_color_to_wgpu_color(color: &Self) -> wgpu::Color {
         wgpu::Color {
             r: color.r as f64 / 255.0,
             g: color.g as f64 / 255.0,

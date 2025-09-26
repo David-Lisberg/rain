@@ -64,7 +64,7 @@ impl Renderer {
             queue,
             config,
             is_surface_configured: false,
-            draw_pass: DrawPass::new(),
+            draw_pass: DrawPass::new(None),
         })
     }
 
@@ -91,7 +91,7 @@ impl Renderer {
 
         /* handles clear background */
         let clear_background_op = if let Some(color) = &self.draw_pass.clear_background_color {
-            let wgpu_color = color::Color::reign_color_to_wgpu_color(color);
+            let wgpu_color = color::Color::rain_color_to_wgpu_color(color);
             wgpu::Operations {
                 load: wgpu::LoadOp::Clear(wgpu_color),
                 store: wgpu::StoreOp::Store,
@@ -124,7 +124,7 @@ impl Renderer {
 
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
-        self.draw_pass = DrawPass::new();
+        self.draw_pass = DrawPass::new(None);
 
         Ok(())
     }
