@@ -1,4 +1,4 @@
-use crate::color::Color;
+use crate::{color::Color, mesh::Mesh, vertex::Vertex};
 
 pub struct DrawPass {
     pub draw_calls: Vec<DrawCall>,
@@ -14,6 +14,6 @@ impl DrawPass {
     }
 }
 
-pub struct DrawCall {
-    
+pub enum DrawCall {
+    Mesh(Mesh),
 }

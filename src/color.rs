@@ -24,6 +24,14 @@ impl Color {
         }
     }
 
+    pub fn rain_color_to_array(color: &Self) -> [f32; 3] {
+        [
+            color.r as f32 / 255.0,
+            color.g as f32 / 255.0,
+            color.b as f32 / 255.0,
+        ]
+    }
+
     pub const RED: Self = Self { r: 255, g: 0, b: 0, a: 255 };
     pub const GREEN: Self = Self { r: 0, g: 255, b: 0, a: 255 };
     pub const BLUE: Self = Self { r: 0, g: 0, b: 255, a: 255 };
