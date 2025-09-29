@@ -22,10 +22,10 @@ impl RainHandle {
         self.renderer.draw_pass.draw_calls.push(DrawCall::Mesh(
             Mesh {
                 vertices: vec![
-                    Vertex { position: [ndc_x, ndc_y, 0.0], color: color_array },
-                    Vertex { position: [ndc_w, ndc_y, 0.0], color: color_array },
                     Vertex { position: [ndc_x, ndc_h, 0.0], color: color_array },
                     Vertex { position: [ndc_w, ndc_h, 0.0], color: color_array },
+                    Vertex { position: [ndc_x, ndc_y, 0.0], color: color_array },
+                    Vertex { position: [ndc_w, ndc_y, 0.0], color: color_array },
                 ],
                 indices: INDICES_RECTANGLE.to_vec(),
             }

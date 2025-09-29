@@ -9,8 +9,9 @@ impl RainState for State {
     }
 
     fn render(&mut self, handle: &mut RainHandle) {
-        handle.clear_background(Color::RED);
-        handle.draw_rectangle(200.0, 200.0, 100.0, 300.0, Color::GREEN);
+        handle.clear_background(Color::LIME);
+        handle.draw_rectangle(50.0, 50.0, 300.0, 300.0, Color::TEAL);
+        handle.draw_rectangle(10.0, 20.0, 200.0, 400.0, Color::BROWN);
     }
 }
 
