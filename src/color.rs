@@ -24,11 +24,12 @@ impl Color {
         }
     }
 
-    pub fn rain_color_to_array(color: &Self) -> [f32; 3] {
+    pub fn rain_color_to_array(color: &Self) -> [f32; 4] {
         [
-            Self::srgb_to_linear(color.r as f32/ 255.0),
-            Self::srgb_to_linear(color.g as f32/ 255.0),
-            Self::srgb_to_linear(color.b as f32/ 255.0),
+            Self::srgb_to_linear(color.r as f32 / 255.0),
+            Self::srgb_to_linear(color.g as f32 / 255.0),
+            Self::srgb_to_linear(color.b as f32 / 255.0),
+            color.a as f32 / 255.0,
         ]
     }
 

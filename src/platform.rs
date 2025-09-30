@@ -3,7 +3,7 @@ use crate::core::RainHandle;
 use crate::draw::{DrawCall, DrawPass};
 use crate::mesh::Mesh;
 use crate::utility::transform::framebuffer_to_ndc;
-use crate::vertex::Vertex;
+use crate::vertex::UIVertex;
 
 const INDICES_RECTANGLE: &[u16] = &[
     0, 1, 2,
@@ -22,10 +22,10 @@ impl RainHandle {
         self.renderer.draw_pass.draw_calls.push(DrawCall::Mesh(
             Mesh {
                 vertices: vec![
-                    Vertex { position: [ndc_x, ndc_h, 0.0], color: color_array },
-                    Vertex { position: [ndc_w, ndc_h, 0.0], color: color_array },
-                    Vertex { position: [ndc_x, ndc_y, 0.0], color: color_array },
-                    Vertex { position: [ndc_w, ndc_y, 0.0], color: color_array },
+                    UIVertex { position: [ndc_x, ndc_h], uv: [0.0, 1.0], color: color_array },
+                    UIVertex { position: [ndc_w, ndc_h], uv: [1.0, 1.0], color: color_array },
+                    UIVertex { position: [ndc_x, ndc_y], uv: [0.0, 0.0], color: color_array },
+                    UIVertex { position: [ndc_w, ndc_y], uv: [1.0, 0.0], color: color_array },
                 ],
                 indices: INDICES_RECTANGLE.to_vec(),
             }
