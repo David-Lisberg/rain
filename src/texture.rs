@@ -1,31 +1,37 @@
 use std::sync::Arc;
-use image::{ImageBuffer, Rgba, GenericImageView};
+use image::{DynamicImage, GenericImageView, ImageBuffer, Rgba};
 
+use crate::{core::RainHandle, utility::image::resize_and_pad};
+
+#[derive(Debug)]
 pub struct Texture {
-    pub texture: wgpu::Texture,
-    pub view: wgpu::TextureView,
-    pub sampler: wgpu::Sampler,
+    texture: wgpu::Texture,
+    pub array_id: u32,
+    index: u32,
+    uv: [f32; 2],
 }
 
 impl Texture {
-    pub fn white_pixel(device: &wgpu::Device, queue: &wgpu::Queue) -> Arc<Texture> {
+    pub fn white_pixel() -> DynamicImage {
         let raw: Vec<u8> = vec![255, 255, 255, 255];
         let image: ImageBuffer<Rgba<u8>, _> = ImageBuffer::from_raw(1, 1, raw).unwrap();
-        let image = image::DynamicImage::ImageRgba8(image);
-        Self::from_image(device, queue, &image)
+        image::DynamicImage::ImageRgba8(image)
     }
 
-    pub fn from_bytes(device: &wgpu::Device, queue: &wgpu::Queue, bytes: &[u8]) -> Arc<Texture> {
+    pub fn from_bytes(device: &wgpu::Device, queue: &wgpu::Queue, array: &mut TextureArray, bytes: &[u8]) -> Arc<Texture> {
         let image = image::load_from_memory(bytes).unwrap();
-        Self::from_image(device, queue, &image)
+        Self::from_image(device, queue, array, &image)
     }
 
-    pub fn from_image(device: &wgpu::Device, queue: &wgpu::Queue, image: &image::DynamicImage) -> Arc<Texture> {
+    pub fn from_image(device: &wgpu::Device, queue: &wgpu::Queue, array: &mut TextureArray, image: &image::DynamicImage) -> Arc<Texture> {
         let image = image.to_rgba8();
         let dimensions = image.dimensions();
+
+        let image = resize_and_pad(image, array.width, array.height);
+
         let texture_size = wgpu::Extent3d {
-            width: dimensions.0,
-            height: dimensions.1,
+            width: array.width,
+            height: array.height,
             depth_or_array_layers: 1,
         };
         let texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -39,23 +45,78 @@ impl Texture {
             view_formats: &[],
         });
 
+        if array.current >= array.layers {
+            panic!("Error: Attempting to write more textures than array can hold.")
+        }
+
+        let index = array.current;
+
         queue.write_texture(
             wgpu::TexelCopyTextureInfo {
                 texture: &texture,
                 mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
+                origin: wgpu::Origin3d {
+                    x: 0,
+                    y: 0,
+                    z: index,
+                },
                 aspect: wgpu::TextureAspect::All,
             },
             &image,
             wgpu::TexelCopyBufferLayout {
                 offset: 0,
-                bytes_per_row: Some(4 * dimensions.0),
-                rows_per_image: Some(dimensions.1),
+                bytes_per_row: Some(4 * array.width),
+                rows_per_image: Some(array.height),
             },
             texture_size,
         );
 
-        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        array.current += 1;
+
+        Arc::new(Texture {
+            texture,
+            index,
+            array_id: array.id,
+            uv: [(dimensions.0 as f32 / array.width as f32), (dimensions.1 as f32 / array.height as f32)]
+        })
+    }
+}
+
+pub struct TextureArray {
+    pub array: wgpu::Texture,
+    pub view: wgpu::TextureView,
+    pub sampler: wgpu::Sampler,
+    pub width: u32,
+    pub height: u32,
+    pub layers: u32,
+    pub current: u32,
+    pub id: u32,
+}
+
+impl TextureArray {
+    pub fn new(device: &wgpu::Device, width: u32, height: u32, layers: u32, id: u32) -> TextureArray {
+        let texture_size = wgpu::Extent3d {
+            width,
+            height,
+            depth_or_array_layers: layers,
+        };
+
+        let array = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some(&format!("texture_{}x{}_array", width, height)),
+            size: texture_size,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+
+        let view = array.create_view(&wgpu::TextureViewDescriptor {
+            label: Some(&format!("texture_{}x{}_array_view", width, height)),
+            dimension: Some(wgpu::TextureViewDimension::D2Array),
+            ..Default::default()
+        });
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
@@ -66,10 +127,15 @@ impl Texture {
             ..Default::default()
         });
 
-        Arc::new(Texture {
-            texture,
+        TextureArray {
+            array,
             view,
             sampler,
-        })
+            width,
+            height,
+            layers,
+            current: 0,
+            id,
+        }
     }
 }

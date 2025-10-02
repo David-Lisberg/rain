@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::color::Color;
 use crate::core::RainHandle;
 use crate::draw::{DrawCall, DrawPass};
@@ -22,12 +24,13 @@ impl RainHandle {
         self.renderer.draw_pass.draw_calls.push(DrawCall::Mesh(
             Mesh {
                 vertices: vec![
-                    UIVertex { position: [ndc_x, ndc_h], uv: [0.0, 1.0], color: color_array },
-                    UIVertex { position: [ndc_w, ndc_h], uv: [1.0, 1.0], color: color_array },
-                    UIVertex { position: [ndc_x, ndc_y], uv: [0.0, 0.0], color: color_array },
-                    UIVertex { position: [ndc_w, ndc_y], uv: [1.0, 0.0], color: color_array },
+                    UIVertex { position: [ndc_x, ndc_h], uv: [0.0, 1.0], layer: 0, color: color_array },
+                    UIVertex { position: [ndc_w, ndc_h], uv: [1.0, 1.0], layer: 0, color: color_array },
+                    UIVertex { position: [ndc_x, ndc_y], uv: [0.0, 0.0], layer: 0, color: color_array },
+                    UIVertex { position: [ndc_w, ndc_y], uv: [1.0, 0.0], layer: 0, color: color_array },
                 ],
                 indices: INDICES_RECTANGLE.to_vec(),
+                material: Arc::clone(self.resource_manager.textures.get("").unwrap()),
             }
         ))
     }

@@ -8,6 +8,8 @@ use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::Window;
 
 use crate::renderer::Renderer;
+use crate::resource::ResourceManager;
+use crate::texture::Texture;
 
 use super::input::*;
 
@@ -18,6 +20,7 @@ pub trait RainState {
 
 pub struct RainHandle {
     pub renderer: Renderer,
+    pub resource_manager: ResourceManager,
     window: Arc<Window>,
     keyboard: Keyboard,
     mouse: Mouse,
@@ -28,9 +31,14 @@ pub struct RainHandle {
 impl RainHandle {
     async fn new(window: Arc<Window>) -> anyhow::Result<RainHandle> {
         let renderer = Renderer::new(Arc::clone(&window)).await?;
+        let mut resource_manager = ResourceManager::new(&renderer.device);
+
+        let white_pixel = Texture::white_pixel();
+        resource_manager.load_texture(&renderer.device, &renderer.queue, "".to_string(), &white_pixel)?;
 
         Ok(Self {
             renderer,
+            resource_manager,
             window,
             keyboard: Keyboard::new(),
             mouse: Mouse::new(),
@@ -125,7 +133,7 @@ where
                     s.render(handle);
                 }
                 handle.window.request_redraw();
-                match handle.renderer.render() {
+                match handle.renderer.render(&handle.resource_manager) {
                     Ok(_) => {}
                     Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
                         let size = handle.window.inner_size();

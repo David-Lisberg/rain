@@ -3,7 +3,7 @@ use std::sync::Arc;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
-use crate::{color, draw::{DrawCall, DrawPass}, include_str_root, texture::Texture, vertex::UIVertex};
+use crate::{color, draw::{DrawCall, DrawPass}, include_str_root, resource::{ResourceManager, ARRAY_256X256_ID, ARRAY_4096X4096_ID}, texture::{Texture, TextureArray}, vertex::UIVertex};
 
 const MAX_UI_BUFFER_SIZE: u64 = 0x100000;
 
@@ -13,7 +13,6 @@ pub struct Renderer {
     pub queue: wgpu::Queue,
     pub config: wgpu::SurfaceConfiguration,
     pub render_pipeline: wgpu::RenderPipeline,
-    pub diffuse_bind_group: wgpu::BindGroup,
     pub ui_vertex_buffers: [wgpu::Buffer; 2],
     pub ui_index_buffers: [wgpu::Buffer; 2],
     pub ui_current_frame: usize,
@@ -66,51 +65,19 @@ impl Renderer {
             desired_maximum_frame_latency: 2,
         };
 
-        let texture = Texture::white_pixel(&device, &queue);
-        let texture_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        multisampled: false,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                }
-            ],
-            label: Some("texture_bind_group_layout"),
-        });
-        let diffuse_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &texture_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&texture.view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&texture.sampler),
-                }
-            ],
-            label: Some("diffuse_bind_group"),
-        });
-
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("basic_shader"),
             source: wgpu::ShaderSource::Wgsl(include_str_root!("res/shader/basic.wgsl").into()),
         });
 
+        let texture_bind_group_layout = ResourceManager::texture_bind_group_layout(&device);
+
         let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("render_pipeline_layout"),
-            bind_group_layouts: &[&texture_bind_group_layout],
+            bind_group_layouts: &[
+                &texture_bind_group_layout,
+                &texture_bind_group_layout
+            ],
             push_constant_ranges: &[],
         });
 
@@ -173,7 +140,6 @@ impl Renderer {
             queue,
             config,
             render_pipeline,
-            diffuse_bind_group,
             ui_vertex_buffers,
             ui_index_buffers,
             ui_current_frame: 0,
@@ -191,7 +157,7 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(&mut self, resource_manager: &ResourceManager) -> Result<(), wgpu::SurfaceError> {
         if !self.is_surface_configured {
             return Ok(());
         }
@@ -224,21 +190,35 @@ impl Renderer {
             ops: clear_background_op,
         });
 
-        let mut vertices: Vec<UIVertex> = Vec::with_capacity(MAX_UI_BUFFER_SIZE as usize);
-        let mut indices: Vec<u16> = Vec::new();
-        let mut offset = 0;
+        let mut vertices_1: Vec<UIVertex> = Vec::with_capacity(MAX_UI_BUFFER_SIZE as usize);
+        let mut vertices_2: Vec<UIVertex> = Vec::with_capacity(MAX_UI_BUFFER_SIZE as usize);
+        let mut indices_1: Vec<u16> = Vec::new();
+        let mut indices_2: Vec<u16> = Vec::new();
+        let mut offset_1 = 0;
+        let mut offset_2 = 0;
 
         for draw_call in &self.draw_pass.draw_calls {
             match draw_call {
                 DrawCall::Mesh(mesh) => {
-                    vertices.extend(&mesh.vertices);
-                    indices.extend(mesh.indices.iter().map(|i| i + offset));
-                    offset += mesh.vertices.len() as u16;
+                    match mesh.material.array_id {
+                        ARRAY_256X256_ID => {
+                            vertices_1.extend(&mesh.vertices);
+                            indices_1.extend(mesh.indices.iter().map(|i| i + offset_1));
+                            offset_1 += mesh.vertices.len() as u16;
+                        }
+                        ARRAY_4096X4096_ID => {
+                            vertices_2.extend(&mesh.vertices);
+                            indices_2.extend(mesh.indices.iter().map(|i| i + offset_2));
+                            offset_2 += mesh.vertices.len() as u16;
+                        }
+                        _ => {}
+                    }
                 }
             }
         }
 
-        let num_indices = indices.len();
+        let num_indices_1 = indices_1.len();
+        let num_indices_2 = indices_2.len();
 
         let ui_vertex_buffer = &self.ui_vertex_buffers[self.ui_current_frame];
         let ui_index_buffer = &self.ui_index_buffers[self.ui_current_frame];
@@ -261,7 +241,9 @@ impl Renderer {
 
             render_pass.set_pipeline(&self.render_pipeline);
 
-            render_pass.set_bind_group(0, &self.diffuse_bind_group, &[]);
+            for (_, (_, bind_group)) in resource_manager.texture_arrays.iter() {
+                render_pass.set_bind_group(0, bind_group, &[]);
+            }
             render_pass.set_vertex_buffer(0, ui_vertex_buffer.slice(..));
             render_pass.set_index_buffer(ui_index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             render_pass.draw_indexed(0..(num_indices as u32), 0, 0..1);

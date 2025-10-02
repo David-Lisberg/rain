@@ -7,7 +7,9 @@ pub mod renderer;
 pub mod vertex;
 pub mod mesh;
 pub mod texture;
+pub mod resource;
 pub mod utility {
     pub mod r#macro;
     pub mod transform;
+    pub mod image;
 }
