@@ -3,7 +3,7 @@ use image::{GenericImage, Rgba, RgbaImage};
 pub fn resize_and_pad(image: RgbaImage, width: u32, height: u32) -> RgbaImage {
     let (mut current_w, mut current_h) = image.dimensions();
 
-    while current_w < width && current_h < height {
+    while current_w <= width && current_h <= height {
         current_w *= 2;
         current_h *= 2;
     }

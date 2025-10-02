@@ -97,7 +97,7 @@ impl ResourceManager {
         let (array, _) = if dimensions.0 > 256 || dimensions.1 > 256 {
             self.texture_arrays.get_mut(&ARRAY_4096X4096_ID).unwrap()
         } else {
-            self.texture_arrays.get_mut(&ARRAY_4096X4096_ID).unwrap()
+            self.texture_arrays.get_mut(&ARRAY_256X256_ID).unwrap()
         };
 
         let texture = Texture::from_image(device, queue, array, image);
