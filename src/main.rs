@@ -21,12 +21,10 @@ impl RainState for State {
 
 fn main() -> anyhow::Result<()> {
     let state = State;
-    let event_loop = EventLoop::with_user_event().build()?;
-    let mut app = RainApp::new(state);
-
-
-
-    event_loop.run_app(&mut app)?;
+    let _ = RainApp::new(state)
+        .size(1000, 1100)
+        .title("hello_world")
+        .run();
 
     Ok(())
 }

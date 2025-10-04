@@ -2,8 +2,9 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use winit::application::ApplicationHandler;
+use winit::dpi::PhysicalSize;
 use winit::event::{WindowEvent, KeyEvent, ElementState};
-use winit::event_loop::ActiveEventLoop;
+use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::Window;
 
@@ -24,15 +25,17 @@ pub trait RainState {
 pub struct RainHandle {
     pub renderer: Renderer,
     pub resource_manager: ResourceManager,
-    window: Arc<Window>,
+    pub window: Arc<Window>,
     keyboard: Keyboard,
     mouse: Mouse,
     last_time: Instant,
     delta_time: Duration,
+    pub base_width: u32,
+    pub base_height: u32,
 }
 
 impl RainHandle {
-    async fn new(window: Arc<Window>) -> anyhow::Result<RainHandle> {
+    async fn new(window: Arc<Window>, base_width: u32, base_height: u32) -> anyhow::Result<RainHandle> {
         let renderer = Renderer::new(Arc::clone(&window)).await?;
         let mut resource_manager = ResourceManager::new(&renderer.device);
 
@@ -47,6 +50,8 @@ impl RainHandle {
             mouse: Mouse::new(),
             last_time: Instant::now(),
             delta_time: Duration::ZERO,
+            base_width,
+            base_height,
         })
     }
 
@@ -87,6 +92,7 @@ where
     state: Option<F>,
     width: u32,
     height: u32,
+    title: String,
 }
 
 impl<F> RainApp<F>
@@ -99,6 +105,7 @@ where
             state: Some(state),
             width: 800,
             height: 600,
+            title: "Rain Window".to_string(),
         }
     }
 
@@ -107,6 +114,16 @@ where
         self.height = height;
         self
     }
+
+    pub fn title(mut self, title: &str) -> Self {
+        self.title = title.to_string();
+        self
+    }
+
+    pub fn run(mut self) -> anyhow::Result<()> {
+        let event_loop = EventLoop::with_user_event().build()?;
+        event_loop.run_app(&mut self).map_err(anyhow::Error::new)
+    }
 }
 
 impl<F> ApplicationHandler<RainHandle> for RainApp<F>
@@ -114,11 +131,13 @@ where
     F: RainState + 'static
 {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        let window_attributes = Window::default_attributes();
+        let window_attributes = Window::default_attributes()
+            .with_title(&self.title)
+            .with_inner_size(PhysicalSize::new(self.width, self.height));
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
 
 
-        self.handle = Some(pollster::block_on(RainHandle::new(window)).unwrap());
+        self.handle = Some(pollster::block_on(RainHandle::new(window, self.width, self.height)).unwrap());
         
         let handle = self.handle.as_mut().unwrap();
         if let Some(s) = &mut self.state {

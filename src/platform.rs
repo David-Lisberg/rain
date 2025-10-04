@@ -19,8 +19,8 @@ impl RainHandle {
     }
 
     pub fn draw_rectangle(&mut self, x: f32, y: f32, w: f32, h: f32, color: Color) {
-        let (ndc_x, ndc_y) = framebuffer_to_ndc(x, y, self.renderer.config.width, self.renderer.config.height);
-        let (ndc_w, ndc_h) = framebuffer_to_ndc(x + w, y + h, self.renderer.config.width, self.renderer.config.height);
+        let (ndc_x, ndc_y) = framebuffer_to_ndc(x, y, self.base_width, self.base_height);
+        let (ndc_w, ndc_h) = framebuffer_to_ndc(x + w, y + h, self.base_width, self.base_height);
         let color_array = Color::rain_color_to_array(&color);
         self.renderer.draw_pass.draw_calls.push(DrawCall::Mesh(
             Mesh {
@@ -37,8 +37,8 @@ impl RainHandle {
     }
 
     pub fn draw_texture(&mut self, x: f32, y: f32, w: f32, h: f32, texture: Arc<Texture>, color: Color) {
-        let (ndc_x, ndc_y) = framebuffer_to_ndc(x, y, self.renderer.config.width, self.renderer.config.height);
-        let (ndc_w, ndc_h) = framebuffer_to_ndc(x + w, y + h, self.renderer.config.width, self.renderer.config.height);
+        let (ndc_x, ndc_y) = framebuffer_to_ndc(x, y, self.base_width, self.base_height);
+        let (ndc_w, ndc_h) = framebuffer_to_ndc(x + w, y + h, self.base_width, self.base_height);
         let color_array = Color::rain_color_to_array(&color);
         self.renderer.draw_pass.draw_calls.push(DrawCall::Mesh(
             Mesh {
