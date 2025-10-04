@@ -11,7 +11,7 @@ pub fn resize_and_pad(image: RgbaImage, width: u32, height: u32) -> RgbaImage {
     current_w /= 2;
     current_h /= 2;
 
-    let resized = image::imageops::resize(&image, current_w, current_h, image::imageops::FilterType::Lanczos3);
+    let resized = image::imageops::resize(&image, current_w, current_h, image::imageops::FilterType::Nearest);
 
     pad(resized, width, height)
 }

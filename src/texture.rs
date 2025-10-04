@@ -5,10 +5,9 @@ use crate::{core::RainHandle, utility::image::resize_and_pad};
 
 #[derive(Debug)]
 pub struct Texture {
-    texture: wgpu::Texture,
     pub array_id: u32,
-    index: u32,
-    uv: [f32; 2],
+    pub index: u32,
+    pub uv: [f32; 2],
 }
 
 impl Texture {
@@ -18,12 +17,12 @@ impl Texture {
         image::DynamicImage::ImageRgba8(image)
     }
 
-    pub fn from_bytes(device: &wgpu::Device, queue: &wgpu::Queue, array: &mut TextureArray, bytes: &[u8]) -> Arc<Texture> {
+    pub fn from_bytes(queue: &wgpu::Queue, array: &mut TextureArray, bytes: &[u8]) -> Arc<Texture> {
         let image = image::load_from_memory(bytes).unwrap();
-        Self::from_image(device, queue, array, &image)
+        Self::from_image(queue, array, &image)
     }
 
-    pub fn from_image(device: &wgpu::Device, queue: &wgpu::Queue, array: &mut TextureArray, image: &image::DynamicImage) -> Arc<Texture> {
+    pub fn from_image(queue: &wgpu::Queue, array: &mut TextureArray, image: &image::DynamicImage) -> Arc<Texture> {
         let image = image.to_rgba8();
         let dimensions = image.dimensions();
 
@@ -34,16 +33,16 @@ impl Texture {
             height: array.height,
             depth_or_array_layers: 1,
         };
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
-            size: texture_size,
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            label: Some("diffuse_texture"),
-            view_formats: &[],
-        });
+        // let texture = device.create_texture(&wgpu::TextureDescriptor {
+        //     size: texture_size,
+        //     mip_level_count: 1,
+        //     sample_count: 1,
+        //     dimension: wgpu::TextureDimension::D2,
+        //     format: wgpu::TextureFormat::Rgba8UnormSrgb,
+        //     usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+        //     label: Some("diffuse_texture"),
+        //     view_formats: &[],
+        // });
 
         if array.current >= array.layers {
             panic!("Error: Attempting to write more textures than array can hold.")
@@ -53,7 +52,7 @@ impl Texture {
 
         queue.write_texture(
             wgpu::TexelCopyTextureInfo {
-                texture: &texture,
+                texture: &array.array,
                 mip_level: 0,
                 origin: wgpu::Origin3d {
                     x: 0,
@@ -62,7 +61,7 @@ impl Texture {
                 },
                 aspect: wgpu::TextureAspect::All,
             },
-            &image,
+            image.as_raw(),
             wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(4 * array.width),
@@ -74,7 +73,7 @@ impl Texture {
         array.current += 1;
 
         Arc::new(Texture {
-            texture,
+            // texture,
             index,
             array_id: array.id,
             uv: [(dimensions.0 as f32 / array.width as f32), (dimensions.1 as f32 / array.height as f32)]

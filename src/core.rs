@@ -16,6 +16,9 @@ use super::input::*;
 pub trait RainState {
     fn update(&mut self, handle: &RainHandle);
     fn render(&mut self, handle: &mut RainHandle);
+    fn setup(&mut self, _handle: &mut RainHandle) {
+
+    }
 }
 
 pub struct RainHandle {
@@ -34,7 +37,7 @@ impl RainHandle {
         let mut resource_manager = ResourceManager::new(&renderer.device);
 
         let white_pixel = Texture::white_pixel();
-        resource_manager.load_texture(&renderer.device, &renderer.queue, "".to_string(), &white_pixel)?;
+        resource_manager.load_texture(&renderer.queue, "".to_string(), &white_pixel)?;
 
         Ok(Self {
             renderer,
@@ -82,6 +85,8 @@ where
 {
     handle: Option<RainHandle>,
     state: Option<F>,
+    width: u32,
+    height: u32,
 }
 
 impl<F> RainApp<F>
@@ -92,7 +97,15 @@ where
         Self {
             handle: None,
             state: Some(state),
+            width: 800,
+            height: 600,
         }
+    }
+
+    pub fn size(mut self, width: u32, height: u32) -> Self {
+        self.width = width;
+        self.height = height;
+        self
     }
 }
 
@@ -104,9 +117,12 @@ where
         let window_attributes = Window::default_attributes();
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
 
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            self.handle = Some(pollster::block_on(RainHandle::new(window)).unwrap());
+
+        self.handle = Some(pollster::block_on(RainHandle::new(window)).unwrap());
+        
+        let handle = self.handle.as_mut().unwrap();
+        if let Some(s) = &mut self.state {
+            s.setup(handle);
         }
     }
 

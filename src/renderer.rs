@@ -121,7 +121,7 @@ impl Renderer {
                 entry_point: Some("fs_main"),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: config.format,
-                    blend: Some(wgpu::BlendState::REPLACE),
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
@@ -238,8 +238,7 @@ impl Renderer {
             }
             buffer_segment.vertices_length = vertex_offset * vertex_stride - buffer_segment.vertices_start;
             buffer_segment.indices_length = index_offset * index_stride - buffer_segment.indices_start;
-            dbg!(&buffer_segment);
-            println!("{} {}", vertex_offset, index_offset);
+            // dbg!(buffer_segment);
         }
 
         let ui_vertex_buffer = &self.ui_vertex_buffers[self.ui_current_frame];
@@ -279,8 +278,7 @@ impl Renderer {
         output.present();
 
         self.reset_render_state();
-
-        panic!();
+        
         Ok(())
     }
 

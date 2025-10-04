@@ -87,7 +87,7 @@ impl ResourceManager {
         })
     }
 
-    pub fn load_texture(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, name: String, image: &image::DynamicImage) -> Result<Arc<Texture>, Error> {
+    pub fn load_texture(&mut self, queue: &wgpu::Queue, name: String, image: &image::DynamicImage) -> Result<Arc<Texture>, Error> {
         let dimensions = image.dimensions();
 
         if dimensions.0 > 4096 || dimensions.1 > 4096 {
@@ -100,7 +100,7 @@ impl ResourceManager {
             self.texture_arrays.get_mut(&ARRAY_256X256_ID).unwrap()
         };
 
-        let texture = Texture::from_image(device, queue, array, image);
+        let texture = Texture::from_image(queue, array, image);
         self.textures.insert(name, Arc::clone(&texture));
 
         Ok(texture)
@@ -110,6 +110,10 @@ impl ResourceManager {
 impl RainHandle {
     pub fn load_texture(&mut self, name: &str, path: &str) -> Result<Arc<Texture>, Error> {
         let image = image::open(path)?;
-        self.resource_manager.load_texture(&self.renderer.device, &self.renderer.queue, name.to_string(), &image)
+        self.resource_manager.load_texture(&self.renderer.queue, name.to_string(), &image)
+    }
+
+    pub fn fetch_texture(&self, name: &str) -> Option<Arc<Texture>> {
+        self.resource_manager.textures.get(name).cloned()
     }
 }
