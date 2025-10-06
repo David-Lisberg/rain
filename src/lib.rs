@@ -9,6 +9,7 @@ pub mod mesh;
 pub mod texture;
 pub mod resource;
 pub mod utility {
+    pub mod rectangle;
     pub mod math;
     pub mod r#macro;
     pub mod transform;

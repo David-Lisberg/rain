@@ -29,7 +29,7 @@ pub struct RainHandle {
     keyboard: Keyboard,
     mouse: Mouse,
     last_time: Instant,
-    delta_time: Duration,
+    pub delta_time: f32,
     pub base_width: u32,
     pub base_height: u32,
 }
@@ -49,7 +49,7 @@ impl RainHandle {
             keyboard: Keyboard::new(),
             mouse: Mouse::new(),
             last_time: Instant::now(),
-            delta_time: Duration::ZERO,
+            delta_time: 0.0,
             base_width,
             base_height,
         })
@@ -205,9 +205,9 @@ where
             Some(h) => h,
             None => return,
         };
-
+        
         let now = Instant::now();
-        handle.delta_time = now - handle.last_time;
+        handle.delta_time = Duration::as_secs_f32(&(now - handle.last_time));
         handle.last_time = now;
 
         if let Some(s) = &mut self.state {

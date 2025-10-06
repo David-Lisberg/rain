@@ -12,8 +12,11 @@ impl RainState for State {
 
     fn render(&mut self, handle: &mut RainHandle) {
         handle.clear_background(Color::LIME);
-        handle.draw_rectangle_ex(350.0, 300.0, 300.0, 200.0, Color::TEAL, self.rotation, (0.0, 0.0));
-        handle.draw_texture(10.0, 20.0, 200.0, 400.0, handle.fetch_texture("test").unwrap(), Color::WHITE);
+        handle.draw_rectangle_ex((350.0, 300.0, 300.0, 200.0), Color::TEAL, self.rotation, (0.0, 0.0));
+        handle.draw_texture_ex(
+            (10.0, 20.0, 200.0, 400.0), 
+            handle.fetch_texture("test").unwrap(), Color::WHITE, self.rotation, (100.0, 200.0)
+        );
     }
 
     fn setup(&mut self, handle: &mut RainHandle) {
