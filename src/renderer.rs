@@ -128,7 +128,7 @@ impl Renderer {
                 entry_point: Some("fs_main"),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: config.format,
-                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    blend: Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
@@ -271,8 +271,9 @@ impl Renderer {
 
             render_pass.set_pipeline(&self.render_pipeline);
 
-            for ((_, (_, bind_group)), buffer_segment) in resource_manager.texture_arrays.iter().zip(buffer_segments.iter()) {
+            for buffer_segment in &buffer_segments {
                 if buffer_segment.vertices_length != 0 && buffer_segment.indices_length != 0 {
+                    let (_, bind_group) = resource_manager.texture_arrays.get(&buffer_segment.id).unwrap();
                     render_pass.set_bind_group(0, bind_group, &[]);
                     render_pass.set_vertex_buffer(
                         0, 

@@ -6,7 +6,7 @@ struct State{
 }
 
 impl RainState for State {
-    fn update(&mut self, _handle: &RainHandle) {
+    fn update(&mut self, handle: &mut RainHandle) {
         self.rotation += 0.5;
     }
 

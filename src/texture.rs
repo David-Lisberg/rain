@@ -33,16 +33,6 @@ impl Texture {
             height: array.height,
             depth_or_array_layers: 1,
         };
-        // let texture = device.create_texture(&wgpu::TextureDescriptor {
-        //     size: texture_size,
-        //     mip_level_count: 1,
-        //     sample_count: 1,
-        //     dimension: wgpu::TextureDimension::D2,
-        //     format: wgpu::TextureFormat::Rgba8UnormSrgb,
-        //     usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-        //     label: Some("diffuse_texture"),
-        //     view_formats: &[],
-        // });
 
         if array.current >= array.layers {
             panic!("Error: Attempting to write more textures than array can hold.")

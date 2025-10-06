@@ -34,5 +34,5 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let layer_index: i32 = i32(in.layer);
 
     let texture_color = textureSample(diffuse_textures, diffuse_sampler, in.uv, layer_index);
-    return texture_color * in.color;
+    return in.color * texture_color;
 }

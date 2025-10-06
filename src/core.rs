@@ -15,7 +15,7 @@ use crate::texture::Texture;
 use super::input::*;
 
 pub trait RainState {
-    fn update(&mut self, handle: &RainHandle);
+    fn update(&mut self, handle: &mut RainHandle);
     fn render(&mut self, handle: &mut RainHandle);
     fn setup(&mut self, _handle: &mut RainHandle) {
 
