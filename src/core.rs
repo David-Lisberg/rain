@@ -140,6 +140,7 @@ where
         self.handle = Some(pollster::block_on(RainHandle::new(window, self.width, self.height)).unwrap());
         
         let handle = self.handle.as_mut().unwrap();
+
         if let Some(s) = &mut self.state {
             s.setup(handle);
         }

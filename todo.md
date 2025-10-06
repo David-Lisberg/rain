@@ -1,0 +1,4 @@
+- Implement ECS
+- Sprite system
+- Rotating sprites/rectangles
+- Delta time

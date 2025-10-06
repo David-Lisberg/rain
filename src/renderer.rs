@@ -1,9 +1,12 @@
 use std::sync::Arc;
 
-use wgpu::util::DeviceExt;
 use winit::window::Window;
 
-use crate::{color, draw::{DrawCall, DrawPass}, include_str_root, resource::{ResourceManager, ARRAY_256X256_ID, ARRAY_4096X4096_ID}, texture::{Texture, TextureArray}, vertex::UIVertex};
+use crate::color;
+use crate::draw::{DrawCall, DrawPass};
+use crate::include_str_root;
+use crate::resource::*;
+use crate::vertex::UIVertex;
 
 const MAX_UI_BUFFER_SIZE: u64 = 0x100000;
 
@@ -24,10 +27,10 @@ pub struct Renderer {
 struct BufferSegment {
     id: u32,
     vertices: Vec<UIVertex>,
-    vertices_start: u32,
+    vertices_offset: u32,
     vertices_length: u32,
     indices: Vec<u16>,
-    indices_start: u32,
+    indices_offset: u32,
     indices_length: u32,
 }
 
@@ -36,10 +39,10 @@ impl BufferSegment {
         Self {
             id,
             vertices: Vec::new(),
-            vertices_start: 0,
+            vertices_offset: 0,
             vertices_length: 0,
             indices: Vec::new(),
-            indices_start: 0,
+            indices_offset: 0,
             indices_length: 0,
         }
     }
@@ -78,13 +81,17 @@ impl Renderer {
             .find(|f| f.is_srgb())
             .copied()
             .unwrap_or(surface_caps.formats[0]);
-        dbg!(surface_format);
+        let present_mode = surface_caps.present_modes.iter()
+            .copied()
+            .find(|m| *m == wgpu::PresentMode::Fifo)
+            .unwrap_or(surface_caps.present_modes[0]);
+
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface_format,
             width: size.width,
             height: size.height,
-            present_mode: surface_caps.present_modes[0],
+            present_mode,
             alpha_mode: surface_caps.alpha_modes[0],
             view_formats: vec![],
             desired_maximum_frame_latency: 2,
@@ -224,8 +231,8 @@ impl Renderer {
         let mut vertex_offset = 0;
         let mut index_offset = 0;
         for buffer_segment in &mut buffer_segments {
-            buffer_segment.vertices_start = vertex_offset * vertex_stride;
-            buffer_segment.indices_start = index_offset * index_stride;
+            buffer_segment.vertices_offset = vertex_offset * vertex_stride;
+            buffer_segment.indices_offset = index_offset * index_stride;
             for draw_call in &self.draw_pass.draw_calls {
                 if let DrawCall::Mesh(mesh) = draw_call {
                     if mesh.material.array_id == buffer_segment.id {
@@ -236,8 +243,8 @@ impl Renderer {
                     }
                 }
             }
-            buffer_segment.vertices_length = vertex_offset * vertex_stride - buffer_segment.vertices_start;
-            buffer_segment.indices_length = index_offset * index_stride - buffer_segment.indices_start;
+            buffer_segment.vertices_length = vertex_offset * vertex_stride - buffer_segment.vertices_offset;
+            buffer_segment.indices_length = index_offset * index_stride - buffer_segment.indices_offset;
             // dbg!(buffer_segment);
         }
 
@@ -247,8 +254,8 @@ impl Renderer {
         self.ui_current_frame ^= 1;
 
         for buffer_segment in &buffer_segments {
-            self.queue.write_buffer(ui_vertex_buffer, buffer_segment.vertices_start as u64, bytemuck::cast_slice(&buffer_segment.vertices));
-            self.queue.write_buffer(ui_index_buffer, buffer_segment.indices_start as u64, bytemuck::cast_slice(&buffer_segment.indices));
+            self.queue.write_buffer(ui_vertex_buffer, buffer_segment.vertices_offset as u64, bytemuck::cast_slice(&buffer_segment.vertices));
+            self.queue.write_buffer(ui_index_buffer, buffer_segment.indices_offset as u64, bytemuck::cast_slice(&buffer_segment.indices));
         }
 
         {
@@ -265,10 +272,16 @@ impl Renderer {
             render_pass.set_pipeline(&self.render_pipeline);
 
             for ((_, (_, bind_group)), buffer_segment) in resource_manager.texture_arrays.iter().zip(buffer_segments.iter()) {
-                if buffer_segment.vertices_length != 0 {
+                if buffer_segment.vertices_length != 0 && buffer_segment.indices_length != 0 {
                     render_pass.set_bind_group(0, bind_group, &[]);
-                    render_pass.set_vertex_buffer(0, ui_vertex_buffer.slice((buffer_segment.vertices_start as u64)..((buffer_segment.vertices_start + buffer_segment.vertices_length) as u64)));
-                    render_pass.set_index_buffer(ui_index_buffer.slice((buffer_segment.indices_start as u64)..((buffer_segment.indices_start + buffer_segment.indices_length) as u64)), wgpu::IndexFormat::Uint16);
+                    render_pass.set_vertex_buffer(
+                        0, 
+                        ui_vertex_buffer.slice((buffer_segment.vertices_offset as u64)..((buffer_segment.vertices_offset + buffer_segment.vertices_length) as u64))
+                    );
+                    render_pass.set_index_buffer(
+                        ui_index_buffer.slice((buffer_segment.indices_offset as u64)..((buffer_segment.indices_offset + buffer_segment.indices_length) as u64)), 
+                        wgpu::IndexFormat::Uint16
+                    );
                     render_pass.draw_indexed(0..(buffer_segment.indices_length / index_stride), 0, 0..1);
                 }
             }
