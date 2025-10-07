@@ -8,6 +8,7 @@ pub mod vertex;
 pub mod mesh;
 pub mod texture;
 pub mod resource;
+pub mod sprite;
 pub mod utility {
     pub mod rectangle;
     pub mod math;

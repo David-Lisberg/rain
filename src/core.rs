@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use hecs::World;
 use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
 use winit::event::{WindowEvent, KeyEvent, ElementState};
@@ -26,9 +27,10 @@ pub struct RainHandle {
     pub renderer: Renderer,
     pub resource_manager: ResourceManager,
     pub window: Arc<Window>,
-    keyboard: Keyboard,
-    mouse: Mouse,
-    last_time: Instant,
+    pub keyboard: Keyboard,
+    pub mouse: Mouse,
+    pub world: World,
+    pub last_time: Instant,
     pub delta_time: f32,
     pub base_width: u32,
     pub base_height: u32,
@@ -48,6 +50,7 @@ impl RainHandle {
             window,
             keyboard: Keyboard::new(),
             mouse: Mouse::new(),
+            world: World::new(),
             last_time: Instant::now(),
             delta_time: 0.0,
             base_width,
