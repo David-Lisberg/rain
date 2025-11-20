@@ -11,6 +11,7 @@ use winit::window::Window;
 
 use crate::renderer::Renderer;
 use crate::resource::ResourceManager;
+use crate::sprite::SpriteManager;
 use crate::texture::Texture;
 
 use super::input::*;
@@ -26,6 +27,7 @@ pub trait RainState {
 pub struct RainHandle {
     pub renderer: Renderer,
     pub resource_manager: ResourceManager,
+    pub sprite_manager: SpriteManager,
     pub window: Arc<Window>,
     pub keyboard: Keyboard,
     pub mouse: Mouse,
@@ -47,6 +49,7 @@ impl RainHandle {
         Ok(Self {
             renderer,
             resource_manager,
+            sprite_manager: SpriteManager::new(),
             window,
             keyboard: Keyboard::new(),
             mouse: Mouse::new(),

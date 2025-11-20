@@ -1,14 +1,17 @@
 use std::sync::Arc;
 
+use wgpu::util::DeviceExt;
 use winit::window::Window;
 
+use crate::camera::Camera2dUniform;
 use crate::color;
 use crate::draw::{DrawCall, DrawPass};
 use crate::include_str_root;
 use crate::resource::*;
-use crate::vertex::UIVertex;
+use crate::vertex::{UIVertex, SPRITE_QUAD_VERTICES};
 
 const MAX_UI_BUFFER_SIZE: u64 = 0x100000;
+const MAX_INSTANCE_BUFFER_SIZE: u64 = 0x10000;
 
 pub struct Renderer {
     pub surface: wgpu::Surface<'static>,
@@ -16,8 +19,13 @@ pub struct Renderer {
     pub queue: wgpu::Queue,
     pub config: wgpu::SurfaceConfiguration,
     pub render_pipeline: wgpu::RenderPipeline,
+    pub camera_uniform: Camera2dUniform,
+    pub camera_buffer: wgpu::Buffer,
+    pub camera_bind_group: wgpu::BindGroup,
     pub ui_vertex_buffers: [wgpu::Buffer; 2],
     pub ui_index_buffers: [wgpu::Buffer; 2],
+    pub sprite_quad_vertex_buffer: wgpu::Buffer,
+    pub sprite_instance_buffer: wgpu::Buffer,
     pub ui_current_frame: usize,
     pub is_surface_configured: bool,
     pub draw_pass: DrawPass,
@@ -99,15 +107,48 @@ impl Renderer {
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("basic_shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str_root!("res/shader/basic.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(include_str_root!("res/shader/ui.wgsl").into()),
         });
 
         let texture_bind_group_layout = ResourceManager::texture_bind_group_layout(&device);
+
+        let camera_uniform = Camera2dUniform::new();
+        let camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("camera_buffer"),
+            contents: bytemuck::cast_slice(&[camera_uniform]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+        let camera_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }
+            ],
+            label: Some("camera_bind_group_layout")
+        });
+        let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &camera_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: camera_buffer.as_entire_binding(),
+                }
+            ],
+            label: Some("camera_bind_group"),
+        });
 
         let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("render_pipeline_layout"),
             bind_group_layouts: &[
                 &texture_bind_group_layout,
+                // &camera_bind_group_layout,
             ],
             push_constant_ranges: &[],
         });
@@ -165,6 +206,18 @@ impl Renderer {
             mapped_at_creation: false,
         }));
 
+        let sprite_quad_vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("sprite_quad_vertex_buffer"),
+            contents: bytemuck::cast_slice(&SPRITE_QUAD_VERTICES),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+        let sprite_instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("sprite_instance_buffer"),
+            size: MAX_INSTANCE_BUFFER_SIZE,
+            usage: wgpu::BufferUsages::VERTEX,
+            mapped_at_creation: false,
+        });
+
         Ok(Self {
             surface,
             device,
@@ -173,7 +226,12 @@ impl Renderer {
             render_pipeline,
             ui_vertex_buffers,
             ui_index_buffers,
+            sprite_quad_vertex_buffer,
+            sprite_instance_buffer,
             ui_current_frame: 0,
+            camera_buffer,
+            camera_uniform,
+            camera_bind_group,
             is_surface_configured: false,
             draw_pass: DrawPass::new(None),
         })
@@ -200,7 +258,17 @@ impl Renderer {
             label: Some("render_encoder"),
         });
 
-        /* handles clear background */
+        self.render_ui(resource_manager, &view, &mut encoder);
+
+        self.queue.submit(std::iter::once(encoder.finish()));
+        output.present();
+
+        self.reset_render_state();
+        
+        Ok(())
+    }
+
+    fn render_ui(&mut self, resource_manager: &ResourceManager, view: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder) {
         let clear_background_op = if let Some(color) = &self.draw_pass.clear_background_color {
             let wgpu_color = color::Color::rain_color_to_wgpu_color(color);
             wgpu::Operations {
@@ -214,17 +282,17 @@ impl Renderer {
             }
         };
 
-        let base_color_attachment = Some(wgpu::RenderPassColorAttachment {
-            view: &view,
-            depth_slice: None,
-            resolve_target: None,
-            ops: clear_background_op,
-        });
-
         let mut buffer_segments: [BufferSegment; 2] = [
             BufferSegment::new(ARRAY_256X256_ID),
             BufferSegment::new(ARRAY_4096X4096_ID)
         ];
+
+        let base_color_attachment = Some(wgpu::RenderPassColorAttachment {
+            view,
+            depth_slice: None,
+            resolve_target: None,
+            ops: clear_background_op,
+        });
 
         let vertex_stride = std::mem::size_of::<UIVertex>()as u32;
         let index_stride = std::mem::size_of::<u16>() as u32;
@@ -287,13 +355,10 @@ impl Renderer {
                 }
             }
         }
+    }
 
-        self.queue.submit(std::iter::once(encoder.finish()));
-        output.present();
+    fn render_sprites(&mut self, resource_manager: &ResourceManager, view: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder) {
 
-        self.reset_render_state();
-        
-        Ok(())
     }
 
     fn reset_render_state(&mut self) {

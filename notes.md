@@ -33,3 +33,13 @@
 - When draw texture is called the texture is written to the queue on that frame in the next open spot
     - Draw pass tracks next available texture slot
     - When called uv is calculated based on ratio of actual texture size to scale
+
+## Sprites
+
+- Shader
+    - Camera uniform
+    - Quad vertex buffer
+        - Contains
+    - Instance buffer
+        - Stores texture index, world position, uv, etc.
+    - Sprites are drawn using wgpu instances
