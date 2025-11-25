@@ -1,18 +1,28 @@
 use hecs::*;
 use glam::*;
 
-use crate::{core::RainHandle, texture::Texture};
+use crate::{core::RainHandle, instance::SpriteInstance, texture::Texture};
 
-struct Sprite;
-struct SpriteTransform {
+pub struct Sprite;
+pub struct SpriteVisible;
+pub struct SpriteCreated;
+pub struct SpriteRemoved;
+pub struct SpriteTransform {
     position: Vec3,
     scale: Vec2,
     rotation: f32,
 }
-struct SpriteVisible;
-struct SpriteCreated;
-struct SpriteRemoved;
 
+impl SpriteTransform {
+    pub fn to_sprite_instance(&self, layer: u32) -> SpriteInstance {
+        SpriteInstance {
+            position: self.position.into(),
+            scale: self.scale.into(),
+            rotation: self.rotation,
+            layer
+        }
+    }
+}
 
 pub struct SpriteManager {
     pub sprites: Vec<Entity>,

@@ -175,7 +175,7 @@ where
                     s.render(handle);
                 }
                 handle.window.request_redraw();
-                match handle.renderer.render(&handle.resource_manager) {
+                match handle.renderer.render(&handle.resource_manager, &handle.world) {
                     Ok(_) => {}
                     Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
                         let size = handle.window.inner_size();

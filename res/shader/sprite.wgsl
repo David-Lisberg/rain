@@ -22,9 +22,20 @@ fn vs_main(
     instance: InstanceData,
 ) -> VertexOutput {
     var out: VertexOutput;
-
     
-
     out.uv = model.uv;
+    out.layer = instance.layer
+    out.clip_position = vec4<f32>(instance.position, 1.0);
+}
 
+@group(0) @binding(0)
+var diffuse_textures: texture_2d_array<f32>;
+@group(0) @binding(1)
+var diffuse_sampler: sampler;
+
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    let layer_index: i32 = i32(in.layer);
+
+    return textureSample(diffuse_textures, diffuse_sampler, in.uv, layer_index);
 }
