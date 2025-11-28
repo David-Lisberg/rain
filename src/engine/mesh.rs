@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{texture::Texture, vertex::UIVertex};
+use crate::engine::{texture::Texture, vertex::UIVertex};
 
 #[derive(Clone, Debug)]
 pub struct Mesh {

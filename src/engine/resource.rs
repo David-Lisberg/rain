@@ -4,7 +4,7 @@ use std::{collections::HashMap, sync::Arc};
 use anyhow::Error;
 use image::GenericImageView;
 
-use crate::{core::RainHandle, texture::{Texture, TextureArray}};
+use crate::engine::{core::RainHandle, texture::{Texture, TextureArray}};
 
 pub const ARRAY_256X256_ID: u32 = 0;
 pub const ARRAY_4096X4096_ID: u32 = 1;

@@ -15,10 +15,15 @@ pub struct SpriteVertex {
 }
 
 pub const SPRITE_QUAD_VERTICES: [SpriteVertex; 4] = [
-    SpriteVertex { position: [0.0, 0.0], uv: [0.0, 0.0] },
-    SpriteVertex { position: [1.0, 0.0], uv: [1.0, 0.0] },
-    SpriteVertex { position: [1.0, 1.0], uv: [1.0, 1.0] },
-    SpriteVertex { position: [0.0, 1.0], uv: [0.0, 1.0] },
+    SpriteVertex { position: [-0.5, -0.5], uv: [0.0, 1.0] },
+    SpriteVertex { position: [0.5, -0.5], uv: [1.0, 1.0] },
+    SpriteVertex { position: [0.5, 0.5], uv: [1.0, 0.0] },
+    SpriteVertex { position: [-0.5, 0.5], uv: [0.0, 0.0] },
+];
+
+pub const SPRITE_QUAD_INDICES: &[u16] = &[
+    0, 1, 3,
+    1, 2, 3
 ];
 
 impl UIVertex {

@@ -9,10 +9,9 @@ use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::Window;
 
-use crate::renderer::Renderer;
-use crate::resource::ResourceManager;
-use crate::sprite::SpriteManager;
-use crate::texture::Texture;
+use crate::engine::renderer::Renderer;
+use crate::engine::resource::ResourceManager;
+use crate::engine::texture::Texture;
 
 use super::input::*;
 
@@ -27,7 +26,6 @@ pub trait RainState {
 pub struct RainHandle {
     pub renderer: Renderer,
     pub resource_manager: ResourceManager,
-    pub sprite_manager: SpriteManager,
     pub window: Arc<Window>,
     pub keyboard: Keyboard,
     pub mouse: Mouse,
@@ -49,7 +47,6 @@ impl RainHandle {
         Ok(Self {
             renderer,
             resource_manager,
-            sprite_manager: SpriteManager::new(),
             window,
             keyboard: Keyboard::new(),
             mouse: Mouse::new(),
@@ -62,7 +59,7 @@ impl RainHandle {
     }
 
     fn _update(&mut self) {
-
+        
     }
 
     fn handle_input_keyboard(&mut self, code: KeyCode, is_pressed: bool) {
@@ -219,5 +216,7 @@ where
         if let Some(s) = &mut self.state {
             s.update(handle);
         }
+
+        handle._update();
     }
 }

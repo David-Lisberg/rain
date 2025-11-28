@@ -4,15 +4,16 @@ use hecs::World;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
-use crate::camera::Camera2dUniform;
-use crate::color;
-use crate::draw::{DrawCall, DrawPass};
+use crate::engine::camera::{Camera2d, Camera2dUniform};
+use crate::engine::color::{self, Color};
+use crate::engine::draw::{DrawCall, DrawPass};
 use crate::include_str_root;
-use crate::instance::SpriteInstance;
-use crate::resource::*;
-use crate::sprite::*;
-use crate::texture::Texture;
-use crate::vertex::{SPRITE_QUAD_VERTICES, SpriteVertex, UIVertex};
+use crate::engine::instance::SpriteInstance;
+use crate::engine::resource::*;
+use crate::engine::sprite::*;
+use crate::engine::texture::Texture;
+use crate::engine::vertex::*;
+use crate::engine::component::*;
 
 const MAX_UI_BUFFER_SIZE: u64 = 0x100000;
 const MAX_INSTANCE_BUFFER_SIZE: u64 = 0x10000;
@@ -23,6 +24,7 @@ pub struct Renderer {
     pub queue: wgpu::Queue,
     pub config: wgpu::SurfaceConfiguration,
     pub ui_pipeline: wgpu::RenderPipeline,
+    pub camera: Camera2d,
     pub camera_uniform: Camera2dUniform,
     pub camera_buffer: wgpu::Buffer,
     pub camera_bind_group: wgpu::BindGroup,
@@ -30,6 +32,7 @@ pub struct Renderer {
     pub ui_index_buffers: [wgpu::Buffer; 2],
     pub sprite_pipeline: wgpu::RenderPipeline,
     pub sprite_quad_vertex_buffer: wgpu::Buffer,
+    pub sprite_quad_index_buffer: wgpu::Buffer,
     pub sprite_instance_buffer: wgpu::Buffer,
     pub ui_current_frame: usize,
     pub is_surface_configured: bool,
@@ -57,6 +60,24 @@ impl BufferSegment {
             indices: Vec::new(),
             indices_offset: 0,
             indices_length: 0,
+        }
+    }
+}
+
+struct BufferSegmentSpriteInstance {
+    id: u32,
+    instances: Vec<SpriteInstance>,
+    offset: u32,
+    length: u32,
+}
+
+impl BufferSegmentSpriteInstance {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+            instances: Vec::new(),
+            offset: 0,
+            length: 0
         }
     }
 }
@@ -110,27 +131,15 @@ impl Renderer {
             desired_maximum_frame_latency: 2,
         };
 
-        let camera_uniform = Camera2dUniform::new();
+        let camera = Camera2d::default(config.width as f32, config.height as f32);
+        let mut camera_uniform = Camera2dUniform::new();
+        camera_uniform.update_matrix(&camera);
         let camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("camera_buffer"),
             contents: bytemuck::cast_slice(&[camera_uniform]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
-        let camera_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                }
-            ],
-            label: Some("camera_bind_group_layout")
-        });
+        let camera_bind_group_layout = Camera2d::camera_bind_group_layout(&device);
         let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &camera_bind_group_layout,
             entries: &[
@@ -164,10 +173,15 @@ impl Renderer {
             contents: bytemuck::cast_slice(&SPRITE_QUAD_VERTICES),
             usage: wgpu::BufferUsages::VERTEX,
         });
+        let sprite_quad_index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("sprite_quad_index_buffer"),
+            contents: bytemuck::cast_slice(&SPRITE_QUAD_INDICES),
+            usage: wgpu::BufferUsages::INDEX,
+        });
         let sprite_instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("sprite_instance_buffer"),
             size: MAX_INSTANCE_BUFFER_SIZE,
-            usage: wgpu::BufferUsages::VERTEX,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
@@ -181,8 +195,10 @@ impl Renderer {
             ui_index_buffers,
             sprite_pipeline,
             sprite_quad_vertex_buffer,
+            sprite_quad_index_buffer,
             sprite_instance_buffer,
             ui_current_frame: 0,
+            camera,
             camera_buffer,
             camera_uniform,
             camera_bind_group,
@@ -203,7 +219,6 @@ impl Renderer {
             label: Some("ui_pipeline_layout"),
             bind_group_layouts: &[
                 &texture_bind_group_layout,
-                // &camera_bind_group_layout,
             ],
             push_constant_ranges: &[],
         });
@@ -255,12 +270,14 @@ impl Renderer {
             source: wgpu::ShaderSource::Wgsl(include_str_root!("res/shader/sprite.wgsl").into()),
         });
 
-        let texture_bind_group_layout = ResourceManager::texture_bind_group_layout(&device);
+        let texture_bind_group_layout = ResourceManager::texture_bind_group_layout(device);
+        let camera_bind_group_layout = Camera2d::camera_bind_group_layout(device);
 
         let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("sprite_pipeline_layout"),
             bind_group_layouts: &[
                 &texture_bind_group_layout,
+                &camera_bind_group_layout,
             ],
             push_constant_ranges: &[],
         });
@@ -347,7 +364,8 @@ impl Renderer {
             ops: clear_background_op,
         });
 
-        self.render_ui(resource_manager, &mut encoder, base_color_attachment);
+        self.render_sprites(resource_manager, &mut encoder, world, base_color_attachment.clone());
+        self.render_ui(resource_manager, &mut encoder, &view);
 
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
@@ -357,7 +375,7 @@ impl Renderer {
         Ok(())
     }
 
-    fn render_ui(&mut self, resource_manager: &ResourceManager, encoder: &mut wgpu::CommandEncoder, base_color_attachment: Option<wgpu::RenderPassColorAttachment<'_>>) {
+    fn render_ui(&mut self, resource_manager: &ResourceManager, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView) {
         let mut buffer_segments: [BufferSegment; 2] = [
             BufferSegment::new(ARRAY_256X256_ID),
             BufferSegment::new(ARRAY_4096X4096_ID)
@@ -396,9 +414,15 @@ impl Renderer {
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("render_pass"),
-                color_attachments: &[
-                    base_color_attachment
-                ],
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view,
+                    depth_slice: None,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
                 depth_stencil_attachment: None,
                 occlusion_query_set: None,
                 timestamp_writes: None,
@@ -424,7 +448,50 @@ impl Renderer {
         }
     }
 
-    fn render_sprites(&mut self, encoder: &mut wgpu::CommandEncoder, world: &World, base_color_attachment: Option<wgpu::RenderPassColorAttachment<'_>>) {
+    fn render_sprites(
+        &mut self, 
+        resource_manager: &ResourceManager, 
+        encoder: &mut wgpu::CommandEncoder, 
+        world: &World, 
+        base_color_attachment: Option<wgpu::RenderPassColorAttachment<'_>>
+    ) {
+        let mut buffer_segments: [BufferSegmentSpriteInstance; 2] = [
+            BufferSegmentSpriteInstance::new(ARRAY_256X256_ID),
+            BufferSegmentSpriteInstance::new(ARRAY_4096X4096_ID)
+        ];
+        let stride = std::mem::size_of::<SpriteInstance>() as u32;
+        let mut offset = 0;
+        let mut query = world.query::<(
+            &Sprite, &Visible, Option<&Position2D>, Option<&DepthZ>, Option<&Scale2D>, Option<&RotationZ>, Option<&Arc<Texture>>, Option<&Color>
+        )>();
+        for buffer_segment in &mut buffer_segments {
+            buffer_segment.offset = offset * stride;
+            for (_, (_, _, pos, depth, scale, rotation, texture, color)) in query.iter() {
+                if let Some(t) = texture {
+                    if t.array_id == buffer_segment.id {
+                        if let Some(c) = color {
+                            buffer_segment.instances.push(SpriteInstance::new(pos, depth, scale, rotation, c, t.index));
+                        } else {
+                            buffer_segment.instances.push(SpriteInstance::new(pos, depth, scale, rotation, &Color::WHITE, t.index));
+                        }
+                        offset += 1;
+                    }
+                } else if buffer_segment.id == ARRAY_256X256_ID {
+                    if let Some(c) = color {
+                        buffer_segment.instances.push(SpriteInstance::new(pos, depth, scale, rotation, c, 0));
+                    } else {
+                        buffer_segment.instances.push(SpriteInstance::new(pos, depth, scale, rotation, &Color::WHITE, 0));
+                    }
+                    offset += 1;
+                }
+            }
+            buffer_segment.length = offset * stride - buffer_segment.offset;
+        }
+
+        for buffer_segment in &buffer_segments {
+            self.queue.write_buffer(&self.sprite_instance_buffer, buffer_segment.offset as u64, bytemuck::cast_slice(&buffer_segment.instances));
+        }
+        
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("render_pass"),
@@ -438,8 +505,19 @@ impl Renderer {
 
             render_pass.set_pipeline(&self.sprite_pipeline);
 
-            for (_, (_, _, sprite_transform, texture)) in world.query::<(&Sprite, &SpriteVisible, &SpriteTransform, &Texture)>().iter() {
-                
+            for buffer_segment in &buffer_segments {
+                if buffer_segment.length != 0 {
+                    let (_, bind_group) = resource_manager.texture_arrays.get(&buffer_segment.id).unwrap();
+                    render_pass.set_bind_group(0, bind_group, &[]);
+                    render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
+                    render_pass.set_vertex_buffer(0, self.sprite_quad_vertex_buffer.slice(..));
+                    render_pass.set_vertex_buffer(
+                        1, 
+                        self.sprite_instance_buffer.slice((buffer_segment.offset as u64)..((buffer_segment.offset + buffer_segment.length) as u64))
+                    );
+                    render_pass.set_index_buffer(self.sprite_quad_index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+                    render_pass.draw_indexed(0..(SPRITE_QUAD_INDICES.len() as u32), 0, 0..(buffer_segment.length / stride));
+                }
             }
         }
     }

@@ -1,5 +1,7 @@
 use winit::keyboard::KeyCode;
 
+use crate::engine::core::RainHandle;
+
 pub struct Button {
     pub pressed: bool,
     pub just_pressed: bool,
@@ -494,5 +496,23 @@ impl Mouse {
         Self {
             buttons: std::array::from_fn(|_| Button::new())
         }
+    }
+}
+
+impl RainHandle {
+    pub fn is_key_pressed(&self, key: KeyboardKey) -> bool {
+        self.keyboard.keys[key as usize].pressed
+    }
+
+    pub fn is_key_released(&self, key: KeyboardKey) -> bool {
+        self.keyboard.keys[key as usize].released
+    }
+
+    pub fn is_button_pressed(&self, button: MouseButton) -> bool {
+        self.mouse.buttons[button as usize].pressed
+    }
+
+    pub fn is_button_released(&self, button: MouseButton) -> bool {
+        self.mouse.buttons[button as usize].released
     }
 }

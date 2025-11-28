@@ -1,31 +1,37 @@
-use rain::color::Color;
-use rain::core::*;
+use hecs::World;
+use rain::engine::color::Color;
+use rain::engine::core::*;
+use rain::engine::input::*;
+use rain::engine::component::*;
+use glam::*;
 
-struct State{
-    rotation: f32,
-}
+struct State;
 
 impl RainState for State {
     fn update(&mut self, handle: &mut RainHandle) {
-        self.rotation += 0.5;
+        if handle.is_key_pressed(KeyboardKey::A) {
+            for (_, position) in handle.world.query::<&mut Position2D>().iter() {
+                position.x -= 0.01;
+            }
+        }
+        if handle.is_key_pressed(KeyboardKey::D) {
+            for (_, position) in handle.world.query::<&mut Position2D>().iter() {
+                position.x += 0.01;
+            }
+        }
     }
 
     fn render(&mut self, handle: &mut RainHandle) {
         handle.clear_background(Color::LIME);
-        handle.draw_rectangle_ex((350.0, 300.0, 300.0, 200.0), Color::TEAL, self.rotation, (0.0, 0.0));
-        handle.draw_texture_ex(
-            (10.0, 20.0, 200.0, 400.0), 
-            handle.fetch_texture("test").unwrap(), Color::WHITE, self.rotation, (100.0, 200.0)
-        );
     }
 
     fn setup(&mut self, handle: &mut RainHandle) {
-        handle.load_texture("test", "res/texture/black_pawn.png").expect("Error loading texture.");
+        handle.world.spawn((Sprite, Visible, Position2D{ x: 0.0, y: 0.0}, Color::BLACK));
     }
 }
 
 fn main() -> anyhow::Result<()> {
-    let state = State{ rotation: 0.0 };
+    let state = State;
     let _ = RainApp::new(state)
         .size(850, 600)
         .title("hello_world")

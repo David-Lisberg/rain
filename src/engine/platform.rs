@@ -2,14 +2,14 @@ use std::sync::Arc;
 
 use glam::*;
 
-use crate::color::Color;
-use crate::core::RainHandle;
-use crate::draw::{DrawCall, DrawPass};
-use crate::mesh::Mesh;
-use crate::texture::Texture;
-use crate::utility::rectangle::Rectangle;
-use crate::utility::transform::{framebuffer_to_ndc, rotate_around_pivot};
-use crate::vertex::UIVertex;
+use crate::engine::color::Color;
+use crate::engine::core::RainHandle;
+use crate::engine::draw::{DrawCall, DrawPass};
+use crate::engine::mesh::Mesh;
+use crate::engine::texture::Texture;
+use crate::engine::utility::rectangle::Rectangle;
+use crate::engine::utility::transform::{framebuffer_to_ndc, rotate_around_pivot};
+use crate::engine::vertex::UIVertex;
 
 const INDICES_RECTANGLE: &[u16] = &[
     0, 1, 2,

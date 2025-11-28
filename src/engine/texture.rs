@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use image::{DynamicImage, ImageBuffer, Rgba};
 
-use crate::utility::image::resize_and_pad;
+use crate::engine::utility::image::resize_and_pad;
 
 #[derive(Debug)]
 pub struct Texture {
