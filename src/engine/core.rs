@@ -1,9 +1,10 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use glam::Vec2;
 use hecs::World;
 use winit::application::ApplicationHandler;
-use winit::dpi::PhysicalSize;
+use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::event::{WindowEvent, KeyEvent, ElementState};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::keyboard::{KeyCode, PhysicalKey};
@@ -58,16 +59,25 @@ impl RainHandle {
         })
     }
 
-    fn _update(&mut self) {
-        
+    fn update(&mut self) {
+        for key in &mut self.keyboard.keys {
+            key.just_pressed = false;
+            key.released = false;
+        }
+        for button in &mut self.mouse.buttons {
+            button.just_pressed = false;
+            button.released = false;
+        }
     }
 
     fn handle_input_keyboard(&mut self, code: KeyCode, is_pressed: bool) {
         let keyboard_key = KeyboardKey::from(code);
         let key = &mut self.keyboard.keys[keyboard_key as usize];
         if is_pressed {
+            if !key.pressed {
+                key.just_pressed = true;
+            }
             key.pressed = true;
-            key.just_pressed = true;
         } else {
             key.pressed = false;
             key.released = true;
@@ -84,6 +94,12 @@ impl RainHandle {
             button.pressed = false;
             button.released = true;
         }
+    }
+
+    fn handle_movement_mouse(&mut self, position: PhysicalPosition<f64>) {
+        self.mouse.prev_position = self.mouse.position;
+        self.mouse.position = Vec2::new(position.x as f32, position.y as f32);
+        self.mouse.delta = self.mouse.position - self.mouse.prev_position;
     }
 }
 
@@ -183,6 +199,7 @@ where
                     }
                 }
             }
+            WindowEvent::CursorMoved { position, .. } => handle.handle_movement_mouse(position),
             WindowEvent::MouseInput { state, button, .. } => {
                 let is_pressed = match state {
                     ElementState::Pressed => true,
@@ -217,6 +234,6 @@ where
             s.update(handle);
         }
 
-        handle._update();
+        handle.update();
     }
 }

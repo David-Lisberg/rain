@@ -1,3 +1,4 @@
+use glam::Vec2;
 use winit::keyboard::KeyCode;
 
 use crate::engine::core::RainHandle;
@@ -489,12 +490,18 @@ impl Keyboard {
 
 pub struct Mouse {
     pub buttons: [Button; MouseButton::None as usize],
+    pub position: Vec2,
+    pub prev_position: Vec2,
+    pub delta: Vec2,
 }
 
 impl Mouse {
     pub fn new() -> Self {
         Self {
-            buttons: std::array::from_fn(|_| Button::new())
+            buttons: std::array::from_fn(|_| Button::new()),
+            position: Vec2::ZERO,
+            prev_position: Vec2::ZERO,
+            delta: Vec2::ZERO,
         }
     }
 }
@@ -514,5 +521,13 @@ impl RainHandle {
 
     pub fn is_button_released(&self, button: MouseButton) -> bool {
         self.mouse.buttons[button as usize].released
+    }
+
+    pub fn mouse_position(&self) -> Vec2 {
+        self.mouse.position
+    }
+
+    pub fn mouse_delta(&self) -> Vec2 {
+        self.mouse.delta
     }
 }

@@ -1,2 +1,0 @@
-- Implement ECS
-- Sprite system
