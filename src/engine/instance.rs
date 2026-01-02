@@ -1,7 +1,7 @@
 use glam::{Mat4, Quat, Vec2, Vec3};
 use crate::engine::component::*;
 
-use crate::engine::{color::Color, sprite::*};
+use crate::engine::color::Color;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]

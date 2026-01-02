@@ -167,8 +167,16 @@ impl RainState for State {
         handle.world.spawn((
             Player, Sprite, Visible, 
             Position2D{ x: 0.0, y: 0.0}, Velocity2D{ x: 0.0, y: 0.0 }, Acceleration2D{ x: 0.0, y: 0.0 }, Friction(10.0),
-            Scale2D(Vec2::new(0.2, 0.2)), Direction::Down, Color::BLACK
+            Scale2D(Vec2::new(0.2, 0.2)), Direction::Down, Color::LIME
         ));
+        handle.world.spawn_batch((0..100).map(|i| (
+            Sprite, Visible, Position2D{ x: 5.0 - (i / 10) as f32, y: 5.0 - (i % 10) as f32 }, Scale2D(Vec2::new(1.0, 1.0)),
+            if (i % 10 + i / 10) % 2 == 0 {
+                Color::WHITE
+            } else {
+                Color::BLACK
+            }
+        )));
     }
 }
 

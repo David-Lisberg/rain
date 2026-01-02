@@ -10,7 +10,6 @@ use crate::engine::draw::{DrawCall, DrawPass};
 use crate::include_str_root;
 use crate::engine::instance::SpriteInstance;
 use crate::engine::resource::*;
-use crate::engine::sprite::*;
 use crate::engine::texture::Texture;
 use crate::engine::vertex::*;
 use crate::engine::component::*;
@@ -524,5 +523,9 @@ impl Renderer {
 
     fn reset_render_state(&mut self) {
         self.draw_pass = DrawPass::new(None);
+    }
+
+    fn update_render_state(&mut self) {
+        /* check if camera state has been updated then write to buffer */
     }
 }

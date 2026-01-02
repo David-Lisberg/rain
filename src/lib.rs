@@ -9,7 +9,6 @@ pub mod engine {
     pub mod mesh;
     pub mod texture;
     pub mod resource;
-    pub mod sprite;
     pub mod camera;
     pub mod instance;
     pub mod component;
