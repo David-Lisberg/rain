@@ -8,6 +8,7 @@ pub const OPENGL_TO_WGPU_MATRIX: glam::Mat4 = glam::Mat4::from_cols(
 );
 
 pub struct Camera2d {
+    pub updated: bool,
     eye: Vec3,
     target: Vec3,
     up: Vec3,
@@ -20,6 +21,7 @@ pub struct Camera2d {
 impl Camera2d {
     pub fn default(width: f32, height: f32) -> Self {
         Self {
+            updated: false,
             eye: Vec3::new(0.0, 0.0, 2.0),
             target: Vec3::ZERO,
             up: glam::Vec3::Y,

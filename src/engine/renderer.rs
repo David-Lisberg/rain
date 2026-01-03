@@ -526,6 +526,9 @@ impl Renderer {
     }
 
     fn update_render_state(&mut self) {
-        /* check if camera state has been updated then write to buffer */
+        if self.camera.updated {
+            self.camera_uniform.update_matrix(&self.camera);
+            self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform]));
+        }
     }
 }
