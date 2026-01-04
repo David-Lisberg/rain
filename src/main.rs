@@ -149,6 +149,10 @@ fn system_player_input(handle: &mut RainHandle) {
     }
 }
 
+fn system_update_camera(handle: &mut RainHandle) {
+    handle.renderer.camera.add_xy(0.01, 0.0);
+}
+
 impl RainState for State {
     fn update(&mut self, handle: &mut RainHandle) {
         system_friction(handle);
@@ -156,6 +160,7 @@ impl RainState for State {
         system_player_walk(handle);
         system_player_dash(handle);
         system_physics_movement_2d(handle);
+        system_update_camera(handle);
     }
 
     fn render(&mut self, handle: &mut RainHandle) {

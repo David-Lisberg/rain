@@ -32,6 +32,22 @@ impl Camera2d {
         }
     }
 
+    pub fn set_xy(&mut self, x: f32, y: f32) {
+        self.eye.x = x;
+        self.eye.y = y;
+        self.target.x = x;
+        self.target.y = y;
+        self.updated = true;
+    }
+
+    pub fn add_xy(&mut self, x: f32, y: f32) {
+        self.eye.x += x;
+        self.eye.y += y;
+        self.target.x += x;
+        self.target.y += y;
+        self.updated = true;
+    }
+
     pub fn camera_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[

@@ -68,6 +68,7 @@ impl RainHandle {
             button.just_pressed = false;
             button.released = false;
         }
+        self.renderer.update_render_state();
     }
 
     fn handle_input_keyboard(&mut self, code: KeyCode, is_pressed: bool) {

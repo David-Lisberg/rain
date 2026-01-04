@@ -525,7 +525,7 @@ impl Renderer {
         self.draw_pass = DrawPass::new(None);
     }
 
-    fn update_render_state(&mut self) {
+    pub fn update_render_state(&mut self) {
         if self.camera.updated {
             self.camera_uniform.update_matrix(&self.camera);
             self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform]));
