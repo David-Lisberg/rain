@@ -150,7 +150,18 @@ fn system_player_input(handle: &mut RainHandle) {
 }
 
 fn system_update_camera(handle: &mut RainHandle) {
-    handle.renderer.camera.add_xy(0.01, 0.0);
+    if handle.is_key_pressed(KeyboardKey::ArrowUp) {
+        handle.renderer.camera.add_xy(0.0, 0.03);
+    }
+    if handle.is_key_pressed(KeyboardKey::ArrowDown) {
+        handle.renderer.camera.add_xy(0.0, -0.03);
+    }
+    if handle.is_key_pressed(KeyboardKey::ArrowLeft) {
+        handle.renderer.camera.add_xy(-0.03, 0.0);
+    }
+    if handle.is_key_pressed(KeyboardKey::ArrowRight) {
+        handle.renderer.camera.add_xy(0.03, 0.0);
+    }
 }
 
 impl RainState for State {

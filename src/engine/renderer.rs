@@ -529,6 +529,7 @@ impl Renderer {
         if self.camera.updated {
             self.camera_uniform.update_matrix(&self.camera);
             self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform]));
+            self.camera.updated = false;
         }
     }
 }
