@@ -48,6 +48,16 @@ impl Camera2d {
         self.updated = true;
     }
 
+    pub fn set_z(&mut self, z: f32) {
+        self.eye.z = z;
+        self.updated = true;
+    }
+
+    pub fn add_z(&mut self, z: f32) {
+        self.eye.z += z;
+        self.updated = true;
+    }
+
     pub fn camera_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
