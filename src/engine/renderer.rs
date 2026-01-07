@@ -65,7 +65,7 @@ impl BufferSegment {
 
 struct BufferSegmentSpriteInstance {
     id: u32,
-    instances: Vec<SpriteInstance>,
+    instances: Vec<(i32, SpriteInstance)>,
     offset: u32,
     length: u32,
 }
@@ -461,26 +461,19 @@ impl Renderer {
         let stride = std::mem::size_of::<SpriteInstance>() as u32;
         let mut offset = 0;
         let mut query = world.query::<(
-            &Sprite, &Visible, Option<&Position2D>, Option<&DepthZ>, Option<&Scale2D>, Option<&RotationZ>, Option<&Arc<Texture>>, Option<&Color>
+            &Sprite, &Visible, Option<&Position2D>, Option<&DepthZ>, Option<&Scale2D>, Option<&RotationZ>, Option<&Arc<Texture>>, Option<&Color>, Option<&Priority>,
         )>();
         for buffer_segment in &mut buffer_segments {
             buffer_segment.offset = offset * stride;
-            for (_, (_, _, pos, depth, scale, rotation, texture, color)) in query.iter() {
+            for (_, (_, _, pos, depth, scale, rotation, texture, color, priority)) in query.iter() {
                 if let Some(t) = texture {
                     if t.array_id == buffer_segment.id {
-                        if let Some(c) = color {
-                            buffer_segment.instances.push(SpriteInstance::new(pos, depth, scale, rotation, c, t.index));
-                        } else {
-                            buffer_segment.instances.push(SpriteInstance::new(pos, depth, scale, rotation, &Color::WHITE, t.index));
-                        }
+                        buffer_segment.instances.push((priority.unwrap_or(i32::min_value), 
+                            SpriteInstance::new(pos, depth, scale, rotation, color.unwrap_or(&Color::WHITE), t.index)));
                         offset += 1;
                     }
                 } else if buffer_segment.id == ARRAY_256X256_ID {
-                    if let Some(c) = color {
-                        buffer_segment.instances.push(SpriteInstance::new(pos, depth, scale, rotation, c, 0));
-                    } else {
-                        buffer_segment.instances.push(SpriteInstance::new(pos, depth, scale, rotation, &Color::WHITE, 0));
-                    }
+                    buffer_segment.instances.push(SpriteInstance::new(pos, depth, scale, rotation, color.unwrap_or(&Color::WHITE), 0));
                     offset += 1;
                 }
             }

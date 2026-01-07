@@ -32,3 +32,4 @@ pub struct Dash;
 pub struct Walk;
 pub struct Friction(pub f32);
 pub struct Lifetime(pub f32);
+pub struct Priority(pub i32);

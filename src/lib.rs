@@ -11,6 +11,7 @@ pub mod engine {
     pub mod resource;
     pub mod camera;
     pub mod instance;
+    pub mod sprite;
     pub mod component;
     pub mod utility {
         pub mod rectangle;
