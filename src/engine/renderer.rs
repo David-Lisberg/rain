@@ -65,7 +65,8 @@ impl BufferSegment {
 
 struct BufferSegmentSpriteInstance {
     id: u32,
-    instances: Vec<(i32, SpriteInstance)>,
+    instances: Vec<SpriteInstance>,
+    priority: Vec<i32>,
     offset: u32,
     length: u32,
 }
@@ -75,6 +76,7 @@ impl BufferSegmentSpriteInstance {
         Self {
             id,
             instances: Vec::new(),
+            priority: Vec::new(),
             offset: 0,
             length: 0
         }
@@ -466,14 +468,20 @@ impl Renderer {
         for buffer_segment in &mut buffer_segments {
             buffer_segment.offset = offset * stride;
             for (_, (_, _, pos, depth, scale, rotation, texture, color, priority)) in query.iter() {
+                let priority = if let Some(p) = priority {
+                    p.0
+                } else {
+                    i32::MIN
+                };
                 if let Some(t) = texture {
                     if t.array_id == buffer_segment.id {
-                        buffer_segment.instances.push((priority.unwrap_or(i32::min_value), 
-                            SpriteInstance::new(pos, depth, scale, rotation, color.unwrap_or(&Color::WHITE), t.index)));
+                        buffer_segment.instances.push(SpriteInstance::new(pos, depth, scale, rotation, color.unwrap_or(&Color::WHITE), t.index));
+                        buffer_segment.priority.push(priority);
                         offset += 1;
                     }
                 } else if buffer_segment.id == ARRAY_256X256_ID {
                     buffer_segment.instances.push(SpriteInstance::new(pos, depth, scale, rotation, color.unwrap_or(&Color::WHITE), 0));
+                    buffer_segment.priority.push(priority);
                     offset += 1;
                 }
             }
