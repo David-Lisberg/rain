@@ -486,6 +486,14 @@ impl Renderer {
                 }
             }
             buffer_segment.length = offset * stride - buffer_segment.offset;
+
+            if buffer_segment.priority.len() == buffer_segment.instances.len() {
+                let mut indices: Vec<usize> = (0..buffer_segment.priority.len()).collect();
+                indices.sort_by_key(|&i| buffer_segment.priority[i]);
+                buffer_segment.instances = indices.iter().map(|&i| buffer_segment.instances[i]).collect();
+            } else {
+                println!("Error: Cannot apply priority, priority and instance buffer have different lengths.");
+            }
         }
 
         for buffer_segment in &buffer_segments {
