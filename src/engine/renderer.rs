@@ -331,6 +331,8 @@ impl Renderer {
             self.config.height = height;
             self.surface.configure(&self.device, &self.config);
             self.is_surface_configured = true;
+            self.camera.aspect = width as f32 / height as f32;
+            self.camera.updated = true;
         }
     }
 

@@ -12,7 +12,7 @@ pub struct Camera2d {
     eye: Vec3,
     target: Vec3,
     up: Vec3,
-    aspect: f32,
+    pub aspect: f32,
     fovy: f32,
     znear: f32,
     zfar: f32,
@@ -22,7 +22,7 @@ impl Camera2d {
     pub fn default(width: f32, height: f32) -> Self {
         Self {
             updated: false,
-            eye: Vec3::new(0.0, 0.0, 2.0),
+            eye: Vec3::new(0.0, 0.0, 5.0),
             target: Vec3::ZERO,
             up: glam::Vec3::Y,
             aspect: width / height,
