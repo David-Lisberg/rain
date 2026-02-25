@@ -1,3 +1,6 @@
+use std::fs::File;
+use std::path::Path;
+
 use hecs::Entity;
 use rain::engine::color::Color;
 use rain::engine::core::*;
@@ -7,7 +10,9 @@ use glam::*;
 
 use crate::game::physics::*;
 use crate::game::player::input::*;
+use crate::game::world::generation::generate_noise;
 use crate::game::world::generation::system_world_generation;
+use crate::game::world::tile::read_tile;
 use crate::game::world::tile::write_tile;
 
 pub mod game {
@@ -122,12 +127,11 @@ impl RainState for State {
             Scale2D(Vec2::new(0.8, 0.8)), Direction::Down, Color::LIME, Priority(0),
         ));
         handle.renderer.camera.set_z(8.0);
-        system_world_generation(handle);
+        generate_noise(handle);
     }
 }
 
 fn main() -> anyhow::Result<()> {
-    write_tile();
     let state = State;
     let _ = RainApp::new(state)
         .size(850, 600)
