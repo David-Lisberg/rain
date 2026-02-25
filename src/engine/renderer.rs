@@ -22,13 +22,16 @@ pub struct Renderer {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub config: wgpu::SurfaceConfiguration,
-    pub ui_pipeline: wgpu::RenderPipeline,
     pub camera: Camera2d,
     pub camera_uniform: Camera2dUniform,
     pub camera_buffer: wgpu::Buffer,
     pub camera_bind_group: wgpu::BindGroup,
+    pub ui_pipeline: wgpu::RenderPipeline,
     pub ui_vertex_buffers: [wgpu::Buffer; 2],
     pub ui_index_buffers: [wgpu::Buffer; 2],
+    pub model_pipeline: wgpu::RenderPipeline,
+    pub model_vertex_buffer: wgpu::Buffer,
+    pub model_index_buffer: wgpu::Buffer,
     pub sprite_pipeline: wgpu::RenderPipeline,
     pub sprite_quad_vertex_buffer: wgpu::Buffer,
     pub sprite_quad_index_buffer: wgpu::Buffer,
@@ -167,6 +170,21 @@ impl Renderer {
             mapped_at_creation: false,
         }));
 
+        let model_pipeline = Self::create_pipeline_model(&device, &config);
+
+        let model_vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("model_vertex_buffer"),
+            size: MAX_UI_BUFFER_SIZE,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        let model_index_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("model_index_buffer"),
+            size: MAX_UI_BUFFER_SIZE,
+            usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
         let sprite_pipeline = Self::create_pipeline_sprites(&device, &config);
 
         let sprite_quad_vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -194,6 +212,9 @@ impl Renderer {
             ui_pipeline,
             ui_vertex_buffers,
             ui_index_buffers,
+            model_pipeline,
+            model_vertex_buffer,
+            model_index_buffer,
             sprite_pipeline,
             sprite_quad_vertex_buffer,
             sprite_quad_index_buffer,
@@ -292,6 +313,65 @@ impl Renderer {
                 buffers: &[
                     SpriteVertex::desc(),
                     SpriteInstance::desc()
+                ],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: Some("fs_main"),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: config.format,
+                    blend: Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: Some(wgpu::Face::Back),
+                polygon_mode: wgpu::PolygonMode::Fill,
+                unclipped_depth: false,
+                conservative: false,
+            },
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState {
+                count: 1,
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+            multiview: None,
+            cache: None,
+        })
+    }
+    
+    fn create_pipeline_model(device: &wgpu::Device, config: &wgpu::SurfaceConfiguration) -> wgpu::RenderPipeline {
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("model_shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str_root!("res/shader/model.wgsl").into()),
+        });
+
+        let texture_bind_group_layout = ResourceManager::texture_bind_group_layout(device);
+        let camera_bind_group_layout = Camera2d::camera_bind_group_layout(device);
+
+        let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("model_pipeline_layout"),
+            bind_group_layouts: &[
+                &texture_bind_group_layout,
+                &camera_bind_group_layout,
+            ],
+            push_constant_ranges: &[],
+        });
+
+        device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("model_pipeline"),
+            layout: Some(&render_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: Some("vs_main"),
+                buffers: &[
+                    ModelVertex::desc(),
                 ],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },

@@ -25,7 +25,7 @@ pub fn generate_noise(handle: &mut RainHandle) {
 
     handle.world.spawn_batch((0..400).map(|i| { 
         let scale_factor = 0.07;
-        let value = (255.0 * perlin.get([(i / 20) as f64 * scale_factor, (i % 20) as f64 * scale_factor])) as u8;
+        let value = (255.0 * ((perlin.get([(i / 20) as f64 * scale_factor, (i % 20) as f64 * scale_factor])) + 1.0) / 2.0) as u8;
         (Sprite, Visible, Position2D{ x: 10.0 - (i / 20) as f32, y:10.0 - (i % 20) as f32 }, Scale2D(Vec2::new(1.0, 1.0)),
         Color::new(value, value, value, 255)
     )}));
