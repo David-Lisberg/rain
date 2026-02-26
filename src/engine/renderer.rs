@@ -612,6 +612,33 @@ impl Renderer {
         }
     }
 
+    fn render_models(
+        &mut self, 
+        resource_manager: &ResourceManager, 
+        encoder: &mut wgpu::CommandEncoder, 
+        world: &World, 
+        base_color_attachment: Option<wgpu::RenderPassColorAttachment<'_>>
+    ) {
+        let mut query = world.query::<(
+            &Model, &Visible, Option<&Position3D>, Option<&Scale3D>, Option<&Rotation>, Option<&Arc<Texture>>
+        )>();
+        {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("render_pass"),
+                color_attachments: &[
+                    base_color_attachment
+                ],
+                depth_stencil_attachment: None,
+                occlusion_query_set: None,
+                timestamp_writes: None,
+            });
+
+            render_pass.set_pipeline(&self.model_pipeline);
+
+            
+        }
+    }
+
     fn reset_render_state(&mut self) {
         self.draw_pass = DrawPass::new(None);
     }
