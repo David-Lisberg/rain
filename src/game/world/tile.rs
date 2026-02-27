@@ -1,13 +1,25 @@
 use glam::Vec2;
 use rain::engine::core::RainHandle;
+use rain::engine::resource::ResourceManager;
+use rain::engine::texture::Texture;
 use serde::{Deserialize, Serialize};
 use rain::engine::color::Color;
 use rain::engine::component::*;
 
 use std::fs::{File, OpenOptions, read_to_string};
 use std::io::{Read, Write};
+use std::sync::Arc;
 
-pub struct Tile;
+pub struct Tile {
+    pub _type: TileType, 
+}
+
+pub enum TileType {
+    Grass,
+    Dirt,
+    Stone,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Vec2JSON {
     pub x: f32,
@@ -18,6 +30,16 @@ pub struct TileJSON {
     pub position: Vec2JSON,
     pub size: Vec2JSON,
     pub color: Color,
+}
+
+impl TileType {
+    pub fn fetch_texture(&self, handle: &mut RainHandle) -> Arc<Texture> {
+        match self {
+            TileType::Dirt => handle.fetch_texture("tile_dirt").unwrap(),
+            TileType::Grass => handle.fetch_texture("tile_grass").unwrap(),
+            TileType::Stone => handle.fetch_texture("tile_stone").unwrap(),
+        }
+    }
 }
 
 pub fn write_tile() {

@@ -10,7 +10,8 @@ use glam::*;
 
 use crate::game::physics::*;
 use crate::game::player::input::*;
-use crate::game::world::generation::generate_noise;
+use crate::game::world::chunk::construct_chunk_mesh;
+use crate::game::world::chunk::generate_chunk;
 use crate::game::world::generation::system_world_generation;
 use crate::game::world::tile::read_tile;
 use crate::game::world::tile::write_tile;
@@ -50,7 +51,7 @@ fn system_player_dash(handle: &mut RainHandle) {
         &Player, &Dash, &Direction, &mut Velocity2D
     )>().iter() {
         entities.push(e);
-        set_velocity_clamped(velocity, 15.0, direction);
+        set_velocity_clamped(velocity, 75.0, direction);
     }
 
     for e in entities {
@@ -98,15 +99,16 @@ fn system_camera_controller(handle: &mut RainHandle) {
         handle.renderer.camera.add_xy(0.1, 0.0);
     }
     if handle.is_key_pressed(KeyboardKey::Z) {
-        handle.renderer.camera.add_z(-0.06);
+        handle.renderer.camera.add_z(-0.15);
     }
     if handle.is_key_pressed(KeyboardKey::X) {
-        handle.renderer.camera.add_z(0.06);
+        handle.renderer.camera.add_z(0.15);
     }
 }
 
 impl RainState for State {
     fn update(&mut self, handle: &mut RainHandle) {
+        system_world_generation(handle);
         system_physics_friction(handle);
         system_player_input(handle);
         system_player_walk(handle);
@@ -121,13 +123,15 @@ impl RainState for State {
 
     fn setup(&mut self, handle: &mut RainHandle) {
         handle.load_texture("circle", "res/texture/white_circle.png").expect("Error loading texture.");
+        handle.load_texture("tile_dirt", "res/texture/dirt.png").expect("Error loading texture.");
+        handle.load_texture("tile_grass", "res/texture/grass.png").expect("Error loading texture.");
+        handle.load_texture("tile_stone", "res/texture/stone.png").expect("Error loading texture.");
         handle.world.spawn((
             Player, Sprite, Visible, 
             Position2D{ x: 0.0, y: 0.0}, Velocity2D{ x: 0.0, y: 0.0 }, Acceleration2D{ x: 0.0, y: 0.0 }, Friction(25.0),
             Scale2D(Vec2::new(0.8, 0.8)), Direction::Down, Color::LIME, Priority(0),
         ));
         handle.renderer.camera.set_z(8.0);
-        generate_noise(handle);
     }
 }
 

@@ -7,6 +7,7 @@ use winit::window::Window;
 use crate::engine::camera::{Camera2d, Camera2dUniform};
 use crate::engine::color::{self, Color};
 use crate::engine::draw::{DrawCall, DrawPass};
+use crate::engine::mesh::ModelMesh;
 use crate::include_str_root;
 use crate::engine::instance::SpriteInstance;
 use crate::engine::resource::*;
@@ -447,7 +448,8 @@ impl Renderer {
             ops: clear_background_op,
         });
 
-        self.render_sprites(resource_manager, &mut encoder, world, base_color_attachment.clone());
+        self.render_models(resource_manager, &mut encoder, world, base_color_attachment.clone());
+        self.render_sprites(resource_manager, &mut encoder, world, &view);
         self.render_ui(resource_manager, &mut encoder, &view);
 
         self.queue.submit(std::iter::once(encoder.finish()));
@@ -535,8 +537,8 @@ impl Renderer {
         &mut self, 
         resource_manager: &ResourceManager, 
         encoder: &mut wgpu::CommandEncoder, 
-        world: &World, 
-        base_color_attachment: Option<wgpu::RenderPassColorAttachment<'_>>
+        world: &World,
+        view: &wgpu::TextureView,
     ) {
         let mut buffer_segments: [BufferSegmentSpriteInstance; 2] = [
             BufferSegmentSpriteInstance::new(ARRAY_256X256_ID),
@@ -585,9 +587,15 @@ impl Renderer {
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("render_pass"),
-                color_attachments: &[
-                    base_color_attachment
-                ],
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view,
+                    depth_slice: None,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
                 depth_stencil_attachment: None,
                 occlusion_query_set: None,
                 timestamp_writes: None,
@@ -616,12 +624,10 @@ impl Renderer {
         &mut self, 
         resource_manager: &ResourceManager, 
         encoder: &mut wgpu::CommandEncoder, 
-        world: &World, 
-        base_color_attachment: Option<wgpu::RenderPassColorAttachment<'_>>
+        world: &World,
+        base_color_attachment: Option<wgpu::RenderPassColorAttachment<'_>>,
     ) {
-        let mut query = world.query::<(
-            &Model, &Visible, Option<&Position3D>, Option<&Scale3D>, Option<&Rotation>, Option<&Arc<Texture>>
-        )>();
+        let mut query = world.query::<(&ModelMesh, &Visible)>();
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("render_pass"),
@@ -635,7 +641,15 @@ impl Renderer {
 
             render_pass.set_pipeline(&self.model_pipeline);
 
-            
+            let (_, bind_group) = resource_manager.texture_arrays.get(&ARRAY_256X256_ID).unwrap();
+            render_pass.set_bind_group(0, bind_group, &[]);
+            render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
+            for (_, (mesh, _)) in query.iter() {
+                render_pass.set_vertex_buffer(0, mesh.vertices.slice(..));
+                render_pass.set_index_buffer(mesh.indices.slice(..), wgpu::IndexFormat::Uint16);
+
+                render_pass.draw_indexed(0..mesh.num_indices, 0, 0..1);
+            }
         }
     }
 

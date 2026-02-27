@@ -9,6 +9,7 @@ pub fn system_physics_movement_2d(handle: &mut RainHandle) {
         velocity.y += acceleration.y * handle.delta_time;
         position.x += velocity.x * handle.delta_time;
         position.y += velocity.y * handle.delta_time;
+        println!("position: {} {}", position.x, position.y);
     }
 }
 

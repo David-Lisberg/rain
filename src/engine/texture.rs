@@ -3,7 +3,7 @@ use image::{DynamicImage, ImageBuffer, Rgba};
 
 use crate::engine::utility::image::resize_and_pad;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Texture {
     pub array_id: u32,
     pub index: u32,

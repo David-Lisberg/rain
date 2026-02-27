@@ -5,7 +5,7 @@ use glam::*;
 use crate::engine::color::Color;
 use crate::engine::core::RainHandle;
 use crate::engine::draw::{DrawCall, DrawPass};
-use crate::engine::mesh::Mesh;
+use crate::engine::mesh::UIMesh;
 use crate::engine::texture::Texture;
 use crate::engine::utility::rectangle::Rectangle;
 use crate::engine::utility::transform::{framebuffer_to_ndc, rotate_around_pivot};
@@ -27,7 +27,7 @@ impl RainHandle {
         let ndc2 = framebuffer_to_ndc((rect.x + rect.w, rect.y + rect.h), self.base_width, self.base_height);
         let color_array = Color::rain_color_to_array(&color);
         self.renderer.draw_pass.draw_calls.push(DrawCall::Mesh(
-            Mesh {
+            UIMesh {
                 vertices: vec![
                     UIVertex { position: [ndc1.x, ndc2.y], uv: [0.0, 1.0], layer: 0, color: color_array },
                     UIVertex { position: [ndc2.x, ndc2.y], uv: [1.0, 1.0], layer: 0, color: color_array },
@@ -56,7 +56,7 @@ impl RainHandle {
         let p4_ndc = framebuffer_to_ndc(p4, self.base_width, self.base_height);
         let color_array = Color::rain_color_to_array(&color);
         self.renderer.draw_pass.draw_calls.push(DrawCall::Mesh(
-            Mesh {
+            UIMesh {
                 vertices: vec![
                     UIVertex { position: p1_ndc.into(), uv: [0.0, 1.0], layer: 0, color: color_array },
                     UIVertex { position: p2_ndc.into(), uv: [1.0, 1.0], layer: 0, color: color_array },
@@ -75,7 +75,7 @@ impl RainHandle {
         let ndc2 = framebuffer_to_ndc((rect.x + rect.w, rect.y + rect.h), self.base_width, self.base_height);
         let color_array = Color::rain_color_to_array(&tint);
         self.renderer.draw_pass.draw_calls.push(DrawCall::Mesh(
-            Mesh {
+            UIMesh {
                 vertices: vec![
                     UIVertex { position: [ndc1.x, ndc2.y], uv: [0.0, 1.0], layer: texture.index, color: color_array },
                     UIVertex { position: [ndc2.x, ndc2.y], uv: [1.0, 1.0], layer: texture.index, color: color_array },
@@ -104,7 +104,7 @@ impl RainHandle {
         let p4_ndc = framebuffer_to_ndc(p4, self.base_width, self.base_height);
         let color_array = Color::rain_color_to_array(&tint);
         self.renderer.draw_pass.draw_calls.push(DrawCall::Mesh(
-            Mesh {
+            UIMesh {
                 vertices: vec![
                     UIVertex { position: p1_ndc.into(), uv: [0.0, 1.0], layer: texture.index, color: color_array },
                     UIVertex { position: p2_ndc.into(), uv: [1.0, 1.0], layer: texture.index, color: color_array },

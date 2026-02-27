@@ -1,4 +1,4 @@
-use crate::engine::{color::Color, mesh::Mesh};
+use crate::engine::{color::Color, mesh::UIMesh};
 
 pub struct DrawPass {
     pub draw_calls: Vec<DrawCall>,
@@ -15,5 +15,5 @@ impl DrawPass {
 }
 
 pub enum DrawCall {
-    Mesh(Mesh),
+    Mesh(UIMesh),
 }

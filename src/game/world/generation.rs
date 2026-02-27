@@ -9,24 +9,27 @@ use rain::engine::component::*;
 use noise::{Fbm, NoiseFn, Perlin};
 use noise::utils::{NoiseMapBuilder, PlaneMapBuilder};
 
+use crate::Player;
+use crate::game::world::chunk::{CHUNK_DIM, ChunkData, ChunkPosition, construct_chunk_mesh, generate_chunk};
+
 pub fn system_world_generation(handle: &mut RainHandle) {
-    handle.world.spawn_batch((0..100).map(|i| (
-        Sprite, Visible, Position2D{ x: 5.0 - (i / 10) as f32, y: 5.0 - (i % 10) as f32 }, Scale2D(Vec2::new(1.0, 1.0)),
-        if (i % 10 + i / 10) % 2 == 0 {
-            Color::WHITE
-        } else {
-            Color::BLACK
+    let mut to_generate: Vec<ChunkPosition> = Vec::new();
+    for (_, (_, position)) in handle.world.query::<(&Player, &Position2D)>().iter() {
+        let chunk_position = ChunkPosition { x: (position.x / CHUNK_DIM as f32) as i32, y: (position.y / CHUNK_DIM as f32) as i32 };
+        let mut chunk_generated: bool = false;
+        for (_, chunk) in handle.world.query::<&ChunkData>().iter() {
+            if chunk.position == chunk_position {
+                chunk_generated = true;
+            }
         }
-    )));
-}
-
-pub fn generate_noise(handle: &mut RainHandle) {
-    let perlin = Perlin::new(0);
-
-    handle.world.spawn_batch((0..400).map(|i| { 
-        let scale_factor = 0.07;
-        let value = (255.0 * ((perlin.get([(i / 20) as f64 * scale_factor, (i % 20) as f64 * scale_factor])) + 1.0) / 2.0) as u8;
-        (Sprite, Visible, Position2D{ x: 10.0 - (i / 20) as f32, y:10.0 - (i % 20) as f32 }, Scale2D(Vec2::new(1.0, 1.0)),
-        Color::new(value, value, value, 255)
-    )}));
+        if !chunk_generated {
+            to_generate.push(chunk_position);
+        }
+    }
+    for chunk_position in to_generate {
+        let chunk = generate_chunk(chunk_position);
+        let mesh = construct_chunk_mesh(handle, &chunk);
+        handle.world.spawn((chunk,));
+        handle.world.spawn((mesh, Visible));
+    }
 }
