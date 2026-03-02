@@ -1,11 +1,12 @@
-use std::sync::Arc;
+use std::{ops::Add, sync::Arc};
 
 use glam::Vec2;
+use hecs::{Entity, Without};
 use noise::{NoiseFn, Perlin};
-use rain::engine::{core::RainHandle, mesh::ModelMesh, resource::ARRAY_256X256_ID, texture::Texture, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
+use rain::engine::{component::{Position2D, Visible}, core::RainHandle, mesh::ModelMesh, resource::ARRAY_256X256_ID, texture::Texture, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
 use wgpu::util::DeviceExt;
 
-use crate::game::world::tile::{Tile, TileType};
+use crate::{Player, game::world::{generation::CHUNK_GENERATION_DISTANCE, tile::{Tile, TileType}}};
 
 #[derive(PartialEq)]
 pub struct ChunkPosition {
@@ -13,12 +14,20 @@ pub struct ChunkPosition {
     pub y: i32,
 }
 
+impl From<&Position2D> for ChunkPosition {
+    fn from(value: &Position2D) -> Self {
+        let x = (value.x / CHUNK_DIM as f32).floor() as i32;
+        let y = (value.y / CHUNK_DIM as f32).floor() as i32;
+        Self { x, y }
+    }
+}
+
 pub struct ChunkData {
     pub position: ChunkPosition,
     pub tiles: [Tile; CHUNK_DIM * CHUNK_DIM],
 }
 
-pub const CHUNK_DIM: usize = 4; /* indices should be u32s if CHUNK_DIM > 64 */
+pub const CHUNK_DIM: usize = 32; /* indices should be u32s if CHUNK_DIM > 64 */
 
 pub fn generate_chunk(chunk_position: ChunkPosition) -> ChunkData {
     let perlin = Perlin::new(0);
@@ -80,5 +89,43 @@ pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData) -> Model
         }),
         num_indices: model_indices.len() as u32,
         array_id: ARRAY_256X256_ID,
+    }
+}
+
+pub fn system_manage_chunks(handle: &mut RainHandle) {
+    let mut to_deload: Vec<Entity> = Vec::new();
+    let mut to_load: Vec<Entity> = Vec::new();
+    for (_, (_, position)) in handle.world.query::<(&Player, &Position2D)>().iter() {
+        let chunk_position: ChunkPosition = position.into();
+
+        for (e, (chunk, mesh)) in handle.world.query::<(&ChunkData, Option<&ModelMesh>)>().iter() {
+            let radius = CHUNK_GENERATION_DISTANCE / 2;
+            if mesh.is_some() {
+                
+
+                if chunk.position.x > chunk_position.x + radius ||
+                   chunk.position.x < chunk_position.x - radius ||
+                   chunk.position.y > chunk_position.y + radius ||
+                   chunk.position.y < chunk_position.y - radius {
+                    to_deload.push(e);
+                }
+            } else {
+                if chunk.position.x <= chunk_position.x + radius &&
+                   chunk.position.x >= chunk_position.x - radius &&
+                   chunk.position.y <= chunk_position.y + radius &&
+                   chunk.position.y >= chunk_position.y - radius {
+                    to_load.push(e);
+                }
+            }
+        }
+    }
+
+    for e in to_deload {
+        handle.world.remove_one::<ModelMesh>(e).unwrap();
+    }
+    for e in to_load {
+        let (chunk,)= handle.world.remove::<(ChunkData,)>(e).unwrap();
+        let mesh = construct_chunk_mesh(handle, &chunk);
+        handle.world.spawn((chunk, mesh, Visible));
     }
 }

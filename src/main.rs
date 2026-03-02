@@ -12,6 +12,7 @@ use crate::game::physics::*;
 use crate::game::player::input::*;
 use crate::game::world::chunk::construct_chunk_mesh;
 use crate::game::world::chunk::generate_chunk;
+use crate::game::world::chunk::system_manage_chunks;
 use crate::game::world::generation::system_world_generation;
 use crate::game::world::tile::read_tile;
 use crate::game::world::tile::write_tile;
@@ -99,15 +100,16 @@ fn system_camera_controller(handle: &mut RainHandle) {
         handle.renderer.camera.add_xy(0.1, 0.0);
     }
     if handle.is_key_pressed(KeyboardKey::Z) {
-        handle.renderer.camera.add_z(-0.15);
+        handle.renderer.camera.add_z(-1.0);
     }
     if handle.is_key_pressed(KeyboardKey::X) {
-        handle.renderer.camera.add_z(0.15);
+        handle.renderer.camera.add_z(1.0);
     }
 }
 
 impl RainState for State {
     fn update(&mut self, handle: &mut RainHandle) {
+        system_manage_chunks(handle);
         system_world_generation(handle);
         system_physics_friction(handle);
         system_player_input(handle);
