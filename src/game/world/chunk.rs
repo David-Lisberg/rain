@@ -6,7 +6,7 @@ use noise::{NoiseFn, Perlin};
 use rain::engine::{component::{Position2D, Visible}, core::RainHandle, mesh::ModelMesh, resource::ARRAY_256X256_ID, texture::Texture, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
 use wgpu::util::DeviceExt;
 
-use crate::{Player, game::world::{generation::CHUNK_GENERATION_DISTANCE, tile::{Tile, TileType}}};
+use crate::{Player, game::{utility::noise::octave_noise_2d, world::{generation::CHUNK_GENERATION_DISTANCE, tile::{Tile, TileType}}}};
 
 #[derive(PartialEq)]
 pub struct ChunkPosition {
@@ -32,12 +32,12 @@ pub const CHUNK_DIM: usize = 32; /* indices should be u32s if CHUNK_DIM > 64 */
 pub fn generate_chunk(chunk_position: ChunkPosition) -> ChunkData {
     let perlin = Perlin::new(0);
 
-    let scale_factor = 0.07;
+    let scale_factor = 0.026;
 
     let tiles = std::array::from_fn(|i| {
         let x = (chunk_position.x * CHUNK_DIM as i32) as f64 + (i % CHUNK_DIM) as f64;
         let y = (chunk_position.y * CHUNK_DIM as i32) as f64 + (i / CHUNK_DIM) as f64;
-        let mut noise_value = perlin.get([x * scale_factor, y * scale_factor]);
+        let mut noise_value = octave_noise_2d(x * scale_factor, y * scale_factor, 4, 0.5, &perlin);
         noise_value = (noise_value + 1.0) / 2.0;
 
         let _type = match noise_value {

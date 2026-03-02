@@ -27,6 +27,9 @@ pub mod game {
     pub mod player {
         pub mod input;
     }
+    pub mod utility {
+        pub mod noise;
+    }
 }
 
 struct State;
