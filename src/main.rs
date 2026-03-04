@@ -98,22 +98,22 @@ fn set_velocity_clamped(velocity: &mut Velocity2D, magnitude: f32, direction: &D
 
 fn system_camera_controller(handle: &mut RainHandle, state: &mut State) {
     if handle.is_key_pressed(KeyboardKey::ArrowUp) {
-        handle.renderer.camera.add_xy(0.0, 0.01 / state.zoom);
+        handle.renderer.camera.add_xy(0.0, 0.1 / state.zoom);
     }
     if handle.is_key_pressed(KeyboardKey::ArrowDown) {
-        handle.renderer.camera.add_xy(0.0, -0.01 / state.zoom);
+        handle.renderer.camera.add_xy(0.0, -0.1 / state.zoom);
     }
     if handle.is_key_pressed(KeyboardKey::ArrowLeft) {
-        handle.renderer.camera.add_xy(-0.01 / state.zoom, 0.0);
+        handle.renderer.camera.add_xy(-0.1 / state.zoom, 0.0);
     }
     if handle.is_key_pressed(KeyboardKey::ArrowRight) {
-        handle.renderer.camera.add_xy(0.01 / state.zoom, 0.0);
+        handle.renderer.camera.add_xy(0.1 / state.zoom, 0.0);
     }
     if handle.is_key_pressed(KeyboardKey::Z) {
-        state.zoom *= 1.005;
+        state.zoom *= 1.008;
     }
     if handle.is_key_pressed(KeyboardKey::X) {
-        state.zoom /= 1.005;
+        state.zoom /= 1.008;
     }
 }
 

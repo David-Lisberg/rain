@@ -1,5 +1,7 @@
 use glam::*;
 
+const MAX_FOV: f32 = 180.0;
+
 pub const OPENGL_TO_WGPU_MATRIX: glam::Mat4 = glam::Mat4::from_cols(
     glam::Vec4::new(1.0, 0.0, 0.0, 0.0),
     glam::Vec4::new(0.0, 1.0, 0.0, 0.0),
@@ -60,6 +62,9 @@ impl Camera2d {
 
     pub fn add_fov(&mut self, fov: f32) {
         self.fovy += fov;
+        if self.fovy > MAX_FOV {
+            self.fovy = MAX_FOV;
+        }
         self.updated = true;
     }
 
@@ -69,6 +74,9 @@ impl Camera2d {
 
     pub fn set_fov(&mut self, fov: f32) {
         self.fovy = fov;
+        if self.fovy > MAX_FOV {
+            self.fovy = MAX_FOV;
+        }
         self.updated = true;
     }
 
