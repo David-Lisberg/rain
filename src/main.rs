@@ -97,23 +97,20 @@ fn set_velocity_clamped(velocity: &mut Velocity2D, magnitude: f32, direction: &D
 }
 
 fn system_camera_controller(handle: &mut RainHandle, state: &mut State) {
-    if handle.is_key_pressed(KeyboardKey::ArrowUp) {
-        handle.renderer.camera.add_xy(0.0, 0.1 / state.zoom);
-    }
-    if handle.is_key_pressed(KeyboardKey::ArrowDown) {
-        handle.renderer.camera.add_xy(0.0, -0.1 / state.zoom);
-    }
-    if handle.is_key_pressed(KeyboardKey::ArrowLeft) {
-        handle.renderer.camera.add_xy(-0.1 / state.zoom, 0.0);
-    }
-    if handle.is_key_pressed(KeyboardKey::ArrowRight) {
-        handle.renderer.camera.add_xy(0.1 / state.zoom, 0.0);
-    }
     if handle.is_key_pressed(KeyboardKey::Z) {
         state.zoom *= 1.008;
     }
     if handle.is_key_pressed(KeyboardKey::X) {
         state.zoom /= 1.008;
+    }
+}
+
+fn system_camera_tracker(handle: &mut RainHandle) {
+    for (_, (_, position)) in handle.world.query::<(&Player, &Position2D)>().iter() {
+        let camera_position = handle.renderer.camera.get_xy();
+        let new_position = camera_position.lerp(Vec2::new(position.x, position.y), 0.2);
+
+        handle.renderer.camera.set_xy(new_position.x, new_position.y);
     }
 }
 
@@ -133,6 +130,7 @@ impl RainState for State {
         system_player_dash(handle);
         system_physics_movement_2d(handle);
         system_camera_controller(handle, self);
+        system_camera_tracker(handle);
         system_camera_zoom(handle, self);
         println!("zoom: {}, fov: {}", self.zoom, handle.renderer.camera.get_fov());
     }

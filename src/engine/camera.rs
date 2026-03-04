@@ -50,6 +50,10 @@ impl Camera2d {
         self.updated = true;
     }
 
+    pub fn get_xy(&self) -> Vec2 {
+        self.eye.xy()
+    }
+
     pub fn set_z(&mut self, z: f32) {
         self.eye.z = z;
         self.updated = true;
