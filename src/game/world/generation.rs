@@ -9,12 +9,12 @@ use rain::engine::component::*;
 use noise::{Fbm, NoiseFn, Perlin};
 use noise::utils::{NoiseMapBuilder, PlaneMapBuilder};
 
-use crate::Player;
+use crate::{Player, State};
 use crate::game::world::chunk::{CHUNK_DIM, ChunkData, ChunkPosition, construct_chunk_mesh, generate_chunk};
 
 pub const CHUNK_GENERATION_DISTANCE: i32 = 5;
 
-pub fn system_world_generation(handle: &mut RainHandle) {
+pub fn system_world_generation(handle: &mut RainHandle, state: &mut State) {
     let mut to_generate: Vec<ChunkPosition> = Vec::new();
     for (_, (_, position)) in handle.world.query::<(&Player, &Position2D)>().iter() {
         let chunk_position: ChunkPosition = position.into();
@@ -38,7 +38,7 @@ pub fn system_world_generation(handle: &mut RainHandle) {
         }
     }
     for chunk_position in to_generate {
-        let chunk = generate_chunk(chunk_position);
+        let chunk = generate_chunk(chunk_position, state.perlin);
         let mesh = construct_chunk_mesh(handle, &chunk);
         handle.world.spawn((chunk, mesh, Visible));
     }

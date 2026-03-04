@@ -18,6 +18,9 @@ pub enum TileType {
     Grass,
     Dirt,
     Stone,
+    Cobblestone,
+    Water,
+    Sand,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -38,6 +41,9 @@ impl TileType {
             TileType::Dirt => handle.fetch_texture("tile_dirt").unwrap(),
             TileType::Grass => handle.fetch_texture("tile_grass").unwrap(),
             TileType::Stone => handle.fetch_texture("tile_stone").unwrap(),
+            TileType::Cobblestone => handle.fetch_texture("tile_cobblestone").unwrap(),
+            TileType::Water => handle.fetch_texture("tile_water").unwrap(),
+            TileType::Sand => handle.fetch_texture("tile_sand").unwrap(),
         }
     }
 }

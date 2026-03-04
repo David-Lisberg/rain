@@ -2,11 +2,14 @@ use std::fs::File;
 use std::path::Path;
 
 use hecs::Entity;
+use noise::Perlin;
 use rain::engine::color::Color;
 use rain::engine::core::*;
 use rain::engine::input::*;
 use rain::engine::component::*;
 use glam::*;
+use rand::Rng;
+use rand::rngs::ThreadRng;
 
 use crate::game::physics::*;
 use crate::game::player::input::*;
@@ -32,7 +35,11 @@ pub mod game {
     }
 }
 
-struct State;
+struct State {
+    rng: ThreadRng,
+    perlin: Perlin,
+    zoom: f32,
+}
 struct Player;
 
 fn system_player_walk(handle: &mut RainHandle) {
@@ -89,37 +96,45 @@ fn set_velocity_clamped(velocity: &mut Velocity2D, magnitude: f32, direction: &D
     }
 }
 
-fn system_camera_controller(handle: &mut RainHandle) {
+fn system_camera_controller(handle: &mut RainHandle, state: &mut State) {
     if handle.is_key_pressed(KeyboardKey::ArrowUp) {
-        handle.renderer.camera.add_xy(0.0, 0.1);
+        handle.renderer.camera.add_xy(0.0, 0.01 / state.zoom);
     }
     if handle.is_key_pressed(KeyboardKey::ArrowDown) {
-        handle.renderer.camera.add_xy(0.0, -0.1);
+        handle.renderer.camera.add_xy(0.0, -0.01 / state.zoom);
     }
     if handle.is_key_pressed(KeyboardKey::ArrowLeft) {
-        handle.renderer.camera.add_xy(-0.1, 0.0);
+        handle.renderer.camera.add_xy(-0.01 / state.zoom, 0.0);
     }
     if handle.is_key_pressed(KeyboardKey::ArrowRight) {
-        handle.renderer.camera.add_xy(0.1, 0.0);
+        handle.renderer.camera.add_xy(0.01 / state.zoom, 0.0);
     }
     if handle.is_key_pressed(KeyboardKey::Z) {
-        handle.renderer.camera.add_z(-1.0);
+        state.zoom *= 1.005;
     }
     if handle.is_key_pressed(KeyboardKey::X) {
-        handle.renderer.camera.add_z(1.0);
+        state.zoom /= 1.005;
     }
+}
+
+const ZOOM_CONSTANT: f32 = 45.0;
+
+fn system_camera_zoom(handle: &mut RainHandle, state: &mut State) {
+    handle.renderer.camera.set_fov(ZOOM_CONSTANT / state.zoom);
 }
 
 impl RainState for State {
     fn update(&mut self, handle: &mut RainHandle) {
         system_manage_chunks(handle);
-        system_world_generation(handle);
+        system_world_generation(handle, self);
         system_physics_friction(handle);
         system_player_input(handle);
         system_player_walk(handle);
         system_player_dash(handle);
         system_physics_movement_2d(handle);
-        system_camera_controller(handle);
+        system_camera_controller(handle, self);
+        system_camera_zoom(handle, self);
+        println!("zoom: {}, fov: {}", self.zoom, handle.renderer.camera.get_fov());
     }
 
     fn render(&mut self, handle: &mut RainHandle) {
@@ -131,6 +146,9 @@ impl RainState for State {
         handle.load_texture("tile_dirt", "res/texture/dirt.png").expect("Error loading texture.");
         handle.load_texture("tile_grass", "res/texture/grass.png").expect("Error loading texture.");
         handle.load_texture("tile_stone", "res/texture/stone.png").expect("Error loading texture.");
+        handle.load_texture("tile_cobblestone", "res/texture/cobblestone.png").expect("Error loading texture.");
+        handle.load_texture("tile_water", "res/texture/water.png").expect("Error loading texture.");
+        handle.load_texture("tile_sand", "res/texture/sand.png").expect("Error loading texture.");
         handle.world.spawn((
             Player, Sprite, Visible, 
             Position2D{ x: 0.0, y: 0.0}, Velocity2D{ x: 0.0, y: 0.0 }, Acceleration2D{ x: 0.0, y: 0.0 }, Friction(25.0),
@@ -141,7 +159,14 @@ impl RainState for State {
 }
 
 fn main() -> anyhow::Result<()> {
-    let state = State;
+    let mut rng = rand::rng();
+    let seed = rng.next_u32();
+    let perlin = Perlin::new(seed);
+    let state = State {
+        rng,
+        perlin,
+        zoom: 1.0,
+    };
     let _ = RainApp::new(state)
         .size(850, 600)
         .title("hello_world")

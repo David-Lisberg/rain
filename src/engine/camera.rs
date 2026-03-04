@@ -58,6 +58,20 @@ impl Camera2d {
         self.updated = true;
     }
 
+    pub fn add_fov(&mut self, fov: f32) {
+        self.fovy += fov;
+        self.updated = true;
+    }
+
+    pub fn get_fov(&self) -> f32 {
+        self.fovy
+    }
+
+    pub fn set_fov(&mut self, fov: f32) {
+        self.fovy = fov;
+        self.updated = true;
+    }
+
     pub fn camera_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
@@ -78,7 +92,7 @@ impl Camera2d {
 
     pub fn build_view_projection_matrix(&self) -> Mat4 {
         let view = glam::Mat4::look_at_rh(self.eye, self.target, self.up);
-        let proj = glam::Mat4::perspective_rh(self.fovy, self.aspect, self.znear, self.zfar);
+        let proj = glam::Mat4::perspective_rh(self.fovy.to_radians(), self.aspect, self.znear, self.zfar);
         OPENGL_TO_WGPU_MATRIX * proj * view
     }
 }
