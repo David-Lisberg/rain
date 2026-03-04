@@ -29,9 +29,7 @@ pub struct ChunkData {
 
 pub const CHUNK_DIM: usize = 32; /* indices should be u32s if CHUNK_DIM > 64 */
 
-pub fn generate_chunk(chunk_position: ChunkPosition) -> ChunkData {
-    let perlin = Perlin::new(0);
-
+pub fn generate_chunk(chunk_position: ChunkPosition, perlin: Perlin) -> ChunkData {
     let scale_factor = 0.026;
 
     let tiles = std::array::from_fn(|i| {
@@ -41,9 +39,12 @@ pub fn generate_chunk(chunk_position: ChunkPosition) -> ChunkData {
         noise_value = (noise_value + 1.0) / 2.0;
 
         let _type = match noise_value {
-            v if v > 0.6 => TileType::Stone,
-            v if v >= 0.3 && v < 0.6 => TileType::Grass,
-            v if v < 0.3 => TileType::Dirt,
+            v if v >= 0.85 => TileType::Cobblestone,
+            v if v >= 0.65 && v < 0.85 => TileType::Stone,
+            v if v >= 0.6 && v < 0.65 => TileType::Dirt,
+            v if v >= 0.35 && v < 0.6 => TileType::Grass,
+            v if v >= 0.3 && v < 0.35 => TileType::Sand,
+            v if v < 0.3 => TileType::Water,
             _ => TileType::Dirt
         };
 
