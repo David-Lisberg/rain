@@ -1,12 +1,10 @@
-use std::{ops::Add, sync::Arc};
-
-use glam::Vec2;
-use hecs::{Entity, Without};
-use noise::{NoiseFn, Perlin};
-use rain::engine::{component::{Position2D, Visible}, core::RainHandle, mesh::ModelMesh, resource::ARRAY_256X256_ID, texture::Texture, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
+use hecs::Entity;
+use noise::Perlin;
+use rain::engine::{component::{Position2D, Visible}, core::RainHandle, mesh::ModelMesh, resource::ARRAY_256X256_ID, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
 use wgpu::util::DeviceExt;
 
-use crate::{Player, game::{utility::noise::octave_noise_2d, world::{generation::CHUNK_GENERATION_DISTANCE, tile::{Tile, TileType}}}};
+use crate::{game::{utility::noise::octave_noise_2d, world::{generation::CHUNK_GENERATION_DISTANCE, tile::{Tile, TileType}}}};
+use crate::game::player::movement::Player;
 
 #[derive(PartialEq)]
 pub struct ChunkPosition {

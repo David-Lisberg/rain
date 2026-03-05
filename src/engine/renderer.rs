@@ -644,9 +644,7 @@ impl Renderer {
             let (_, bind_group) = resource_manager.texture_arrays.get(&ARRAY_256X256_ID).unwrap();
             render_pass.set_bind_group(0, bind_group, &[]);
             render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
-            let mut num_meshes = 0;
             for (_, (mesh, _)) in query.iter() {
-                num_meshes += 1;
                 render_pass.set_vertex_buffer(0, mesh.vertices.slice(..));
                 render_pass.set_index_buffer(mesh.indices.slice(..), wgpu::IndexFormat::Uint16);
 

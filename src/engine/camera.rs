@@ -68,6 +68,8 @@ impl Camera2d {
         self.fovy += fov;
         if self.fovy > MAX_FOV {
             self.fovy = MAX_FOV;
+        } else if self.fovy < 0.0 {
+            self.fovy = 0.0;
         }
         self.updated = true;
     }
@@ -80,6 +82,8 @@ impl Camera2d {
         self.fovy = fov;
         if self.fovy > MAX_FOV {
             self.fovy = MAX_FOV;
+        } else if self.fovy < 0.0 {
+            self.fovy = 0.0;
         }
         self.updated = true;
     }

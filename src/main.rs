@@ -1,24 +1,18 @@
-use std::fs::File;
-use std::path::Path;
-
-use hecs::Entity;
 use noise::Perlin;
 use rain::engine::color::Color;
 use rain::engine::core::*;
-use rain::engine::input::*;
 use rain::engine::component::*;
 use glam::*;
 use rand::Rng;
-use rand::rngs::ThreadRng;
 
-use crate::game::physics::*;
+use crate::game::core::camera::*;
+use crate::game::core::physics::*;
 use crate::game::player::input::*;
-use crate::game::world::chunk::construct_chunk_mesh;
-use crate::game::world::chunk::generate_chunk;
+use crate::game::player::movement::Player;
+use crate::game::player::movement::system_player_dash;
+use crate::game::player::movement::system_player_walk;
 use crate::game::world::chunk::system_manage_chunks;
 use crate::game::world::generation::system_world_generation;
-use crate::game::world::tile::read_tile;
-use crate::game::world::tile::write_tile;
 
 pub mod game {
     pub mod world {
@@ -26,98 +20,22 @@ pub mod game {
         pub mod chunk;
         pub mod tile;
     }
-    pub mod physics;
+    pub mod core {
+        pub mod physics;
+        pub mod camera;
+    }
     pub mod player {
         pub mod input;
+        pub mod movement;
     }
     pub mod utility {
         pub mod noise;
     }
 }
 
-struct State {
-    rng: ThreadRng,
+pub struct State {
     perlin: Perlin,
     zoom: f32,
-}
-struct Player;
-
-fn system_player_walk(handle: &mut RainHandle) {
-    for (_, (_, _, velocity, direction)) in handle.world.query::<(
-        &Player, &Walk, &mut Velocity2D, &Direction
-    )>().iter() {
-        set_velocity_clamped(velocity, 5.0, direction);
-    }
-}
-
-// fn system_lifetime(handle: &mut RainHandle) {
-//     for (_, _) in handle.world.query::<&mut Lifetime>().iter() {
-        
-//     }
-// }
-
-fn system_player_dash(handle: &mut RainHandle) {
-    let mut entities: Vec<Entity> = Vec::new();
-    for (e, (_, _, direction, velocity)) in handle.world.query::<(
-        &Player, &Dash, &Direction, &mut Velocity2D
-    )>().iter() {
-        entities.push(e);
-        set_velocity_clamped(velocity, 75.0, direction);
-    }
-
-    for e in entities {
-        let _ = handle.world.remove_one::<Dash>(e);
-    }
-}
-
-fn set_velocity_clamped(velocity: &mut Velocity2D, magnitude: f32, direction: &Direction) {
-    let diagonal = magnitude * 0.7071;
-    match direction {
-        Direction::Up => velocity.y = magnitude.max(velocity.y),
-        Direction::UpRight => {
-            velocity.x = diagonal.max(velocity.x);
-            velocity.y = diagonal.max(velocity.y);
-        }
-        Direction::UpLeft => {
-            velocity.x = (-diagonal).min(velocity.x);
-            velocity.y = diagonal.max(velocity.y);
-        }
-        Direction::Down => velocity.y = (-magnitude).min(velocity.y),
-        Direction::DownRight => {
-            velocity.x = diagonal.max(velocity.x);
-            velocity.y = (-diagonal).min(velocity.y);
-        }
-        Direction::DownLeft => {
-            velocity.x = (-diagonal).min(velocity.x);
-            velocity.y = (-diagonal).min(velocity.y);
-        }
-        Direction::Right => velocity.x = magnitude.max(velocity.x),
-        Direction::Left => velocity.x = (-magnitude).min(velocity.x),
-    }
-}
-
-fn system_camera_controller(handle: &mut RainHandle, state: &mut State) {
-    if handle.is_key_pressed(KeyboardKey::Z) {
-        state.zoom *= 1.008;
-    }
-    if handle.is_key_pressed(KeyboardKey::X) {
-        state.zoom /= 1.008;
-    }
-}
-
-fn system_camera_tracker(handle: &mut RainHandle) {
-    for (_, (_, position)) in handle.world.query::<(&Player, &Position2D)>().iter() {
-        let camera_position = handle.renderer.camera.get_xy();
-        let new_position = camera_position.lerp(Vec2::new(position.x, position.y), 0.2);
-
-        handle.renderer.camera.set_xy(new_position.x, new_position.y);
-    }
-}
-
-const ZOOM_CONSTANT: f32 = 45.0;
-
-fn system_camera_zoom(handle: &mut RainHandle, state: &mut State) {
-    handle.renderer.camera.set_fov(ZOOM_CONSTANT / state.zoom);
 }
 
 impl RainState for State {
@@ -132,7 +50,6 @@ impl RainState for State {
         system_camera_controller(handle, self);
         system_camera_tracker(handle);
         system_camera_zoom(handle, self);
-        println!("zoom: {}, fov: {}", self.zoom, handle.renderer.camera.get_fov());
     }
 
     fn render(&mut self, handle: &mut RainHandle) {
@@ -161,7 +78,6 @@ fn main() -> anyhow::Result<()> {
     let seed = rng.next_u32();
     let perlin = Perlin::new(seed);
     let state = State {
-        rng,
         perlin,
         zoom: 1.0,
     };

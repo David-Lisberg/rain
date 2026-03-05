@@ -3,7 +3,8 @@ use rain::engine::core::RainHandle;
 use rain::engine::component::*;
 use rain::engine::input::KeyboardKey;
 
-use crate::Player;
+use crate::game::player::movement::Player;
+
 
 pub fn system_player_input(handle: &mut RainHandle) {
     let mut to_dash: Vec<Entity> = Vec::new();

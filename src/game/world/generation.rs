@@ -1,16 +1,9 @@
-use glam::Vec2;
-use noise::core::perlin::perlin_2d;
-use noise::core::simplex::simplex_2d;
-use noise::permutationtable::PermutationTable;
-use rain::engine::color::Color;
 use rain::engine::core::RainHandle;
 use rain::engine::component::*;
 
-use noise::{Fbm, NoiseFn, Perlin};
-use noise::utils::{NoiseMapBuilder, PlaneMapBuilder};
-
-use crate::{Player, State};
-use crate::game::world::chunk::{CHUNK_DIM, ChunkData, ChunkPosition, construct_chunk_mesh, generate_chunk};
+use crate::State;
+use crate::game::player::movement::Player;
+use crate::game::world::chunk::{ChunkData, ChunkPosition, construct_chunk_mesh, generate_chunk};
 
 pub const CHUNK_GENERATION_DISTANCE: i32 = 5;
 

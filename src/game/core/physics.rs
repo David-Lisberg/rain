@@ -35,3 +35,29 @@ pub fn system_physics_friction(handle: &mut RainHandle) {
         }
     }
 }
+
+pub fn set_velocity_clamped(velocity: &mut Velocity2D, magnitude: f32, direction: &Direction) {
+    let diagonal = magnitude * 0.7071;
+    match direction {
+        Direction::Up => velocity.y = magnitude.max(velocity.y),
+        Direction::UpRight => {
+            velocity.x = diagonal.max(velocity.x);
+            velocity.y = diagonal.max(velocity.y);
+        }
+        Direction::UpLeft => {
+            velocity.x = (-diagonal).min(velocity.x);
+            velocity.y = diagonal.max(velocity.y);
+        }
+        Direction::Down => velocity.y = (-magnitude).min(velocity.y),
+        Direction::DownRight => {
+            velocity.x = diagonal.max(velocity.x);
+            velocity.y = (-diagonal).min(velocity.y);
+        }
+        Direction::DownLeft => {
+            velocity.x = (-diagonal).min(velocity.x);
+            velocity.y = (-diagonal).min(velocity.y);
+        }
+        Direction::Right => velocity.x = magnitude.max(velocity.x),
+        Direction::Left => velocity.x = (-magnitude).min(velocity.x),
+    }
+}

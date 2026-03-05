@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::engine::{texture::Texture, vertex::{ModelVertex, UIVertex}};
+use crate::engine::{texture::Texture, vertex::{UIVertex}};
 
 #[derive(Clone, Debug)]
 pub struct UIMesh {

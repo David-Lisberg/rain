@@ -1,12 +1,11 @@
 use glam::Vec2;
 use rain::engine::core::RainHandle;
-use rain::engine::resource::ResourceManager;
 use rain::engine::texture::Texture;
 use serde::{Deserialize, Serialize};
 use rain::engine::color::Color;
 use rain::engine::component::*;
 
-use std::fs::{File, OpenOptions, read_to_string};
+use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::sync::Arc;
 
