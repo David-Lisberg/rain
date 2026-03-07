@@ -645,10 +645,12 @@ impl Renderer {
             render_pass.set_bind_group(0, bind_group, &[]);
             render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
             for (_, (mesh, _)) in query.iter() {
-                render_pass.set_vertex_buffer(0, mesh.vertices.slice(..));
-                render_pass.set_index_buffer(mesh.indices.slice(..), wgpu::IndexFormat::Uint16);
-
-                render_pass.draw_indexed(0..mesh.num_indices, 0, 0..1);
+                if mesh.vertices.size() != 0 {
+                    render_pass.set_vertex_buffer(0, mesh.vertices.slice(..));
+                    render_pass.set_index_buffer(mesh.indices.slice(..), wgpu::IndexFormat::Uint16);
+    
+                    render_pass.draw_indexed(0..mesh.num_indices, 0, 0..1);
+                }
             }
         }
     }

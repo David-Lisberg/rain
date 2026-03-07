@@ -24,9 +24,7 @@ impl Texture {
 
     pub fn from_image(queue: &wgpu::Queue, array: &mut TextureArray, image: &image::DynamicImage) -> Arc<Texture> {
         let image = image.to_rgba8();
-        let dimensions = image.dimensions();
-
-        let image = resize_and_pad(image, array.width, array.height);
+        let (image, width, height) = resize_and_pad(image, array.width, array.height);
 
         let texture_size = wgpu::Extent3d {
             width: array.width,
@@ -63,10 +61,9 @@ impl Texture {
         array.current += 1;
 
         Arc::new(Texture {
-            // texture,
             index,
             array_id: array.id,
-            uv: [(dimensions.0 as f32 / array.width as f32), (dimensions.1 as f32 / array.height as f32)]
+            uv: [(width as f32 / array.width as f32), (height as f32 / array.height as f32)]
         })
     }
 }

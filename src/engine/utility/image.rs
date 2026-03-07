@@ -1,6 +1,6 @@
 use image::{GenericImage, Rgba, RgbaImage};
 
-pub fn resize_and_pad(image: RgbaImage, width: u32, height: u32) -> RgbaImage {
+pub fn resize_and_pad(image: RgbaImage, width: u32, height: u32) -> (RgbaImage, u32, u32) {
     let (mut current_w, mut current_h) = image.dimensions();
 
     while current_w <= width && current_h <= height {
@@ -13,7 +13,7 @@ pub fn resize_and_pad(image: RgbaImage, width: u32, height: u32) -> RgbaImage {
 
     let resized = image::imageops::resize(&image, current_w, current_h, image::imageops::FilterType::Nearest);
 
-    pad(resized, width, height)
+    (pad(resized, width, height), current_w, current_h)
 }
 
 pub fn pad(image: RgbaImage, width: u32, height: u32) -> RgbaImage {

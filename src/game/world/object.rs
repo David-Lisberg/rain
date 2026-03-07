@@ -1,0 +1,96 @@
+use std::sync::Arc;
+
+use glam::Vec2;
+use hecs::Entity;
+use rain::engine::{component::Visible, core::RainHandle, mesh::ModelMesh, resource::{ARRAY_256X256_ID, ResourceManager}, texture::Texture, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
+use wgpu::util::DeviceExt;
+
+use crate::game::world::chunk::ChunkData;
+
+#[derive(Debug)]
+pub struct Object {
+    pub _type: ObjectType,
+    pub position: Vec2,
+    pub size: Vec2,
+}
+
+#[derive(Debug)]
+pub enum ObjectType {
+    Tree1,
+}
+
+pub struct ObjectMesh;
+
+impl ObjectType {
+    pub fn fetch_texture(&self, resource_manager: &ResourceManager) -> Arc<Texture> {
+        match self {
+            ObjectType::Tree1 => resource_manager.fetch_texture("object_tree1").unwrap(),
+        }
+    }
+}
+
+pub fn construct_object_default(_type: ObjectType, position: Vec2) -> Object {
+    match _type {
+        ObjectType::Tree1 => Object { 
+            _type, 
+            position, 
+            size: Vec2::new(1.0, 3.0), 
+        },
+    }
+}
+
+pub fn construct_object_mesh(handle: &mut RainHandle) -> ModelMesh {
+    let mut model_vertices: Vec<ModelVertex> = Vec::new();
+    let mut model_indices: Vec<u16> = Vec::new();
+    let mut objects: Vec<&Object> = Vec::new();
+
+    let mut query = handle.world.query::<(&ChunkData, &ModelMesh)>();
+    for (_, (chunk, _)) in query.iter() {
+        for object in &chunk.objects {
+            objects.push(object);
+        }
+    }
+    
+    objects.sort_by(|a, b| a.position.y.partial_cmp(&b.position.y).unwrap());
+    
+    for (i, object) in objects.iter().enumerate() {
+        let object_texture = object._type.fetch_texture(&handle.resource_manager);
+        // dbg!(&object_texture.uv);
+        let vertices = vec![
+            ModelVertex { position: [object.position.x, object.position.y, 0.01], uv: [0.0, object_texture.uv[1]], layer: object_texture.index },
+            ModelVertex { position: [object.position.x + object.size.x, object.position.y, 0.01], uv: [object_texture.uv[0], object_texture.uv[1]], layer: object_texture.index },
+            ModelVertex { position: [object.position.x + object.size.x, object.position.y + object.size.y, 0.01], uv: [object_texture.uv[0], 0.0], layer: object_texture.index },
+            ModelVertex { position: [object.position.x, object.position.y + object.size.y, 0.01], uv: [0.0, 0.0], layer: object_texture.index },
+        ];
+        let indices: Vec<u16> = SPRITE_QUAD_INDICES.iter().map(|x| x + i as u16 * 4).collect();
+        model_vertices.extend(vertices);
+        model_indices.extend(indices);
+    }
+
+    ModelMesh {
+        vertices: handle.renderer.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("object_vertex_buffer"),
+            contents: bytemuck::cast_slice(&model_vertices),
+            usage: wgpu::BufferUsages::VERTEX,
+        }),
+        indices: handle.renderer.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("object_index_buffer"),
+            contents: bytemuck::cast_slice(&model_indices),
+            usage: wgpu::BufferUsages::INDEX,
+        }),
+        num_indices: model_indices.len() as u32,
+        array_id: ARRAY_256X256_ID,
+    }
+}
+
+pub fn reload_object_mesh(handle: &mut RainHandle) {
+    let to_remove: Vec<Entity> = handle.world.query::<&ObjectMesh>()
+        .iter()
+        .map(|(e, _)| e)
+        .collect();
+    for e in to_remove {
+        handle.world.despawn(e).unwrap();
+    }
+    let mesh = construct_object_mesh(handle);
+    handle.world.spawn((mesh, ObjectMesh, Visible));
+}

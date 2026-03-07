@@ -1,5 +1,6 @@
 use glam::Vec2;
 use rain::engine::core::RainHandle;
+use rain::engine::resource::ResourceManager;
 use rain::engine::texture::Texture;
 use serde::{Deserialize, Serialize};
 use rain::engine::color::Color;
@@ -13,6 +14,7 @@ pub struct Tile {
     pub _type: TileType, 
 }
 
+#[derive(PartialEq)]
 pub enum TileType {
     Grass,
     Dirt,
@@ -35,14 +37,14 @@ pub struct TileJSON {
 }
 
 impl TileType {
-    pub fn fetch_texture(&self, handle: &mut RainHandle) -> Arc<Texture> {
+    pub fn fetch_texture(&self, resource_manager: &ResourceManager) -> Arc<Texture> {
         match self {
-            TileType::Dirt => handle.fetch_texture("tile_dirt").unwrap(),
-            TileType::Grass => handle.fetch_texture("tile_grass").unwrap(),
-            TileType::Stone => handle.fetch_texture("tile_stone").unwrap(),
-            TileType::Cobblestone => handle.fetch_texture("tile_cobblestone").unwrap(),
-            TileType::Water => handle.fetch_texture("tile_water").unwrap(),
-            TileType::Sand => handle.fetch_texture("tile_sand").unwrap(),
+            TileType::Dirt => resource_manager.fetch_texture("tile_dirt").unwrap(),
+            TileType::Grass => resource_manager.fetch_texture("tile_grass").unwrap(),
+            TileType::Stone => resource_manager.fetch_texture("tile_stone").unwrap(),
+            TileType::Cobblestone => resource_manager.fetch_texture("tile_cobblestone").unwrap(),
+            TileType::Water => resource_manager.fetch_texture("tile_water").unwrap(),
+            TileType::Sand => resource_manager.fetch_texture("tile_sand").unwrap(),
         }
     }
 }

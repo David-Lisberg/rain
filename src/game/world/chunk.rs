@@ -1,9 +1,10 @@
+use glam::Vec2;
 use hecs::Entity;
 use noise::Perlin;
 use rain::engine::{component::{Position2D, Visible}, core::RainHandle, mesh::ModelMesh, resource::ARRAY_256X256_ID, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
 use wgpu::util::DeviceExt;
 
-use crate::{game::{utility::noise::octave_noise_2d, world::{generation::CHUNK_GENERATION_DISTANCE, tile::{Tile, TileType}}}};
+use crate::game::{utility::noise::octave_noise_2d, world::{generation::CHUNK_GENERATION_DISTANCE, object::{Object, ObjectMesh, ObjectType, construct_object_default, construct_object_mesh, reload_object_mesh}, tile::{Tile, TileType}}};
 use crate::game::player::movement::Player;
 
 #[derive(PartialEq)]
@@ -23,17 +24,20 @@ impl From<&Position2D> for ChunkPosition {
 pub struct ChunkData {
     pub position: ChunkPosition,
     pub tiles: [Tile; CHUNK_DIM * CHUNK_DIM],
+    pub objects: Vec<Object>,
 }
 
 pub const CHUNK_DIM: usize = 32; /* indices should be u32s if CHUNK_DIM > 64 */
+const NOISE_TILE_SCALE_FACTOR: f64 = 0.026;
+const NOISE_OBJECT_SCALE_FACTOR: f64 = 0.017;
 
 pub fn generate_chunk(chunk_position: ChunkPosition, perlin: Perlin) -> ChunkData {
-    let scale_factor = 0.026;
+    let mut objects: Vec<Object> = Vec::new();
 
     let tiles = std::array::from_fn(|i| {
         let x = (chunk_position.x * CHUNK_DIM as i32) as f64 + (i % CHUNK_DIM) as f64;
         let y = (chunk_position.y * CHUNK_DIM as i32) as f64 + (i / CHUNK_DIM) as f64;
-        let mut noise_value = octave_noise_2d(x * scale_factor, y * scale_factor, 4, 0.5, &perlin);
+        let mut noise_value = octave_noise_2d(x * NOISE_TILE_SCALE_FACTOR, y * NOISE_TILE_SCALE_FACTOR, 4, 0.5, &perlin);
         noise_value = (noise_value + 1.0) / 2.0;
 
         let _type = match noise_value {
@@ -46,12 +50,20 @@ pub fn generate_chunk(chunk_position: ChunkPosition, perlin: Perlin) -> ChunkDat
             _ => TileType::Dirt
         };
 
+        if _type == TileType::Grass {
+            let noise_value = octave_noise_2d(x * NOISE_OBJECT_SCALE_FACTOR, y * NOISE_OBJECT_SCALE_FACTOR, 2, 0.5, &perlin);
+            if noise_value > 0.5 {
+                objects.push(construct_object_default(ObjectType::Tree1, Vec2::new(x as f32, y as f32)));
+            }
+        }
+
         Tile { _type }
     });
 
     ChunkData {
         position: chunk_position,
         tiles,
+        objects,
     }
 }
 
@@ -60,14 +72,14 @@ pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData) -> Model
     let mut model_indices: Vec<u16> = Vec::new();
 
     for (i, tile) in chunk.tiles.iter().enumerate() {
-        let tile_texture = tile._type.fetch_texture(handle);
+        let tile_texture = tile._type.fetch_texture(&handle.resource_manager);
         let x = (chunk.position.x * CHUNK_DIM as i32) as f32 + (i % CHUNK_DIM) as f32;
         let y = (chunk.position.y * CHUNK_DIM as i32) as f32 + (i / CHUNK_DIM) as f32;
         
         let vertices = vec![
-            ModelVertex { position: [x, y, 0.0], uv: [0.0, 1.0], layer: tile_texture.index },
-            ModelVertex { position: [x + 1.0, y, 0.0], uv: [1.0, 1.0], layer: tile_texture.index },
-            ModelVertex { position: [x + 1.0, y + 1.0, 0.0], uv: [1.0, 0.0], layer: tile_texture.index },
+            ModelVertex { position: [x, y, 0.0], uv: [0.0, tile_texture.uv[1]], layer: tile_texture.index },
+            ModelVertex { position: [x + 1.0, y, 0.0], uv: [tile_texture.uv[0], tile_texture.uv[1]], layer: tile_texture.index },
+            ModelVertex { position: [x + 1.0, y + 1.0, 0.0], uv: [tile_texture.uv[0], 0.0], layer: tile_texture.index },
             ModelVertex { position: [x, y + 1.0, 0.0], uv: [0.0, 0.0], layer: tile_texture.index },
         ];
         let indices: Vec<u16> = SPRITE_QUAD_INDICES.iter().map(|x| x + i as u16 * 4).collect();
@@ -100,8 +112,6 @@ pub fn system_manage_chunks(handle: &mut RainHandle) {
         for (e, (chunk, mesh)) in handle.world.query::<(&ChunkData, Option<&ModelMesh>)>().iter() {
             let radius = CHUNK_GENERATION_DISTANCE / 2;
             if mesh.is_some() {
-                
-
                 if chunk.position.x > chunk_position.x + radius ||
                    chunk.position.x < chunk_position.x - radius ||
                    chunk.position.y > chunk_position.y + radius ||
@@ -117,6 +127,10 @@ pub fn system_manage_chunks(handle: &mut RainHandle) {
                 }
             }
         }
+    }
+
+    if !to_deload.is_empty() || !to_load.is_empty() {
+        reload_object_mesh(handle);
     }
 
     for e in to_deload {

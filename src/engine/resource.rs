@@ -105,6 +105,10 @@ impl ResourceManager {
 
         Ok(texture)
     }
+
+    pub fn fetch_texture(&self, name: &str) -> Option<Arc<Texture>> {
+        self.textures.get(name).cloned()
+    }
 }
 
 impl RainHandle {

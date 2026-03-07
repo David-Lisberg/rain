@@ -19,6 +19,7 @@ pub mod game {
         pub mod generation;
         pub mod chunk;
         pub mod tile;
+        pub mod object;
     }
     pub mod core {
         pub mod physics;
@@ -64,6 +65,7 @@ impl RainState for State {
         handle.load_texture("tile_cobblestone", "res/texture/cobblestone.png").expect("Error loading texture.");
         handle.load_texture("tile_water", "res/texture/water.png").expect("Error loading texture.");
         handle.load_texture("tile_sand", "res/texture/sand.png").expect("Error loading texture.");
+        handle.load_texture("object_tree1", "res/texture/tree1.png").expect("Error loading texture.");
         handle.world.spawn((
             Player, Sprite, Visible, 
             Position2D{ x: 0.0, y: 0.0}, Velocity2D{ x: 0.0, y: 0.0 }, Acceleration2D{ x: 0.0, y: 0.0 }, Friction(25.0),
