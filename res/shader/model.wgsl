@@ -35,6 +35,9 @@ var diffuse_sampler: sampler;
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let layer_index: i32 = i32(in.layer);
-
-    return textureSample(diffuse_textures, diffuse_sampler, in.uv, layer_index);
+    let sample = textureSample(diffuse_textures, diffuse_sampler, in.uv, layer_index);
+    if sample.a < 0.01 {
+        discard;
+    }
+    return sample;
 }

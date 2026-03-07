@@ -51,7 +51,7 @@ pub fn construct_object_mesh(handle: &mut RainHandle) -> ModelMesh {
         }
     }
     
-    objects.sort_by(|a, b| b.position.y.partial_cmp(&a.position.y).unwrap());
+    objects.sort_by(|a, b| a.position.y.partial_cmp(&b.position.y).unwrap());
     
     for (i, object) in objects.iter().enumerate() {
         let object_texture = object._type.fetch_texture(&handle.resource_manager);

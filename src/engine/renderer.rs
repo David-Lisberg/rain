@@ -11,7 +11,7 @@ use crate::engine::mesh::ModelMesh;
 use crate::include_str_root;
 use crate::engine::instance::SpriteInstance;
 use crate::engine::resource::*;
-use crate::engine::texture::Texture;
+use crate::engine::texture::{Texture, TextureWGPU};
 use crate::engine::vertex::*;
 use crate::engine::component::*;
 
@@ -27,6 +27,7 @@ pub struct Renderer {
     pub camera_uniform: Camera2dUniform,
     pub camera_buffer: wgpu::Buffer,
     pub camera_bind_group: wgpu::BindGroup,
+    pub depth_texture: TextureWGPU,
     pub ui_pipeline: wgpu::RenderPipeline,
     pub ui_vertex_buffers: [wgpu::Buffer; 2],
     pub ui_index_buffers: [wgpu::Buffer; 2],
@@ -156,6 +157,8 @@ impl Renderer {
             label: Some("camera_bind_group"),
         });
 
+        let depth_texture = TextureWGPU::create_depth_texture(&device, &config);
+
         let ui_pipeline = Self::create_pipeline_ui(&device, &config);
 
         let ui_vertex_buffers = std::array::from_fn(|_| device.create_buffer(&wgpu::BufferDescriptor {
@@ -210,6 +213,7 @@ impl Renderer {
             device,
             queue,
             config,
+            depth_texture,
             ui_pipeline,
             ui_vertex_buffers,
             ui_index_buffers,
@@ -336,7 +340,13 @@ impl Renderer {
                 unclipped_depth: false,
                 conservative: false,
             },
-            depth_stencil: None,
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: TextureWGPU::DEPTH_FORMAT,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Less,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
             multisample: wgpu::MultisampleState {
                 count: 1,
                 mask: !0,
@@ -395,7 +405,13 @@ impl Renderer {
                 unclipped_depth: false,
                 conservative: false,
             },
-            depth_stencil: None,
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: TextureWGPU::DEPTH_FORMAT,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Less,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
             multisample: wgpu::MultisampleState {
                 count: 1,
                 mask: !0,
@@ -410,8 +426,12 @@ impl Renderer {
         if width > 0 && height > 0 {
             self.config.width = width;
             self.config.height = height;
+
             self.surface.configure(&self.device, &self.config);
             self.is_surface_configured = true;
+
+            self.depth_texture = TextureWGPU::create_depth_texture(&self.device, &self.config);
+
             self.camera.aspect = width as f32 / height as f32;
             self.camera.updated = true;
         }
@@ -596,7 +616,14 @@ impl Renderer {
                         store: wgpu::StoreOp::Store,
                     },
                 })],
-                depth_stencil_attachment: None,
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &self.depth_texture.view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: wgpu::StoreOp::Store,
+                    }),
+                    stencil_ops: None,
+                }),
                 occlusion_query_set: None,
                 timestamp_writes: None,
             });
@@ -634,7 +661,14 @@ impl Renderer {
                 color_attachments: &[
                     base_color_attachment
                 ],
-                depth_stencil_attachment: None,
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &self.depth_texture.view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: wgpu::StoreOp::Store,
+                    }),
+                    stencil_ops: None,
+                }),
                 occlusion_query_set: None,
                 timestamp_writes: None,
             });
