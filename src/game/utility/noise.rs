@@ -15,3 +15,7 @@ pub fn octave_noise_2d(x: f64, y: f64, ocatves: usize, persistence: f64, perlin:
 
     total / max
 }
+
+pub fn noise_normalize(noise_value: f64) -> f64 {
+    (noise_value + 1.0) / 2.0
+}

@@ -4,6 +4,7 @@ use rain::engine::core::*;
 use rain::engine::component::*;
 use glam::*;
 use rand::Rng;
+use rand::rngs::ThreadRng;
 
 use crate::game::core::camera::*;
 use crate::game::core::physics::*;
@@ -35,6 +36,7 @@ pub mod game {
 }
 
 pub struct State {
+    rng: ThreadRng,
     perlin: Perlin,
     zoom: f32,
 }
@@ -80,6 +82,7 @@ fn main() -> anyhow::Result<()> {
     let seed = rng.next_u32();
     let perlin = Perlin::new(seed);
     let state = State {
+        rng,
         perlin,
         zoom: 1.0,
     };

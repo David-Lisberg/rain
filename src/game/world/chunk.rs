@@ -2,9 +2,10 @@ use glam::Vec2;
 use hecs::Entity;
 use noise::Perlin;
 use rain::engine::{component::{Position2D, Visible}, core::RainHandle, mesh::ModelMesh, resource::ARRAY_256X256_ID, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
+use rand::{RngExt, rngs::ThreadRng};
 use wgpu::util::DeviceExt;
 
-use crate::game::{utility::noise::octave_noise_2d, world::{generation::CHUNK_GENERATION_DISTANCE, object::{Object, ObjectMesh, ObjectType, construct_object_default, construct_object_mesh, reload_object_mesh}, tile::{Tile, TileType}}};
+use crate::game::{utility::noise::{noise_normalize, octave_noise_2d}, world::{generation::CHUNK_GENERATION_DISTANCE, object::{Object, ObjectType, construct_object_default, reload_object_mesh}, tile::{Tile, TileType}}};
 use crate::game::player::movement::Player;
 
 #[derive(PartialEq)]
@@ -31,14 +32,14 @@ pub const CHUNK_DIM: usize = 32; /* indices should be u32s if CHUNK_DIM > 64 */
 const NOISE_TILE_SCALE_FACTOR: f64 = 0.026;
 const NOISE_OBJECT_SCALE_FACTOR: f64 = 0.017;
 
-pub fn generate_chunk(chunk_position: ChunkPosition, perlin: Perlin) -> ChunkData {
+pub fn generate_chunk(chunk_position: ChunkPosition, perlin: &Perlin, rng: &mut ThreadRng) -> ChunkData {
     let mut objects: Vec<Object> = Vec::new();
 
     let tiles = std::array::from_fn(|i| {
         let x = (chunk_position.x * CHUNK_DIM as i32) as f64 + (i % CHUNK_DIM) as f64;
         let y = (chunk_position.y * CHUNK_DIM as i32) as f64 + (i / CHUNK_DIM) as f64;
         let mut noise_value = octave_noise_2d(x * NOISE_TILE_SCALE_FACTOR, y * NOISE_TILE_SCALE_FACTOR, 4, 0.5, &perlin);
-        noise_value = (noise_value + 1.0) / 2.0;
+        noise_value = noise_normalize(noise_value);
 
         let _type = match noise_value {
             v if v >= 0.85 => TileType::Cobblestone,
@@ -51,9 +52,12 @@ pub fn generate_chunk(chunk_position: ChunkPosition, perlin: Perlin) -> ChunkDat
         };
 
         if _type == TileType::Grass {
-            let noise_value = octave_noise_2d(x * NOISE_OBJECT_SCALE_FACTOR, y * NOISE_OBJECT_SCALE_FACTOR, 2, 0.5, &perlin);
+            let mut noise_value = octave_noise_2d(x * NOISE_OBJECT_SCALE_FACTOR, y * NOISE_OBJECT_SCALE_FACTOR, 2, 0.5, &perlin);
+            noise_value = noise_normalize(noise_value);
+            noise_value -= rng.random::<f64>();
+            let position = Vec2::new(x as f32 + (rng.random::<f32>() - 0.5) / 7.0, y as f32 + (rng.random::<f32>() - 0.5) / 7.0);
             if noise_value > 0.5 {
-                objects.push(construct_object_default(ObjectType::Tree1, Vec2::new(x as f32, y as f32)));
+                objects.push(construct_object_default(ObjectType::Tree1, position));
             }
         }
 

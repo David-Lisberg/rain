@@ -51,11 +51,11 @@ pub fn construct_object_mesh(handle: &mut RainHandle) -> ModelMesh {
         }
     }
     
-    objects.sort_by(|a, b| a.position.y.partial_cmp(&b.position.y).unwrap());
+    objects.sort_by(|a, b| b.position.y.partial_cmp(&a.position.y).unwrap());
     
     for (i, object) in objects.iter().enumerate() {
         let object_texture = object._type.fetch_texture(&handle.resource_manager);
-        // dbg!(&object_texture.uv);
+
         let vertices = vec![
             ModelVertex { position: [object.position.x, object.position.y, 0.01], uv: [0.0, object_texture.uv[1]], layer: object_texture.index },
             ModelVertex { position: [object.position.x + object.size.x, object.position.y, 0.01], uv: [object_texture.uv[0], object_texture.uv[1]], layer: object_texture.index },
