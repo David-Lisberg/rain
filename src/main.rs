@@ -7,6 +7,7 @@ use rand::Rng;
 use rand::rngs::ThreadRng;
 
 use crate::game::core::camera::*;
+use crate::game::core::collision::Collider;
 use crate::game::core::physics::*;
 use crate::game::player::input::*;
 use crate::game::player::movement::Player;
@@ -25,6 +26,7 @@ pub mod game {
     pub mod core {
         pub mod physics;
         pub mod camera;
+        pub mod collision;
     }
     pub mod player {
         pub mod input;
@@ -71,7 +73,7 @@ impl RainState for State {
         handle.world.spawn((
             Player, Sprite, Visible, 
             Position2D{ x: 0.0, y: 0.0}, Velocity2D{ x: 0.0, y: 0.0 }, Acceleration2D{ x: 0.0, y: 0.0 }, Friction(25.0),
-            Scale2D(Vec2::new(0.8, 0.8)), Direction::Down, Color::LIME, Priority(0), DepthZ(0.0001),
+            Scale2D(Vec2::new(0.8, 0.8)), Direction::Down, Color::LIME, Priority(0), DepthZ(0.0001), Collider::new(0.0, 0.0, 0.8, 0.8),
         ));
         handle.renderer.camera.set_z(8.0);
     }

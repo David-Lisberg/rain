@@ -8,7 +8,7 @@ use wgpu::util::DeviceExt;
 use crate::game::{utility::noise::{noise_normalize, octave_noise_2d}, world::{generation::CHUNK_GENERATION_DISTANCE, object::{Object, ObjectType, construct_object_default, reload_object_mesh}, tile::{Tile, TileType}}};
 use crate::game::player::movement::Player;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub struct ChunkPosition {
     pub x: i32,
     pub y: i32,
@@ -20,6 +20,12 @@ impl From<&Position2D> for ChunkPosition {
         let y = (value.y / CHUNK_DIM as f32).floor() as i32;
         Self { x, y }
     }
+}
+
+pub fn position_to_chunk_position(x: f32, y: f32) -> ChunkPosition {
+    let chunk_x = (x / CHUNK_DIM as f32).floor() as i32;
+    let chunk_y = (y / CHUNK_DIM as f32).floor() as i32;
+    ChunkPosition { x: chunk_x, y: chunk_y }
 }
 
 pub struct ChunkData {

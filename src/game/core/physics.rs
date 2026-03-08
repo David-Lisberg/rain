@@ -1,14 +1,56 @@
+use glam::Vec2;
 use rain::engine::core::RainHandle;
 use rain::engine::component::*;
+use rain::engine::mesh::ModelMesh;
+
+use crate::game::core::collision::Collider;
+use crate::game::world::chunk::{ChunkData, ChunkPosition, position_to_chunk_position};
 
 pub fn system_physics_movement_2d(handle: &mut RainHandle) {
-    for (_, (position, velocity, acceleration)) in handle.world.query::<(
-        &mut Position2D, &mut Velocity2D, &Acceleration2D
+    for (_, (position, velocity, acceleration, collider)) in handle.world.query::<(
+        &mut Position2D, &mut Velocity2D, &Acceleration2D, Option<&mut Collider>,
     )>().iter() {
         velocity.x += acceleration.x * handle.delta_time;
         velocity.y += acceleration.y * handle.delta_time;
-        position.x += velocity.x * handle.delta_time;
-        position.y += velocity.y * handle.delta_time;
+
+        let mut position_delta = Vec2::new(velocity.x * handle.delta_time, velocity.y * handle.delta_time);
+        if let Some(c) = collider {
+            let new_collider = Collider::new(c.x + position_delta.x, c.y + position_delta.y, c.width, c.height);
+            let chunk_position: ChunkPosition = position_to_chunk_position(new_collider.x, new_collider.y);
+
+            for (_, (chunk, _)) in handle.world.query::<(&ChunkData, &ModelMesh)>().iter() {
+                if chunk.position.x <= chunk_position.x + 1 &&
+                   chunk.position.x >= chunk_position.x - 1 &&
+                   chunk.position.y <= chunk_position.y + 1 &&
+                   chunk.position.y >= chunk_position.y - 1 {
+                    for object in &chunk.objects {
+                        if new_collider.aabb_collision(&object.collider) {
+                            let overlap_x = (new_collider.x + new_collider.width / 2.0) - (object.collider.x + object.collider.width / 2.0);
+                            let overlap_y = (new_collider.y + new_collider.height / 2.0) - (object.collider.y + object.collider.height / 2.0);
+
+                            let penetration_x = (new_collider.width + object.collider.width) / 2.0 - overlap_x.abs();
+                            let penetration_y = (new_collider.height + object.collider.height) / 2.0 - overlap_y.abs();
+
+                            println!("player: {:?}, other: {:?}", c, object.collider);
+                            println!("pos: {}, {}, other_pos: {:?}", position.x, position.y, object.position);
+                            if penetration_x < penetration_y {
+                                position_delta.x += penetration_x * overlap_x.signum();
+                                velocity.x = 0.0;
+                            } else {
+                                position_delta.y += penetration_y * overlap_y.signum();
+                                velocity.y = 0.0;
+                            }
+                        }
+                    }
+                }
+            }
+
+            c.x += position_delta.x;
+            c.y += position_delta.y;
+        }
+
+        position.x += position_delta.x;
+        position.y += position_delta.y;
         // println!("position: {} {}", position.x, position.y);
     }
 }

@@ -5,13 +5,14 @@ use hecs::Entity;
 use rain::engine::{component::Visible, core::RainHandle, mesh::ModelMesh, resource::{ARRAY_256X256_ID, ResourceManager}, texture::Texture, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
 use wgpu::util::DeviceExt;
 
-use crate::game::world::chunk::ChunkData;
+use crate::game::{core::collision::Collider, world::chunk::ChunkData};
 
 #[derive(Debug)]
 pub struct Object {
     pub _type: ObjectType,
     pub position: Vec2,
     pub size: Vec2,
+    pub collider: Collider,
 }
 
 #[derive(Debug)]
@@ -35,6 +36,7 @@ pub fn construct_object_default(_type: ObjectType, position: Vec2) -> Object {
             _type, 
             position, 
             size: Vec2::new(1.0, 3.0), 
+            collider: Collider::new(position.x,position.y, 1.0, 3.0),
         },
     }
 }
