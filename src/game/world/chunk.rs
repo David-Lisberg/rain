@@ -64,6 +64,8 @@ pub fn generate_chunk(chunk_position: ChunkPosition, perlin: &Perlin, rng: &mut 
             let position = Vec2::new(x as f32 + (rng.random::<f32>() - 0.5) / 7.0, y as f32 + (rng.random::<f32>() - 0.5) / 7.0);
             if noise_value > 0.5 {
                 objects.push(construct_object_default(ObjectType::Tree1, position));
+            } else if noise_value < 0.3 && noise_value > 0.1 {
+                objects.push(construct_object_default(ObjectType::Twig, position));
             }
         }
 

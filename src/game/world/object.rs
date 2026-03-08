@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use glam::Vec2;
 use hecs::Entity;
-use rain::engine::{component::Visible, core::RainHandle, mesh::ModelMesh, resource::{ARRAY_256X256_ID, ResourceManager}, texture::Texture, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
+use rain::engine::{component::{Priority, Visible}, core::RainHandle, mesh::ModelMesh, resource::{ARRAY_256X256_ID, ResourceManager}, texture::Texture, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
 use wgpu::util::DeviceExt;
 
 use crate::game::{core::collision::Collider, world::chunk::ChunkData};
@@ -11,13 +11,16 @@ use crate::game::{core::collision::Collider, world::chunk::ChunkData};
 pub struct Object {
     pub _type: ObjectType,
     pub position: Vec2,
+    pub depth_z: f32,
     pub size: Vec2,
     pub collider: Collider,
+    pub collidable: bool,
 }
 
 #[derive(Debug)]
 pub enum ObjectType {
     Tree1,
+    Twig,
 }
 
 pub struct ObjectMesh;
@@ -26,6 +29,7 @@ impl ObjectType {
     pub fn fetch_texture(&self, resource_manager: &ResourceManager) -> Arc<Texture> {
         match self {
             ObjectType::Tree1 => resource_manager.fetch_texture("object_tree1").unwrap(),
+            ObjectType::Twig => resource_manager.fetch_texture("object_twig").unwrap(),
         }
     }
 }
@@ -35,8 +39,18 @@ pub fn construct_object_default(_type: ObjectType, position: Vec2) -> Object {
         ObjectType::Tree1 => Object { 
             _type, 
             position, 
+            depth_z: 0.02,
             size: Vec2::new(1.0, 3.0), 
             collider: Collider::new(position.x + 0.1, position.y, 0.8, 1.0),
+            collidable: true,
+        },
+        ObjectType::Twig => Object { 
+            _type, 
+            position: Vec2::new(position.x + 0.1, position.y + 0.1), 
+            depth_z: 0.001,
+            size: Vec2::new(0.8, 0.8), 
+            collider: Collider::new(position.x + 0.1, position.y + 0.1, 0.8, 0.8),
+            collidable: false,
         },
     }
 }
@@ -59,10 +73,14 @@ pub fn construct_object_mesh(handle: &mut RainHandle) -> ModelMesh {
         let object_texture = object._type.fetch_texture(&handle.resource_manager);
 
         let vertices = vec![
-            ModelVertex { position: [object.position.x, object.position.y, 0.01], uv: [0.0, object_texture.uv[1]], layer: object_texture.index },
-            ModelVertex { position: [object.position.x + object.size.x, object.position.y, 0.01], uv: [object_texture.uv[0], object_texture.uv[1]], layer: object_texture.index },
-            ModelVertex { position: [object.position.x + object.size.x, object.position.y + object.size.y, 0.01], uv: [object_texture.uv[0], 0.0], layer: object_texture.index },
-            ModelVertex { position: [object.position.x, object.position.y + object.size.y, 0.01], uv: [0.0, 0.0], layer: object_texture.index },
+            ModelVertex { position: [object.position.x, object.position.y, object.depth_z], 
+                uv: [0.0, object_texture.uv[1]], layer: object_texture.index },
+            ModelVertex { position: [object.position.x + object.size.x, object.position.y, object.depth_z], 
+                uv: [object_texture.uv[0], object_texture.uv[1]], layer: object_texture.index },
+            ModelVertex { position: [object.position.x + object.size.x, object.position.y + object.size.y, object.depth_z], 
+                uv: [object_texture.uv[0], 0.0], layer: object_texture.index },
+            ModelVertex { position: [object.position.x, object.position.y + object.size.y, object.depth_z], 
+                uv: [0.0, 0.0], layer: object_texture.index },
         ];
         let indices: Vec<u16> = SPRITE_QUAD_INDICES.iter().map(|x| x + i as u16 * 4).collect();
         model_vertices.extend(vertices);
@@ -94,5 +112,5 @@ pub fn reload_object_mesh(handle: &mut RainHandle) {
         handle.world.despawn(e).unwrap();
     }
     let mesh = construct_object_mesh(handle);
-    handle.world.spawn((mesh, ObjectMesh, Visible));
+    handle.world.spawn((mesh, ObjectMesh, Visible, Priority(0)));
 }

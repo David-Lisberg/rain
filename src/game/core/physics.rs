@@ -24,7 +24,7 @@ pub fn system_physics_movement_2d(handle: &mut RainHandle) {
                    chunk.position.y <= chunk_position.y + 1 &&
                    chunk.position.y >= chunk_position.y - 1 {
                     for object in &chunk.objects {
-                        if new_collider.aabb_collision(&object.collider) {
+                        if object.collidable && new_collider.aabb_collision(&object.collider) {
                             let overlap_x = (new_collider.x + new_collider.width / 2.0) - (object.collider.x + object.collider.width / 2.0);
                             let overlap_y = (new_collider.y + new_collider.height / 2.0) - (object.collider.y + object.collider.height / 2.0);
 

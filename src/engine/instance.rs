@@ -1,7 +1,10 @@
+use std::sync::Arc;
+
 use glam::{Mat4, Quat, Vec2, Vec3};
 use crate::engine::component::*;
 
 use crate::engine::color::Color;
+use crate::engine::texture::Texture;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -12,7 +15,9 @@ pub struct SpriteInstance {
 }
 
 impl SpriteInstance {
-    pub fn new(pos: Option<&Position2D>, depth: Option<&DepthZ>, scale: Option<&Scale2D>, rotation: Option<&RotationZ>, color: &Color, layer: u32) -> Self {
+    pub fn new(
+        pos: Option<&Position2D>, depth: Option<&DepthZ>, scale: Option<&Scale2D>, rotation: Option<&RotationZ>, color: Option<&Color>, layer: u32,
+    ) -> Self {
         let pos = match pos {
             Some(p) => match depth {
                 Some(d) => Vec3::new(p.x, p.y, d.0),
@@ -34,7 +39,7 @@ impl SpriteInstance {
         
         Self {
             transform: (Mat4::from_scale_rotation_translation(scale.extend(1.0), Quat::from_rotation_z(rotation), pos)).to_cols_array_2d(),
-            color: Color::rain_color_to_array(color),
+            color: Color::rain_color_to_array(color.unwrap_or(&Color::WHITE)),
             layer,
         }
     }

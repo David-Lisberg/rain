@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use hecs::World;
+use hecs::{Entity, World};
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
@@ -8,6 +8,7 @@ use crate::engine::camera::{Camera2d, Camera2dUniform};
 use crate::engine::color::{self, Color};
 use crate::engine::draw::{DrawCall, DrawPass};
 use crate::engine::mesh::ModelMesh;
+use crate::engine::sprite::SpriteRender;
 use crate::include_str_root;
 use crate::engine::instance::SpriteInstance;
 use crate::engine::resource::*;
@@ -467,9 +468,98 @@ impl Renderer {
             resolve_target: None,
             ops: clear_background_op,
         });
+        let color_attachment = Some(wgpu::RenderPassColorAttachment {
+            view: &view,
+            depth_slice: None,
+            resolve_target: None,
+            ops: wgpu::Operations {
+                load: wgpu::LoadOp::Load,
+                store: wgpu::StoreOp::Store,
+            },
+        });
 
-        self.render_models(resource_manager, &mut encoder, world, base_color_attachment.clone());
-        self.render_sprites(resource_manager, &mut encoder, world, &view);
+        let base_depth_ops = Some(wgpu::Operations {
+            load: wgpu::LoadOp::Clear(1.0),
+            store: wgpu::StoreOp::Store,
+        });
+        let depth_ops = Some(wgpu::Operations {
+            load: wgpu::LoadOp::Load,
+            store: wgpu::StoreOp::Store,
+        });
+
+        let mut no_priority: (Vec<&ModelMesh>, Vec<SpriteRender>) = (Vec::new(), Vec::new());
+        let mut priority_buffer: Vec<(Vec<&ModelMesh>, Vec<SpriteRender>)> = Vec::new();
+        let mut priority_buffer_value: Vec<i32> = Vec::new();
+    
+        let mut query = world.query::<(
+            &Visible, Option<&Priority>, Option<&ModelMesh>, Option<&Sprite>, 
+            Option<&Position2D>, Option<&DepthZ>, Option<&Scale2D>, Option<&RotationZ>, Option<&Color>, Option<&Arc<Texture>>
+        )>();
+        for (_, (
+            _, priority, mesh, sprite, pos, depth, scale, rotation, color, texture
+        )) in query.iter() {
+            match priority {
+                Some(p) => {
+                    if let Some(i) = priority_buffer_value.iter().position(|&x| x == p.0) {
+                        if let Some(m) = mesh {
+                            priority_buffer[i].0.push(m);
+                        }
+                        if sprite.is_some() {
+                            let sprite_render = SpriteRender::new(pos, depth, scale, rotation, color, texture);
+                            priority_buffer[i].1.push(sprite_render);
+                        }
+                    } else {
+                        let i = priority_buffer_value.len();
+                        priority_buffer_value.push(p.0);
+                        priority_buffer.push((Vec::new(), Vec::new()));
+                        if let Some(m) = mesh {
+                            priority_buffer[i].0.push(m);
+                        }
+                        if sprite.is_some() {
+                            let sprite_render = SpriteRender::new(pos, depth, scale, rotation, color, texture);
+                            priority_buffer[i].1.push(sprite_render);
+                        }
+                    }
+                }
+                None => {
+                    if let Some(m) = mesh {
+                        no_priority.0.push(m);
+                    }
+                    if sprite.is_some() {
+                        let sprite_render = SpriteRender::new(pos, depth, scale, rotation, color, texture);
+                        no_priority.1.push(sprite_render);
+                    }
+                }
+            }
+        }
+
+        let mut indices: Vec<usize> = (0..priority_buffer_value.len()).collect();
+        indices.sort_by_key(|&i| priority_buffer_value[i]);
+
+        let priority_buffer_sorted: Vec<(Vec<&ModelMesh>, Vec<SpriteRender>)> = indices.iter().map(|&i| priority_buffer[i].clone()).collect();
+        let mut to_render = vec![no_priority];
+        to_render.extend(priority_buffer_sorted);
+
+        let mut first_pass = true;
+        for (models, sprites) in to_render {
+            if !models.is_empty() {
+                if first_pass {
+                    self.render_models(resource_manager, &mut encoder, models, base_color_attachment.clone(), base_depth_ops.clone());
+                    first_pass = false;
+                } else {
+                    self.render_models(resource_manager, &mut encoder, models, color_attachment.clone(), depth_ops.clone());
+                }
+            }
+            if !sprites.is_empty() {
+                if first_pass {
+                    self.render_sprites(resource_manager, &mut encoder, sprites, base_color_attachment.clone(), base_depth_ops.clone());
+                    first_pass = false;
+                } else {
+                    self.render_sprites(resource_manager, &mut encoder, sprites, color_attachment.clone(), depth_ops.clone());
+                }
+            }
+        }
+
         self.render_ui(resource_manager, &mut encoder, &view);
 
         self.queue.submit(std::iter::once(encoder.finish()));
@@ -557,8 +647,9 @@ impl Renderer {
         &mut self, 
         resource_manager: &ResourceManager, 
         encoder: &mut wgpu::CommandEncoder, 
-        world: &World,
-        view: &wgpu::TextureView,
+        to_render: Vec<SpriteRender>,
+        color_attachment: Option<wgpu::RenderPassColorAttachment<'_>>,
+        depth_ops: Option<wgpu::Operations<f32>>,
     ) {
         let mut buffer_segments: [BufferSegmentSpriteInstance; 2] = [
             BufferSegmentSpriteInstance::new(ARRAY_256X256_ID),
@@ -566,38 +657,17 @@ impl Renderer {
         ];
         let stride = std::mem::size_of::<SpriteInstance>() as u32;
         let mut offset = 0;
-        let mut query = world.query::<(
-            &Sprite, &Visible, Option<&Position2D>, Option<&DepthZ>, Option<&Scale2D>, Option<&RotationZ>, Option<&Arc<Texture>>, Option<&Color>, Option<&Priority>,
-        )>();
+
         for buffer_segment in &mut buffer_segments {
             buffer_segment.offset = offset * stride;
-            for (_, (_, _, pos, depth, scale, rotation, texture, color, priority)) in query.iter() {
-                let priority = if let Some(p) = priority {
-                    p.0
-                } else {
-                    i32::MIN
-                };
-                if let Some(t) = texture {
-                    if t.array_id == buffer_segment.id {
-                        buffer_segment.instances.push(SpriteInstance::new(pos, depth, scale, rotation, color.unwrap_or(&Color::WHITE), t.index));
-                        buffer_segment.priority.push(priority);
-                        offset += 1;
-                    }
-                } else if buffer_segment.id == ARRAY_256X256_ID {
-                    buffer_segment.instances.push(SpriteInstance::new(pos, depth, scale, rotation, color.unwrap_or(&Color::WHITE), 0));
-                    buffer_segment.priority.push(priority);
+
+            for sprite_render in &to_render {
+                if sprite_render.array_id == buffer_segment.id {
+                    buffer_segment.instances.push(sprite_render.instance);
                     offset += 1;
                 }
             }
             buffer_segment.length = offset * stride - buffer_segment.offset;
-
-            if buffer_segment.priority.len() == buffer_segment.instances.len() {
-                let mut indices: Vec<usize> = (0..buffer_segment.priority.len()).collect();
-                indices.sort_by_key(|&i| buffer_segment.priority[i]);
-                buffer_segment.instances = indices.iter().map(|&i| buffer_segment.instances[i]).collect();
-            } else {
-                println!("Error: Cannot apply priority, priority and instance buffer have different lengths.");
-            }
         }
 
         for buffer_segment in &buffer_segments {
@@ -607,21 +677,12 @@ impl Renderer {
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("render_pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view,
-                    depth_slice: None,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
+                color_attachments: &[
+                    color_attachment
+                ],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                     view: &self.depth_texture.view,
-                    depth_ops: Some(wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: wgpu::StoreOp::Store,
-                    }),
+                    depth_ops,
                     stencil_ops: None,
                 }),
                 occlusion_query_set: None,
@@ -651,22 +712,19 @@ impl Renderer {
         &mut self, 
         resource_manager: &ResourceManager, 
         encoder: &mut wgpu::CommandEncoder, 
-        world: &World,
-        base_color_attachment: Option<wgpu::RenderPassColorAttachment<'_>>,
+        to_render: Vec<&ModelMesh>,
+        color_attachment: Option<wgpu::RenderPassColorAttachment<'_>>,
+        depth_ops: Option<wgpu::Operations<f32>>
     ) {
-        let mut query = world.query::<(&ModelMesh, &Visible)>();
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("render_pass"),
                 color_attachments: &[
-                    base_color_attachment
+                    color_attachment
                 ],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                     view: &self.depth_texture.view,
-                    depth_ops: Some(wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(1.0),
-                        store: wgpu::StoreOp::Store,
-                    }),
+                    depth_ops,
                     stencil_ops: None,
                 }),
                 occlusion_query_set: None,
@@ -678,7 +736,7 @@ impl Renderer {
             let (_, bind_group) = resource_manager.texture_arrays.get(&ARRAY_256X256_ID).unwrap();
             render_pass.set_bind_group(0, bind_group, &[]);
             render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
-            for (_, (mesh, _)) in query.iter() {
+            for mesh in to_render {
                 if mesh.vertices.size() != 0 {
                     render_pass.set_vertex_buffer(0, mesh.vertices.slice(..));
                     render_pass.set_index_buffer(mesh.indices.slice(..), wgpu::IndexFormat::Uint16);

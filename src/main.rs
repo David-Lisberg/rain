@@ -70,10 +70,11 @@ impl RainState for State {
         handle.load_texture("tile_water", "res/texture/water.png").expect("Error loading texture.");
         handle.load_texture("tile_sand", "res/texture/sand.png").expect("Error loading texture.");
         handle.load_texture("object_tree1", "res/texture/tree1.png").expect("Error loading texture.");
+        handle.load_texture("object_twig", "res/texture/twig.png").expect("Error loading texture.");
         handle.world.spawn((
             Player, Sprite, Visible, 
             Position2D{ x: 0.0, y: 0.0}, Velocity2D{ x: 0.0, y: 0.0 }, Acceleration2D{ x: 0.0, y: 0.0 }, Friction(25.0),
-            Scale2D(Vec2::new(0.8, 0.8)), Direction::Down, Color::LIME, Priority(0), DepthZ(0.0001), Collider::new(-0.4, -0.4, 0.8, 0.8),
+            Scale2D(Vec2::new(0.8, 0.8)), Direction::Down, Color::LIME, Priority(1), DepthZ(0.01), Collider::new(-0.4, -0.4, 0.8, 0.8),
         ));
         handle.renderer.camera.set_z(8.0);
     }
