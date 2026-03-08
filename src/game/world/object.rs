@@ -36,7 +36,7 @@ pub fn construct_object_default(_type: ObjectType, position: Vec2) -> Object {
             _type, 
             position, 
             size: Vec2::new(1.0, 3.0), 
-            collider: Collider::new(position.x,position.y, 1.0, 3.0),
+            collider: Collider::new(position.x + 0.1, position.y, 0.8, 1.0),
         },
     }
 }

@@ -73,7 +73,7 @@ impl RainState for State {
         handle.world.spawn((
             Player, Sprite, Visible, 
             Position2D{ x: 0.0, y: 0.0}, Velocity2D{ x: 0.0, y: 0.0 }, Acceleration2D{ x: 0.0, y: 0.0 }, Friction(25.0),
-            Scale2D(Vec2::new(0.8, 0.8)), Direction::Down, Color::LIME, Priority(0), DepthZ(0.0001), Collider::new(0.0, 0.0, 0.8, 0.8),
+            Scale2D(Vec2::new(0.8, 0.8)), Direction::Down, Color::LIME, Priority(0), DepthZ(0.0001), Collider::new(-0.4, -0.4, 0.8, 0.8),
         ));
         handle.renderer.camera.set_z(8.0);
     }
