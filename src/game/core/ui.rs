@@ -21,20 +21,26 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
     let num_slots = INVENTORY_SLOTS_HOTBAR.len() as f32;
     let slots_width = num_slots * INVENTORY_SLOT_SIZE + (num_slots - 1.0) * INVENTORY_SLOT_GAP;
     let start = (SCREEN_WIDTH - slots_width) / 2.0; 
+    let border_width = INVENTORY_SLOT_SIZE / 8.0;
 
 
     state.manager.sub_layout_immediate("root", 0.0, 0.0, SCREEN_WIDTH, SCREEN_HEIGHT, Scale::SquareY, 
         false, false, "inventory");
 
     for (_, (_, inventory)) in handle.world.query::<(&Player, &Inventory)>().iter() {
-        let num_slots = INVENTORY_SLOTS_HOTBAR.len() as f32;
-        let start = (SCREEN_WIDTH - (num_slots * INVENTORY_SLOT_SIZE + (num_slots - 1.0) * INVENTORY_SLOT_GAP)) / 2.0; 
 
         for i in INVENTORY_SLOTS_HOTBAR {
             state.manager.element_immediate(&ElementBuilder::new(start + i as f32 * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP), INVENTORY_SLOT_HEIGHT, 
                 Shape::Rectangle(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE))
                 .texture(handle.fetch_texture("inventory_slot").unwrap())
                 .build(), "inventory");
+            if let Some(item_type) = &inventory.slots[i].item_type {
+                state.manager.element_immediate(&ElementBuilder::new(start + i as f32 * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP) + border_width, 
+                    INVENTORY_SLOT_HEIGHT + border_width, 
+                    Shape::Rectangle(INVENTORY_SLOT_SIZE - border_width * 2.0, INVENTORY_SLOT_SIZE - border_width * 2.0))
+                    .texture(item_type.fetch_texture(&mut handle.resource_manager))
+                    .build(), "inventory");
+            }
         }
     }
 }

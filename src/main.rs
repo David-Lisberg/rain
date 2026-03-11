@@ -13,6 +13,7 @@ use crate::game::core::physics::*;
 use crate::game::core::ui::render_ui;
 use crate::game::player::input::*;
 use crate::game::player::inventory::Inventory;
+use crate::game::player::item::ItemType;
 use crate::game::player::movement::Player;
 use crate::game::player::movement::system_player_dash;
 use crate::game::player::movement::system_player_walk;
@@ -92,6 +93,10 @@ impl RainState for State {
             Scale2D(Vec2::new(0.8, 0.8)), Direction::Down, Color::LIME, Priority(1), DepthZ(0.01), Collider::new(-0.4, -0.4, 0.8, 0.8),
             Inventory::new(36),
         ));
+
+        for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
+            inventory.slots[3].item_type = Some(ItemType::Twig);
+        }
         handle.renderer.camera.set_z(8.0);
     }
 }
