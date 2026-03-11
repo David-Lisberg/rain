@@ -464,13 +464,11 @@ impl Renderer {
         };
         let base_color_attachment = Some(wgpu::RenderPassColorAttachment {
             view: &view,
-            depth_slice: None,
             resolve_target: None,
             ops: clear_background_op,
         });
         let color_attachment = Some(wgpu::RenderPassColorAttachment {
             view: &view,
-            depth_slice: None,
             resolve_target: None,
             ops: wgpu::Operations {
                 load: wgpu::LoadOp::Load,
@@ -611,7 +609,6 @@ impl Renderer {
                 label: Some("render_pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view,
-                    depth_slice: None,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Load,
