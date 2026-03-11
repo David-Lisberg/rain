@@ -3,12 +3,14 @@ use rain::engine::color::Color;
 use rain::engine::core::*;
 use rain::engine::component::*;
 use glam::*;
+use rain::lgui::manager::ElementManager;
 use rand::Rng;
 use rand::rngs::ThreadRng;
 
 use crate::game::core::camera::*;
 use crate::game::core::collision::Collider;
 use crate::game::core::physics::*;
+use crate::game::core::ui::render_ui;
 use crate::game::player::input::*;
 use crate::game::player::inventory::Inventory;
 use crate::game::player::movement::Player;
@@ -16,6 +18,9 @@ use crate::game::player::movement::system_player_dash;
 use crate::game::player::movement::system_player_walk;
 use crate::game::world::chunk::system_manage_chunks;
 use crate::game::world::generation::system_world_generation;
+
+pub const SCREEN_WIDTH: f32 = 850.0;
+pub const SCREEN_HEIGHT: f32 = 600.0;
 
 pub mod game {
     pub mod world {
@@ -28,6 +33,7 @@ pub mod game {
         pub mod physics;
         pub mod camera;
         pub mod collision;
+        pub mod ui;
     }
     pub mod player {
         pub mod input;
@@ -41,6 +47,7 @@ pub mod game {
 }
 
 pub struct State {
+    manager: ElementManager,
     rng: ThreadRng,
     perlin: Perlin,
     zoom: f32,
@@ -62,6 +69,7 @@ impl RainState for State {
 
     fn render(&mut self, handle: &mut RainHandle) {
         handle.clear_background(Color::new(100, 100, 100, 255));
+        render_ui(handle, self);
     }
 
     fn setup(&mut self, handle: &mut RainHandle) {
@@ -74,6 +82,10 @@ impl RainState for State {
         handle.load_texture("tile_sand", "res/texture/sand.png").expect("Error loading texture.");
         handle.load_texture("object_tree1", "res/texture/tree1.png").expect("Error loading texture.");
         handle.load_texture("object_twig", "res/texture/twig.png").expect("Error loading texture.");
+        handle.load_texture("inventory_slot", "res/texture/inventory_slot.png").expect("Error loading texture.");
+
+        self.manager.add_screen("game");
+
         handle.world.spawn((
             Player, Sprite, Visible, 
             Position2D{ x: 0.0, y: 0.0}, Velocity2D{ x: 0.0, y: 0.0 }, Acceleration2D{ x: 0.0, y: 0.0 }, Friction(25.0),
@@ -92,9 +104,10 @@ fn main() -> anyhow::Result<()> {
         rng,
         perlin,
         zoom: 1.0,
+        manager: ElementManager::new(SCREEN_WIDTH, SCREEN_HEIGHT)
     };
     let _ = RainApp::new(state)
-        .size(850, 600)
+        .size(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32)
         .title("hello_world")
         .run();
 

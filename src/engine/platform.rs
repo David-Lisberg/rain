@@ -7,7 +7,7 @@ use crate::engine::core::RainHandle;
 use crate::engine::draw::{DrawCall, DrawPass};
 use crate::engine::mesh::UIMesh;
 use crate::engine::texture::Texture;
-use crate::engine::utility::rectangle::Rectangle;
+use crate::engine::utility::rectangle::Rect;
 use crate::engine::utility::transform::{framebuffer_to_ndc, rotate_around_pivot};
 use crate::engine::vertex::UIVertex;
 
@@ -21,10 +21,10 @@ impl RainHandle {
         self.renderer.draw_pass = DrawPass::new(Some(color));
     }
 
-    pub fn draw_rectangle(&mut self, rect: impl Into<Rectangle>, color: Color) {
-        let rect: Rectangle = rect.into();
-        let ndc1 = framebuffer_to_ndc((rect.x, rect.y), self.base_width, self.base_height);
-        let ndc2 = framebuffer_to_ndc((rect.x + rect.w, rect.y + rect.h), self.base_width, self.base_height);
+    pub fn draw_rectangle(&mut self, rect: impl Into<Rect>, color: Color) {
+        let rect: Rect = rect.into();
+        let ndc1 = framebuffer_to_ndc((rect.x, rect.y), self.renderer.config.width, self.renderer.config.height);
+        let ndc2 = framebuffer_to_ndc((rect.x + rect.w, rect.y + rect.h), self.renderer.config.width, self.renderer.config.height);
         let color_array = Color::rain_color_to_array(&color);
         self.renderer.draw_pass.draw_calls.push(DrawCall::Mesh(
             UIMesh {
@@ -40,8 +40,8 @@ impl RainHandle {
         ))
     }
 
-    pub fn draw_rectangle_ex(&mut self, rect: impl Into<Rectangle>, color: Color, degrees: f32, origin: impl Into<Vec2>) {
-        let rect: Rectangle = rect.into();
+    pub fn draw_rectangle_ex(&mut self, rect: impl Into<Rect>, color: Color, degrees: f32, origin: impl Into<Vec2>) {
+        let rect: Rect = rect.into();
         let origin: Vec2 = origin.into();
         let origin: (f32, f32) = (origin.x + rect.x, origin.y + rect.y);
 
@@ -50,10 +50,10 @@ impl RainHandle {
         let p3 = rotate_around_pivot((rect.x, rect.y), origin, degrees);
         let p4 = rotate_around_pivot((rect.x + rect.w, rect.y), origin, degrees);
         
-        let p1_ndc = framebuffer_to_ndc(p1, self.base_width, self.base_height);
-        let p2_ndc = framebuffer_to_ndc(p2, self.base_width, self.base_height);
-        let p3_ndc = framebuffer_to_ndc(p3, self.base_width, self.base_height);
-        let p4_ndc = framebuffer_to_ndc(p4, self.base_width, self.base_height);
+        let p1_ndc = framebuffer_to_ndc(p1, self.renderer.config.width, self.renderer.config.height);
+        let p2_ndc = framebuffer_to_ndc(p2, self.renderer.config.width, self.renderer.config.height);
+        let p3_ndc = framebuffer_to_ndc(p3, self.renderer.config.width, self.renderer.config.height);
+        let p4_ndc = framebuffer_to_ndc(p4, self.renderer.config.width, self.renderer.config.height);
         let color_array = Color::rain_color_to_array(&color);
         self.renderer.draw_pass.draw_calls.push(DrawCall::Mesh(
             UIMesh {
@@ -69,10 +69,10 @@ impl RainHandle {
         ))
     }
 
-    pub fn draw_texture(&mut self, rect: impl Into<Rectangle>, texture: Arc<Texture>, tint: Color) {
-        let rect: Rectangle = rect.into();
-        let ndc1 = framebuffer_to_ndc((rect.x, rect.y), self.base_width, self.base_height);
-        let ndc2 = framebuffer_to_ndc((rect.x + rect.w, rect.y + rect.h), self.base_width, self.base_height);
+    pub fn draw_texture(&mut self, rect: impl Into<Rect>, texture: Arc<Texture>, tint: Color) {
+        let rect: Rect = rect.into();
+        let ndc1 = framebuffer_to_ndc((rect.x, rect.y), self.renderer.config.width, self.renderer.config.height);
+        let ndc2 = framebuffer_to_ndc((rect.x + rect.w, rect.y + rect.h), self.renderer.config.width, self.renderer.config.height);
         let color_array = Color::rain_color_to_array(&tint);
         self.renderer.draw_pass.draw_calls.push(DrawCall::Mesh(
             UIMesh {
@@ -88,8 +88,8 @@ impl RainHandle {
         ))
     }
 
-    pub fn draw_texture_ex(&mut self, rect: impl Into<Rectangle>, texture: Arc<Texture>, tint: Color, degrees: f32, origin: impl Into<Vec2>) {
-        let rect: Rectangle = rect.into();
+    pub fn draw_texture_ex(&mut self, rect: impl Into<Rect>, texture: Arc<Texture>, tint: Color, degrees: f32, origin: impl Into<Vec2>) {
+        let rect: Rect = rect.into();
         let origin: Vec2 = origin.into();
         let origin: (f32, f32) = (origin.x + rect.x, origin.y + rect.y);
 
@@ -98,10 +98,10 @@ impl RainHandle {
         let p3 = rotate_around_pivot((rect.x, rect.y), origin, degrees);
         let p4 = rotate_around_pivot((rect.x + rect.w, rect.y), origin, degrees);
         
-        let p1_ndc = framebuffer_to_ndc(p1, self.base_width, self.base_height);
-        let p2_ndc = framebuffer_to_ndc(p2, self.base_width, self.base_height);
-        let p3_ndc = framebuffer_to_ndc(p3, self.base_width, self.base_height);
-        let p4_ndc = framebuffer_to_ndc(p4, self.base_width, self.base_height);
+        let p1_ndc = framebuffer_to_ndc(p1, self.renderer.config.width, self.renderer.config.height);
+        let p2_ndc = framebuffer_to_ndc(p2, self.renderer.config.width, self.renderer.config.height);
+        let p3_ndc = framebuffer_to_ndc(p3, self.renderer.config.width, self.renderer.config.height);
+        let p4_ndc = framebuffer_to_ndc(p4, self.renderer.config.width, self.renderer.config.height);
         let color_array = Color::rain_color_to_array(&tint);
         self.renderer.draw_pass.draw_calls.push(DrawCall::Mesh(
             UIMesh {

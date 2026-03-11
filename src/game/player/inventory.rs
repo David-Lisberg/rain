@@ -1,4 +1,9 @@
+use std::ops::Range;
+
 use crate::game::player::item::ItemType;
+
+pub const INVENTORY_SLOTS_PLAYER: usize = 36;
+pub const INVENTORY_SLOTS_HOTBAR: Range<usize> = 0..9;
 
 pub struct Inventory {
     pub slots: Vec<InventorySlot>,

@@ -30,9 +30,7 @@ pub fn system_physics_movement_2d(handle: &mut RainHandle) {
 
                             let penetration_x = (new_collider.width + object.collider.width) / 2.0 - overlap_x.abs();
                             let penetration_y = (new_collider.height + object.collider.height) / 2.0 - overlap_y.abs();
-
-                            println!("player: {:?}, other: {:?}", c, object.collider);
-                            println!("pos: {}, {}, other_pos: {:?}", position.x, position.y, object.position);
+                            
                             if penetration_x < penetration_y {
                                 position_delta.x += penetration_x * overlap_x.signum();
                                 velocity.x = 0.0;
