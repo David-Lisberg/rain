@@ -52,6 +52,7 @@ pub struct State {
     rng: ThreadRng,
     perlin: Perlin,
     zoom: f32,
+    counter: i32,
 }
 
 impl RainState for State {
@@ -66,11 +67,20 @@ impl RainState for State {
         system_camera_controller(handle, self);
         system_camera_tracker(handle);
         system_camera_zoom(handle, self);
+
+        self.counter += 1;
     }
 
     fn render(&mut self, handle: &mut RainHandle) {
         handle.clear_background(Color::new(100, 100, 100, 255));
         render_ui(handle, self);
+
+        for i in 42..90 {
+            handle.draw_text(50.0, -200.0 + i as f32 * 10.0, &format!("numba {}", i), i as u32);
+        }
+        handle.draw_text(30.0, 30.0, "HELLO WORLD", 80);
+        handle.draw_text(100.0, 400.0, "HELLO WORLD times 2", 60);
+        handle.draw_text(200.0, 250.0, "times 3 ?", 50);
     }
 
     fn setup(&mut self, handle: &mut RainHandle) {
@@ -109,7 +119,8 @@ fn main() -> anyhow::Result<()> {
         rng,
         perlin,
         zoom: 1.0,
-        manager: ElementManager::new(SCREEN_WIDTH, SCREEN_HEIGHT)
+        manager: ElementManager::new(SCREEN_WIDTH, SCREEN_HEIGHT),
+        counter: 0,
     };
     let _ = RainApp::new(state)
         .size(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32)

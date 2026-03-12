@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use hecs::{Entity, World};
+use hecs::World;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
@@ -9,6 +9,7 @@ use crate::engine::color::{self, Color};
 use crate::engine::draw::{DrawCall, DrawPass};
 use crate::engine::mesh::ModelMesh;
 use crate::engine::sprite::SpriteRender;
+use crate::engine::text::{TextBufferPool, TextInfo};
 use crate::include_str_root;
 use crate::engine::instance::SpriteInstance;
 use crate::engine::resource::*;
@@ -48,7 +49,8 @@ pub struct Renderer {
     pub viewport: glyphon::Viewport,
     pub atlas: glyphon::TextAtlas,
     pub text_renderer: glyphon::TextRenderer,
-    pub text_buffer: glyphon::Buffer,
+    pub text_buffer_pool: TextBufferPool,
+    pub text_to_draw: Vec<TextInfo>,
 }
 
 #[derive(Debug)]
@@ -79,7 +81,6 @@ impl BufferSegment {
 struct BufferSegmentSpriteInstance {
     id: u32,
     instances: Vec<SpriteInstance>,
-    priority: Vec<i32>,
     offset: u32,
     length: u32,
 }
@@ -89,7 +90,6 @@ impl BufferSegmentSpriteInstance {
         Self {
             id,
             instances: Vec::new(),
-            priority: Vec::new(),
             offset: 0,
             length: 0
         }
@@ -99,7 +99,6 @@ impl BufferSegmentSpriteInstance {
 impl Renderer {
     pub async fn new(window: Arc<Window>) -> anyhow::Result<Renderer> {
         let size = window.inner_size();
-        let scale_factor = window.scale_factor();
 
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends: wgpu::Backends::PRIMARY,
@@ -223,19 +222,9 @@ impl Renderer {
         let viewport = glyphon::Viewport::new(&device, &cache);
         let mut atlas = glyphon::TextAtlas::new(&device, &queue, &cache, surface_format);
         let text_renderer = glyphon::TextRenderer::new(&mut atlas, &device, wgpu::MultisampleState::default(), None);
-        let mut text_buffer = glyphon::Buffer::new(&mut font_system, glyphon::Metrics::new(30.0, 42.0));
 
-        let physical_width = (size.width as f64 * scale_factor) as f32;
-        let physical_height = (size.height as f64 * scale_factor) as f32;
-
-        text_buffer.set_size(
-            &mut font_system,
-            Some(physical_width),
-            Some(physical_height),
-        );
-        text_buffer.set_text(&mut font_system, "Hello world! 👋\nThis is rendered with 🦅 glyphon 🦁\nThe text below should be partially clipped.\na b c d e f g h i j k l m n o p q r s t u v w x y z", 
-            &glyphon::Attrs::new().family(glyphon::Family::SansSerif), glyphon::Shaping::Advanced);
-        text_buffer.shape_until_scroll(&mut font_system, false);
+        let mut text_buffer_pool = TextBufferPool::new();
+        text_buffer_pool.set_capacity(&mut font_system, 1);
 
         Ok(Self {
             surface,
@@ -266,7 +255,8 @@ impl Renderer {
             viewport,
             atlas,
             text_renderer,
-            text_buffer,
+            text_buffer_pool,
+            text_to_draw: Vec::new(),
         })
     }
 
@@ -598,12 +588,48 @@ impl Renderer {
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
 
+        self.atlas.trim();
+
         self.reset_render_state();
         
         Ok(())
     }
 
     fn render_ui(&mut self, resource_manager: &ResourceManager, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView) {
+        self.viewport.update(&self.queue, glyphon::Resolution {
+            width: self.config.width,
+            height: self.config.height,
+        });
+
+        let mut text_areas: Vec<glyphon::TextArea> = Vec::new();
+        for text_info in self.text_to_draw.drain(..) {
+            let text_area = glyphon::TextArea {
+                buffer: self.text_buffer_pool.using.get(text_info.buffer_index).unwrap(),
+                left: text_info.x,
+                top: text_info.y,
+                scale: 1.0,
+                bounds: glyphon::TextBounds {
+                    left: 0,
+                    top: 0,
+                    right: self.config.width as i32,
+                    bottom: self.config.height as i32,
+                },
+                default_color: text_info.color,
+                custom_glyphs: &[]
+            };
+            text_areas.push(text_area);
+        }
+        self.text_renderer.prepare(
+            &self.device, 
+            &self.queue, 
+            &mut self.font_system, 
+            &mut self.atlas, 
+            &self.viewport, 
+            text_areas, 
+            &mut self.swash_cache,
+        ).unwrap();
+        self.text_buffer_pool.reset();
+
         let mut buffer_segments: [BufferSegment; 2] = [
             BufferSegment::new(ARRAY_256X256_ID),
             BufferSegment::new(ARRAY_4096X4096_ID)
@@ -672,6 +698,8 @@ impl Renderer {
                     render_pass.draw_indexed(0..(buffer_segment.indices_length / index_stride), 0, 0..1);
                 }
             }
+
+            self.text_renderer.render(&self.atlas, &self.viewport, &mut render_pass).unwrap();
         }
     }
 

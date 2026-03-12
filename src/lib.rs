@@ -14,6 +14,7 @@ pub mod engine {
     pub mod sprite;
     pub mod component;
     pub mod model;
+    pub mod text;
     pub mod utility {
         pub mod rectangle;
         pub mod math;

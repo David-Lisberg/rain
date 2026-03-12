@@ -1,10 +1,7 @@
-use std::sync::Arc;
-
 use glam::{Mat4, Quat, Vec2, Vec3};
 use crate::engine::component::*;
 
 use crate::engine::color::Color;
-use crate::engine::texture::Texture;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]

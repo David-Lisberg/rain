@@ -6,6 +6,7 @@ use crate::engine::color::Color;
 use crate::engine::core::RainHandle;
 use crate::engine::draw::{DrawCall, DrawPass};
 use crate::engine::mesh::UIMesh;
+use crate::engine::text::TextInfo;
 use crate::engine::texture::Texture;
 use crate::engine::utility::rectangle::Rect;
 use crate::engine::utility::transform::{framebuffer_to_ndc, rotate_around_pivot};
@@ -115,5 +116,17 @@ impl RainHandle {
                 material: texture,
             }
         ))
+    }
+
+    pub fn draw_text(&mut self, x: f32, y: f32, text: &str, font_size: u32) {
+        let buffer_index = self.renderer.text_buffer_pool.add_text(text, font_size, &mut self.renderer.font_system);
+
+        let text_info = TextInfo {
+            buffer_index,
+            x,
+            y,
+            color: glyphon::Color::rgb(255, 255, 255)
+        };
+        self.renderer.text_to_draw.push(text_info);
     }
 }
