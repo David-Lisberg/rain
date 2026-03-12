@@ -42,6 +42,13 @@ pub struct Renderer {
     pub ui_current_frame: usize,
     pub is_surface_configured: bool,
     pub draw_pass: DrawPass,
+
+    pub font_system: glyphon::FontSystem,
+    pub swash_cache: glyphon::SwashCache,
+    pub viewport: glyphon::Viewport,
+    pub atlas: glyphon::TextAtlas,
+    pub text_renderer: glyphon::TextRenderer,
+    pub text_buffer: glyphon::Buffer,
 }
 
 #[derive(Debug)]
@@ -92,6 +99,7 @@ impl BufferSegmentSpriteInstance {
 impl Renderer {
     pub async fn new(window: Arc<Window>) -> anyhow::Result<Renderer> {
         let size = window.inner_size();
+        let scale_factor = window.scale_factor();
 
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends: wgpu::Backends::PRIMARY,
@@ -209,6 +217,26 @@ impl Renderer {
             mapped_at_creation: false,
         });
 
+        let mut font_system = glyphon::FontSystem::new();
+        let swash_cache = glyphon::SwashCache::new();
+        let cache = glyphon::Cache::new(&device);
+        let viewport = glyphon::Viewport::new(&device, &cache);
+        let mut atlas = glyphon::TextAtlas::new(&device, &queue, &cache, surface_format);
+        let text_renderer = glyphon::TextRenderer::new(&mut atlas, &device, wgpu::MultisampleState::default(), None);
+        let mut text_buffer = glyphon::Buffer::new(&mut font_system, glyphon::Metrics::new(30.0, 42.0));
+
+        let physical_width = (size.width as f64 * scale_factor) as f32;
+        let physical_height = (size.height as f64 * scale_factor) as f32;
+
+        text_buffer.set_size(
+            &mut font_system,
+            Some(physical_width),
+            Some(physical_height),
+        );
+        text_buffer.set_text(&mut font_system, "Hello world! 👋\nThis is rendered with 🦅 glyphon 🦁\nThe text below should be partially clipped.\na b c d e f g h i j k l m n o p q r s t u v w x y z", 
+            &glyphon::Attrs::new().family(glyphon::Family::SansSerif), glyphon::Shaping::Advanced);
+        text_buffer.shape_until_scroll(&mut font_system, false);
+
         Ok(Self {
             surface,
             device,
@@ -232,6 +260,13 @@ impl Renderer {
             camera_bind_group,
             is_surface_configured: false,
             draw_pass: DrawPass::new(None),
+
+            font_system,
+            swash_cache,
+            viewport,
+            atlas,
+            text_renderer,
+            text_buffer,
         })
     }
 
