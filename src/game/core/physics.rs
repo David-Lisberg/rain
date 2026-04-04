@@ -49,7 +49,6 @@ pub fn system_physics_movement_2d(handle: &mut RainHandle) {
 
         position.x += position_delta.x;
         position.y += position_delta.y;
-        // println!("position: {} {}", position.x, position.y);
     }
 }
 
