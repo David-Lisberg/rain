@@ -9,7 +9,7 @@ use crate::engine::color::{self, Color};
 use crate::engine::draw::{DrawCall, DrawPass};
 use crate::engine::mesh::ModelMesh;
 use crate::engine::sprite::SpriteRender;
-use crate::engine::text::{TextBufferPool, TextInfo};
+use crate::engine::text::{TextBufferPool, TextInfo, TextState};
 use crate::include_str_root;
 use crate::engine::instance::SpriteInstance;
 use crate::engine::resource::*;
@@ -43,14 +43,7 @@ pub struct Renderer {
     pub ui_current_frame: usize,
     pub is_surface_configured: bool,
     pub draw_pass: DrawPass,
-
-    pub font_system: glyphon::FontSystem,
-    pub swash_cache: glyphon::SwashCache,
-    pub viewport: glyphon::Viewport,
-    pub atlas: glyphon::TextAtlas,
-    pub text_renderer: glyphon::TextRenderer,
-    pub text_buffer_pool: TextBufferPool,
-    pub text_to_draw: Vec<TextInfo>,
+    pub text_state: TextState,
 }
 
 #[derive(Debug)]
@@ -249,14 +242,15 @@ impl Renderer {
             camera_bind_group,
             is_surface_configured: false,
             draw_pass: DrawPass::new(None),
-
-            font_system,
-            swash_cache,
-            viewport,
-            atlas,
-            text_renderer,
-            text_buffer_pool,
-            text_to_draw: Vec::new(),
+            text_state: TextState {
+                font_system,
+                swash_cache,
+                viewport,
+                atlas,
+                renderer: text_renderer,
+                buffer_pool: text_buffer_pool,
+                to_draw: Vec::new(),
+            },
         })
     }
 
@@ -588,7 +582,7 @@ impl Renderer {
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
 
-        self.atlas.trim();
+        self.text_state.atlas.trim();
 
         self.reset_render_state();
         
@@ -596,17 +590,24 @@ impl Renderer {
     }
 
     fn render_ui(&mut self, resource_manager: &ResourceManager, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView) {
-        self.viewport.update(&self.queue, glyphon::Resolution {
+        self.text_state.viewport.update(&self.queue, glyphon::Resolution {
             width: self.config.width,
             height: self.config.height,
         });
 
         let mut text_areas: Vec<glyphon::TextArea> = Vec::new();
-        for text_info in self.text_to_draw.drain(..) {
+        for text_info in self.text_state.to_draw.drain(..) {
+            let buffer = self.text_state.buffer_pool.using.get(text_info.buffer_index).unwrap();
+            let mut offset = f32::MAX;
+            for run in buffer.layout_runs() {
+                for glyph in run.glyphs.iter() {
+                    offset = offset.min(run.line_y - glyph.font_size);
+                }
+            }
             let text_area = glyphon::TextArea {
-                buffer: self.text_buffer_pool.using.get(text_info.buffer_index).unwrap(),
+                buffer,
                 left: text_info.x,
-                top: text_info.y,
+                top: text_info.y - offset,
                 scale: 1.0,
                 bounds: glyphon::TextBounds {
                     left: 0,
@@ -619,16 +620,16 @@ impl Renderer {
             };
             text_areas.push(text_area);
         }
-        self.text_renderer.prepare(
+        self.text_state.renderer.prepare(
             &self.device, 
             &self.queue, 
-            &mut self.font_system, 
-            &mut self.atlas, 
-            &self.viewport, 
+            &mut self.text_state.font_system, 
+            &mut self.text_state.atlas, 
+            &self.text_state.viewport, 
             text_areas, 
-            &mut self.swash_cache,
+            &mut self.text_state.swash_cache,
         ).unwrap();
-        self.text_buffer_pool.reset();
+        self.text_state.buffer_pool.reset();
 
         let mut buffer_segments: [BufferSegment; 2] = [
             BufferSegment::new(ARRAY_256X256_ID),
@@ -699,7 +700,7 @@ impl Renderer {
                 }
             }
 
-            self.text_renderer.render(&self.atlas, &self.viewport, &mut render_pass).unwrap();
+            self.text_state.renderer.render(&self.text_state.atlas, &self.text_state.viewport, &mut render_pass).unwrap();
         }
     }
 

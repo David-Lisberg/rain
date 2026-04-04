@@ -3,6 +3,22 @@ use std::collections::HashMap;
 pub const DEFAULT_FONT_SIZE: f32 = 30.0;
 pub const DEFAULT_LINE_HEIGHT: f32 = 42.0;
 
+pub struct TextState {
+    pub font_system: glyphon::FontSystem,
+    pub swash_cache: glyphon::SwashCache,
+    pub viewport: glyphon::Viewport,
+    pub atlas: glyphon::TextAtlas,
+    pub renderer: glyphon::TextRenderer,
+    pub buffer_pool: TextBufferPool,
+    pub to_draw: Vec<TextInfo>,
+}
+
+impl TextState {
+    pub fn measure_text(&mut self, text: &str, font_size: u32) -> f32 {
+        self.buffer_pool.measure_text(text, font_size, &mut self.font_system)
+    }
+}
+
 pub struct TextBufferPool {
     pub available: HashMap<u32, Vec<glyphon::Buffer>>,
     pub using: Vec<glyphon::Buffer>,
@@ -78,12 +94,37 @@ impl TextBufferPool {
 
         buffer.set_text(font_system, text, &glyphon::Attrs::new(), glyphon::Shaping::Basic);
         if i != font_size {
-            buffer.set_metrics(font_system, glyphon::Metrics { font_size: font_size as f32, line_height: DEFAULT_LINE_HEIGHT });
+            buffer.set_metrics(font_system, glyphon::Metrics { font_size: font_size as f32, line_height: font_size as f32 * 6.2 });
         }
 
         let index = self.using.len();
         self.using.push(buffer);
         index
+    }
+
+    pub fn measure_text(&mut self, text: &str, font_size: u32, font_system: &mut glyphon::FontSystem) -> f32 {
+        let (mut buffer, i) = if let Some(buffer_entry) = self.available.get_mut(&font_size) {
+            if let Some(b) = buffer_entry.pop() {
+                (b, font_size)
+            } else {
+                (self.fetch_default_buffer(font_system), DEFAULT_FONT_SIZE as u32)
+            }
+        } else {
+            (self.fetch_default_buffer(font_system), DEFAULT_FONT_SIZE as u32)
+        };
+
+        buffer.set_text(font_system, text, &glyphon::Attrs::new(), glyphon::Shaping::Basic);
+        if i != font_size {
+            buffer.set_metrics(font_system, glyphon::Metrics { font_size: font_size as f32, line_height: DEFAULT_LINE_HEIGHT });
+        }
+
+        let width = buffer.layout_runs()
+            .map(|run| run.line_w)
+            .fold(0.0_f32, |acc, x| acc + x);
+
+        self.available.entry(i).or_default().push(buffer);
+
+        width
     }
 }
 
