@@ -1,9 +1,9 @@
+use lgui::manager::GUI;
 use noise::Perlin;
 use rain::engine::color::Color;
 use rain::engine::core::*;
 use rain::engine::component::*;
 use glam::*;
-use rain::lgui::manager::ElementManager;
 use rand::Rng;
 use rand::rngs::ThreadRng;
 
@@ -48,7 +48,7 @@ pub mod game {
 }
 
 pub struct State {
-    manager: ElementManager,
+    gui: GUI,
     rng: ThreadRng,
     perlin: Perlin,
     zoom: f32,
@@ -74,13 +74,6 @@ impl RainState for State {
     fn render(&mut self, handle: &mut RainHandle) {
         handle.clear_background(Color::new(100, 100, 100, 255));
         render_ui(handle, self);
-
-        for i in 42..90 {
-            handle.draw_text(50.0, -200.0 + i as f32 * 10.0, &format!("numba {}", i), i as u32);
-        }
-        handle.draw_text(30.0, 30.0, "HELLO WORLD", 80);
-        handle.draw_text(100.0, 400.0, "HELLO WORLD times 2", 60);
-        handle.draw_text(200.0, 250.0, "times 3 ?", 50);
     }
 
     fn setup(&mut self, handle: &mut RainHandle) {
@@ -95,8 +88,6 @@ impl RainState for State {
         handle.load_texture("object_twig", "res/texture/twig.png").expect("Error loading texture.");
         handle.load_texture("inventory_slot", "res/texture/inventory_slot.png").expect("Error loading texture.");
 
-        self.manager.add_screen("game");
-
         handle.world.spawn((
             Player, Sprite, Visible, 
             Position2D{ x: 0.0, y: 0.0}, Velocity2D{ x: 0.0, y: 0.0 }, Acceleration2D{ x: 0.0, y: 0.0 }, Friction(25.0),
@@ -106,6 +97,7 @@ impl RainState for State {
 
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
             inventory.slots[3].item_type = Some(ItemType::Twig);
+            inventory.slots[3].quantity = 42;
         }
         handle.renderer.camera.set_z(8.0);
     }
@@ -116,10 +108,10 @@ fn main() -> anyhow::Result<()> {
     let seed = rng.next_u32();
     let perlin = Perlin::new(seed);
     let state = State {
+        gui: GUI::new(SCREEN_WIDTH, SCREEN_HEIGHT),
         rng,
         perlin,
         zoom: 1.0,
-        manager: ElementManager::new(SCREEN_WIDTH, SCREEN_HEIGHT),
         counter: 0,
     };
     let _ = RainApp::new(state)

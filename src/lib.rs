@@ -15,6 +15,7 @@ pub mod engine {
     pub mod component;
     pub mod model;
     pub mod text;
+    pub mod lgui;
     pub mod utility {
         pub mod rectangle;
         pub mod math;
@@ -22,11 +23,4 @@ pub mod engine {
         pub mod transform;
         pub mod image;
     }
-}
-pub mod lgui {
-    pub mod call;
-    pub mod element;
-    pub mod layout;
-    pub mod manager;
-    pub mod text;
 }

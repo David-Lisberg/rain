@@ -36,6 +36,10 @@ impl Color {
         ]
     }
 
+    pub fn rain_color_to_glyphon_color(color: &Self) -> glyphon::Color {
+        glyphon::Color::rgba(color.r, color.g, color.b, color.a)
+    }
+
     fn srgb_to_linear(color: f32) -> f32 {
         if color <= 0.04045 {
             color / 12.92

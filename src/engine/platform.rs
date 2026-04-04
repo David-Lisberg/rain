@@ -118,15 +118,15 @@ impl RainHandle {
         ))
     }
 
-    pub fn draw_text(&mut self, x: f32, y: f32, text: &str, font_size: u32) {
-        let buffer_index = self.renderer.text_buffer_pool.add_text(text, font_size, &mut self.renderer.font_system);
+    pub fn draw_text(&mut self, x: f32, y: f32, text: &str, font_size: u32, color: Color) {
+        let buffer_index = self.renderer.text_state.buffer_pool.add_text(text, font_size, &mut self.renderer.text_state.font_system);
 
         let text_info = TextInfo {
             buffer_index,
             x,
             y,
-            color: glyphon::Color::rgb(255, 255, 255)
+            color: Color::rain_color_to_glyphon_color(&color),
         };
-        self.renderer.text_to_draw.push(text_info);
+        self.renderer.text_state.to_draw.push(text_info);
     }
 }
