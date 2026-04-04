@@ -1,20 +1,21 @@
-use rain::{engine::core::RainHandle, lgui::element::{ElementBuilder, Scale, Shape}};
+use rain::engine::core::RainHandle;
+use lgui::element::*;
 
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, State, game::player::{inventory::*, movement::Player}};
+
 
 const INVENTORY_SLOT_SIZE: f32 = 48.0;
 const INVENTORY_SLOT_HEIGHT: f32 = SCREEN_HEIGHT - (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP);
 const INVENTORY_SLOT_GAP: f32 = 10.0;
+const INVENTORY_SLOT_FONT_SIZE: u32 = 15;
 
 pub fn render_ui(handle: &mut RainHandle, state: &mut State) {
     let current_width = handle.renderer.config.width as f32;
     let current_height = handle.renderer.config.height as f32;
 
-    state.manager.begin_immediate_retain_layout(current_width, current_height);
-
     render_inventory(handle, state);
 
-    state.manager.end_immediate(handle);
+    state.gui.finish(handle, current_width, current_height);
 }
 
 fn render_inventory(handle: &mut RainHandle, state: &mut State) {
@@ -23,24 +24,35 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
     let start = (SCREEN_WIDTH - slots_width) / 2.0; 
     let border_width = INVENTORY_SLOT_SIZE / 8.0;
 
-
-    state.manager.sub_layout_immediate("root", 0.0, 0.0, SCREEN_WIDTH, SCREEN_HEIGHT, Scale::SquareY, 
-        false, false, "inventory");
+    let mut element = EBuilder::new(0.0, 0.0)
+        .shape(Shape::Rect(SCREEN_WIDTH, SCREEN_HEIGHT))
+        .scale(Scale::NormalShift)
+        .visible(false);
 
     for (_, (_, inventory)) in handle.world.query::<(&Player, &Inventory)>().iter() {
 
         for i in INVENTORY_SLOTS_HOTBAR {
-            state.manager.element_immediate(&ElementBuilder::new(start + i as f32 * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP), INVENTORY_SLOT_HEIGHT, 
-                Shape::Rectangle(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE))
-                .texture(handle.fetch_texture("inventory_slot").unwrap())
-                .build(), "inventory");
+            let x = start + i as f32 * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP);
+            let mut slot_element = EBuilder::new(x, INVENTORY_SLOT_HEIGHT)
+                .shape(Shape::Rect(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE))
+                .texture(handle.fetch_texture("inventory_slot").unwrap());
             if let Some(item_type) = &inventory.slots[i].item_type {
-                state.manager.element_immediate(&ElementBuilder::new(start + i as f32 * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP) + border_width, 
-                    INVENTORY_SLOT_HEIGHT + border_width, 
-                    Shape::Rectangle(INVENTORY_SLOT_SIZE - border_width * 2.0, INVENTORY_SLOT_SIZE - border_width * 2.0))
-                    .texture(item_type.fetch_texture(&mut handle.resource_manager))
-                    .build(), "inventory");
+                slot_element.sub_element(||
+                    EBuilder::new(x + border_width, INVENTORY_SLOT_HEIGHT + border_width)
+                        .shape(Shape::Rect(INVENTORY_SLOT_SIZE - border_width * 2.0, INVENTORY_SLOT_SIZE - border_width * 2.0))
+                        .texture(item_type.fetch_texture(&mut handle.resource_manager))
+                        .build()
+                );
+                if inventory.slots[i].quantity > 1 {
+                    slot_element.sub_element(||
+                        EBuilder::new(x + INVENTORY_SLOT_SIZE, INVENTORY_SLOT_HEIGHT + INVENTORY_SLOT_SIZE - INVENTORY_SLOT_FONT_SIZE as f32)
+                            .shape(Shape::Text(format!("{}", inventory.slots[i].quantity), INVENTORY_SLOT_FONT_SIZE, Allignment::Right))
+                            .build()
+                    );
+                }
             }
+            element.sub_element(|| slot_element.build());
         }
     }
+    state.gui.element(element.build());
 }
