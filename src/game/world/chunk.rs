@@ -22,8 +22,8 @@ impl ChunkPosition {
 
 impl From<&Position2D> for ChunkPosition {
     fn from(value: &Position2D) -> Self {
-        let x = (value.x / CHUNK_DIM as f32).floor() as i32;
-        let y = (value.y / CHUNK_DIM as f32).floor() as i32;
+        let x = (value.0.x / CHUNK_DIM as f32).floor() as i32;
+        let y = (value.0.y / CHUNK_DIM as f32).floor() as i32;
         Self { x, y }
     }
 }

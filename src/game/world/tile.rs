@@ -69,6 +69,6 @@ pub fn read_tile(handle: &mut RainHandle, file: &mut File) {
     let mut buffer = String::new();
     file.read_to_string(&mut buffer).expect("Error: Failed to read file.");
     let tile_json: TileJSON = serde_json::from_str(&buffer).expect("Error: Failed to parse tile json.");
-    handle.world.spawn((Sprite, Visible, Position2D{ x: tile_json.position.x, y: tile_json.position.y },
+    handle.world.spawn((Sprite, Visible, Position2D(Vec2::new(tile_json.position.x, tile_json.position.y)),
         Scale2D(Vec2::new(tile_json.size.x, tile_json.size.y)), tile_json.color));
 }

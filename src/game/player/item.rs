@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use rain::engine::{resource::ResourceManager, texture::Texture};
+use rain::engine::{component::{Direction, Position2D, Scale2D}, core::RainHandle, resource::ResourceManager, texture::Texture};
+
+use crate::{State, game::player::{inventory::Inventory, movement::Player}};
 
 #[derive(Clone)]
 pub enum ItemType {
@@ -14,3 +16,12 @@ impl ItemType {
         }
     }
 }
+
+// pub fn item_pickup(handle: &mut RainHandle, state: &mut State) {
+//     let mut query = handle.world.query_mut::<(&Player, &Position2D, &Scale2D, &Direction, &mut Inventory)>();
+//     for (_, (_, position, size, direction, inventory)) in query {
+//         let collider_position = match direction {
+//             Di
+//         };
+//     }
+// }

@@ -7,7 +7,7 @@ use wgpu::util::DeviceExt;
 
 use crate::{State, game::{core::collision::Collider, world::chunk::ChunkPosition}};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Object {
     pub _type: ObjectType,
     pub position: Vec2,
@@ -17,7 +17,7 @@ pub struct Object {
     pub collidable: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum ObjectType {
     Tree1,
     Twig,

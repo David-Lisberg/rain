@@ -1,3 +1,4 @@
+use glam::Vec2;
 use hecs::Entity;
 use rain::engine::core::RainHandle;
 use rain::engine::component::*;
@@ -14,28 +15,28 @@ pub fn system_player_input(handle: &mut RainHandle) {
     let mut open_inventory = false;
     for (e, (_, direction)) in handle.world.query::<(&Player, &mut Direction)>().iter() {
         if handle.is_key_pressed(KeyboardKey::A) && handle.is_key_pressed(KeyboardKey::W) {
-            *direction = Direction::UpLeft;
+            *direction = Direction(Vec2::new(-1.0, 1.0).normalize());
             to_walk.push(e);
         } else if handle.is_key_pressed(KeyboardKey::W) && handle.is_key_pressed(KeyboardKey::D) {
-            *direction = Direction::UpRight;
+            *direction = Direction(Vec2::new(1.0, 1.0).normalize());
             to_walk.push(e);
         } else if handle.is_key_pressed(KeyboardKey::D) && handle.is_key_pressed(KeyboardKey::S) {
-            *direction = Direction::DownRight;
+            *direction = Direction(Vec2::new(1.0, -1.0).normalize());
             to_walk.push(e);
         } else if handle.is_key_pressed(KeyboardKey::S) && handle.is_key_pressed(KeyboardKey::A) {
-            *direction = Direction::DownLeft;
+            *direction = Direction(Vec2::new(-1.0, -1.0).normalize());
             to_walk.push(e);
         } else if handle.is_key_pressed(KeyboardKey::A) {
-            *direction = Direction::Left;
+            *direction = Direction(Vec2::new(-1.0, 0.0));
             to_walk.push(e);
         } else if handle.is_key_pressed(KeyboardKey::D) {
-            *direction = Direction::Right;
+            *direction = Direction(Vec2::new(1.0, 0.0));
             to_walk.push(e);
         } else if handle.is_key_pressed(KeyboardKey::S) {
-            *direction = Direction::Down;
+            *direction = Direction(Vec2::new(0.0, -1.0));
             to_walk.push(e);
         } else if handle.is_key_pressed(KeyboardKey::W) {
-            *direction = Direction::Up;
+            *direction = Direction(Vec2::new(0.0, 1.0));
             to_walk.push(e);
         } else {
             to_remove_walk.push(e);

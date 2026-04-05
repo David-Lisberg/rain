@@ -17,8 +17,8 @@ impl SpriteInstance {
     ) -> Self {
         let pos = match pos {
             Some(p) => match depth {
-                Some(d) => Vec3::new(p.x, p.y, d.0),
-                None => Vec3::new(p.x, p.y, 0.0),
+                Some(d) => Vec3::new(p.0.x, p.0.y, d.0),
+                None => Vec3::new(p.0.x, p.0.y, 0.0),
             }
             None => match depth {
                 Some(d) => Vec3::new(0.0, 0.0, d.0),

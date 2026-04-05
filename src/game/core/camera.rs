@@ -16,7 +16,7 @@ pub fn system_camera_controller(handle: &mut RainHandle, state: &mut State) {
 pub fn system_camera_tracker(handle: &mut RainHandle) {
     for (_, (_, position)) in handle.world.query::<(&Player, &Position2D)>().iter() {
         let camera_position = handle.renderer.camera.get_xy();
-        let new_position = camera_position.lerp(Vec2::new(position.x, position.y), 0.2);
+        let new_position = camera_position.lerp(Vec2::new(position.0.x, position.0.y), 0.2);
 
         handle.renderer.camera.set_xy(new_position.x, new_position.y);
     }

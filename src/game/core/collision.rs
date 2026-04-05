@@ -1,8 +1,9 @@
+use glam::Vec2;
 use rain::engine::{core::RainHandle, mesh::ModelMesh};
 
-use crate::game::world::{chunk::{ChunkData, ChunkPosition, position_to_chunk_position}, object::Object};
+use crate::{State, game::{core::physics::ADJACENT, world::{chunk::{ChunkData, ChunkPosition, position_to_chunk_position}, object::Object}}};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Collider {
     pub x: f32,
     pub y: f32,
@@ -26,24 +27,40 @@ impl Collider {
         self.y < other.y + other.height &&
         self.y + self.height > other.y
     }
+
+    pub fn center(&self) -> Vec2 {
+        Vec2::new(self.x + self.width / 2.0, self.y + self.height / 2.0)
+    }
 }
 
-fn check_collision_with_object(handle: &mut RainHandle, collider: &Collider) -> Vec<Object> {
-    let collided: Vec<Object> = Vec::new();
+fn check_collision_with_object(handle: &mut RainHandle, state: &mut State, collider: &Collider) -> Option<Object> {
+    let mut collided: Vec<Object> = Vec::new();
     let chunk_position: ChunkPosition = position_to_chunk_position(collider.x, collider.y);
 
-    for (_, (chunk, _)) in handle.world.query::<(&ChunkData, &ModelMesh)>().iter() {
-        if chunk.position.x <= chunk_position.x + 1 &&
-            chunk.position.x >= chunk_position.x - 1 &&
-            chunk.position.y <= chunk_position.y + 1 &&
-            chunk.position.y >= chunk_position.y - 1 {
-            for object in &chunk.objects {
-                if object.collidable && collider.aabb_collision(&object.collider) {
-                    
+    for adjacent in ADJACENT {
+        let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
+        if let Some(chunk) = state.chunks.get(&adjacent_position) {
+            for object in chunk.objects.iter() {
+                if collider.aabb_collision(&object.collider) {
+                    collided.push(object.clone());
                 }
             }
         }
     }
 
-    collided
+    if collided.is_empty() {
+        None
+    } else {
+        let mut min_distance = f32::MAX;
+        let mut min_index = 0;
+
+        for (i, object) in collided.iter().enumerate() {
+            let distance = (object.collider.center() - collider.center()).length();
+            if distance < min_distance {
+                min_distance = distance;
+                min_index = i;
+            }
+        }
+        Some(collided[min_index])
+    }
 }

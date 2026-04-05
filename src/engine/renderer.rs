@@ -9,7 +9,7 @@ use crate::engine::color::{self, Color};
 use crate::engine::draw::{DrawCall, DrawPass};
 use crate::engine::mesh::ModelMesh;
 use crate::engine::sprite::SpriteRender;
-use crate::engine::text::{TextBufferPool, TextInfo, TextState};
+use crate::engine::text::{TextBufferPool, TextState};
 use crate::include_str_root;
 use crate::engine::instance::SpriteInstance;
 use crate::engine::resource::*;
