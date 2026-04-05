@@ -15,6 +15,7 @@ use crate::game::core::physics::*;
 use crate::game::core::ui::render_ui;
 use crate::game::player::input::*;
 use crate::game::player::inventory::Inventory;
+use crate::game::player::item::Item;
 use crate::game::player::item::ItemType;
 use crate::game::player::movement::Player;
 use crate::game::player::movement::system_player_dash;
@@ -41,6 +42,7 @@ pub mod game {
         pub mod ui;
     }
     pub mod player {
+        pub mod action;
         pub mod input;
         pub mod movement;
         pub mod item;
@@ -65,7 +67,7 @@ impl RainState for State {
         system_manage_chunks(handle, self);
         system_world_generation(handle, self);
         system_physics_friction(handle);
-        system_player_input(handle);
+        system_player_input(handle, self);
         system_player_walk(handle);
         system_player_dash(handle);
         system_physics_movement_2d(handle, self);
@@ -97,12 +99,12 @@ impl RainState for State {
             Player, Sprite, Visible, 
             Position2D(Vec2::ZERO), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), Friction(25.0),
             Scale2D(Vec2::new(0.8, 0.8)), Direction(Vec2::new(0.0, -1.0)), Color::LIME, Priority(1), DepthZ(0.01), 
-            Collider::new(-0.4, -0.4, 0.8, 0.8),
+            Collider::from_center(0.0, 0.0, 0.8, 0.8),
             Inventory::new(36),
         ));
 
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
-            inventory.slots[3].item_type = Some(ItemType::Twig);
+            inventory.slots[3].item = Some(Item::new(ItemType::Twig));
             inventory.slots[3].quantity = 42;
         }
         handle.renderer.camera.set_z(8.0);

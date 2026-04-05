@@ -1,7 +1,6 @@
 use glam::Vec2;
-use rain::engine::{core::RainHandle, mesh::ModelMesh};
 
-use crate::{State, game::{core::physics::ADJACENT, world::{chunk::{ChunkData, ChunkPosition, position_to_chunk_position}, object::Object}}};
+use crate::{State, game::{core::physics::ADJACENT, world::{chunk::{ChunkPosition, position_to_chunk_position}, object::Object}}};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Collider {
@@ -21,6 +20,10 @@ impl Collider {
         }
     }
 
+    pub fn from_center(x: f32, y: f32, width: f32, height: f32) -> Self {
+        Self::new(x - width / 2.0, y - height / 2.0, width, height)
+    }
+
     pub fn aabb_collision(&self, other: &Collider) -> bool {
         self.x < other.x + other.width &&
         self.x + self.width > other.x &&
@@ -33,7 +36,7 @@ impl Collider {
     }
 }
 
-fn check_collision_with_object(handle: &mut RainHandle, state: &mut State, collider: &Collider) -> Option<Object> {
+pub fn check_collision_with_object(state: &mut State, collider: &Collider) -> Option<Object> {
     let mut collided: Vec<Object> = Vec::new();
     let chunk_position: ChunkPosition = position_to_chunk_position(collider.x, collider.y);
 

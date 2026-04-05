@@ -5,7 +5,7 @@ use hecs::Entity;
 use rain::engine::{component::{Priority, Visible}, core::RainHandle, mesh::ModelMesh, resource::{ARRAY_256X256_ID, ResourceManager}, texture::Texture, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
 use wgpu::util::DeviceExt;
 
-use crate::{State, game::{core::collision::Collider, world::chunk::ChunkPosition}};
+use crate::{State, game::{core::collision::Collider, world::chunk::{ChunkPosition, position_to_chunk_position}}};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Object {
@@ -115,4 +115,22 @@ pub fn reload_object_mesh(handle: &mut RainHandle, state: &mut State) {
     }
     let mesh = construct_object_mesh(handle, state);
     handle.world.spawn((mesh, ObjectMesh, Visible, Priority(0)));
+}
+
+pub fn destroy_object(state: &mut State, object: &Object) -> bool {
+    let chunk_position = position_to_chunk_position(object.position.x, object.position.y);
+    if let Some(chunk) = state.chunks.get_mut(&chunk_position) {
+        let mut to_remove: Option<usize> = None;
+        for (i, chunk_object) in chunk.objects.iter().enumerate() {
+            if chunk_object.position == object.position {
+                to_remove = Some(i);
+                break;
+            }
+        }
+        if let Some(i) = to_remove {
+            chunk.objects.remove(i);
+            return true;
+        }
+    }
+    false
 }

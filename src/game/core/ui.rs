@@ -37,11 +37,11 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
             let mut slot_element = EBuilder::new(x, INVENTORY_SLOT_HEIGHT)
                 .shape(Shape::Rect(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE))
                 .texture(handle.fetch_texture("inventory_slot").unwrap());
-            if let Some(item_type) = &inventory.slots[i].item_type {
+            if let Some(item) = &inventory.slots[i].item {
                 slot_element.sub_element(||
                     EBuilder::new(border_width, border_width)
                         .shape(Shape::Rect(INVENTORY_SLOT_SIZE - border_width * 2.0, INVENTORY_SLOT_SIZE - border_width * 2.0))
-                        .texture(item_type.fetch_texture(&mut handle.resource_manager))
+                        .texture(item._type.fetch_texture(&mut handle.resource_manager))
                         .build()
                 );
                 if inventory.slots[i].quantity > 1 {
@@ -62,11 +62,11 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
                 let mut slot_element = EBuilder::new(x, y)
                     .shape(Shape::Rect(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE))
                     .texture(handle.fetch_texture("inventory_slot").unwrap());
-                if let Some(item_type) = &inventory.slots[i].item_type {
+                if let Some(item) = &inventory.slots[i].item {
                     slot_element.sub_element(||
                         EBuilder::new(border_width, border_width)
                             .shape(Shape::Rect(INVENTORY_SLOT_SIZE - border_width * 2.0, INVENTORY_SLOT_SIZE - border_width * 2.0))
-                            .texture(item_type.fetch_texture(&mut handle.resource_manager))
+                            .texture(item._type.fetch_texture(&mut handle.resource_manager))
                             .build()
                     );
                     if inventory.slots[i].quantity > 1 {

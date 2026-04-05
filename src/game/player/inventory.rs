@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use crate::game::player::item::ItemType;
+use crate::game::player::item::Item;
 
 pub const INVENTORY_SLOTS_PLAYER: usize = 36;
 pub const INVENTORY_SLOTS_WIDTH: usize = 9;
@@ -19,18 +19,40 @@ impl Inventory {
             slots: vec![InventorySlot::new(); num_slots],
         }
     }
+
+    pub fn add_item(&mut self, item: Item, quantity: u32) {
+        let mut item_found = false;
+        for slot in self.slots.iter_mut() {
+            if let Some(current_item) = &slot.item {
+                if item == *current_item {
+                    slot.quantity += quantity;
+                    item_found = true;
+                    break;
+                }
+            }
+        }
+        if !item_found {
+            for slot in self.slots.iter_mut() {
+                if slot.item.is_none() {
+                    slot.item = Some(item);
+                    slot.quantity += quantity;
+                    break;
+                }
+            }
+        }
+    }
 }
 
 #[derive(Clone)]
 pub struct InventorySlot {
-    pub item_type: Option<ItemType>,
+    pub item: Option<Item>,
     pub quantity: u32,
 }
 
 impl InventorySlot {
     pub fn new() -> Self {
         Self {
-            item_type: None,
+            item: None,
             quantity: 0,
         }
     }
