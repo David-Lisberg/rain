@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use lgui::manager::GUI;
 use noise::Perlin;
 use rain::engine::color::Color;
@@ -17,6 +19,8 @@ use crate::game::player::item::ItemType;
 use crate::game::player::movement::Player;
 use crate::game::player::movement::system_player_dash;
 use crate::game::player::movement::system_player_walk;
+use crate::game::world::chunk::ChunkData;
+use crate::game::world::chunk::ChunkPosition;
 use crate::game::world::chunk::system_manage_chunks;
 use crate::game::world::generation::system_world_generation;
 
@@ -48,6 +52,7 @@ pub mod game {
 }
 
 pub struct State {
+    chunks: HashMap<ChunkPosition, ChunkData>,
     gui: GUI,
     rng: ThreadRng,
     perlin: Perlin,
@@ -57,13 +62,13 @@ pub struct State {
 
 impl RainState for State {
     fn update(&mut self, handle: &mut RainHandle) {
-        system_manage_chunks(handle);
+        system_manage_chunks(handle, self);
         system_world_generation(handle, self);
         system_physics_friction(handle);
         system_player_input(handle);
         system_player_walk(handle);
         system_player_dash(handle);
-        system_physics_movement_2d(handle);
+        system_physics_movement_2d(handle, self);
         system_camera_controller(handle, self);
         system_camera_tracker(handle);
         system_camera_zoom(handle, self);
@@ -108,6 +113,7 @@ fn main() -> anyhow::Result<()> {
     let seed = rng.next_u32();
     let perlin = Perlin::new(seed);
     let state = State {
+        chunks: HashMap::new(),
         gui: GUI::new(SCREEN_WIDTH, SCREEN_HEIGHT),
         rng,
         perlin,

@@ -1,12 +1,14 @@
 use glam::Vec2;
 use rain::engine::core::RainHandle;
 use rain::engine::component::*;
-use rain::engine::mesh::ModelMesh;
 
+use crate::State;
 use crate::game::core::collision::Collider;
-use crate::game::world::chunk::{ChunkData, ChunkPosition, position_to_chunk_position};
+use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
 
-pub fn system_physics_movement_2d(handle: &mut RainHandle) {
+const ADJACENT: [(i32, i32); 9] = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 0), (0, 1), (1, -1), (1, 0), (1, 1)];
+
+pub fn system_physics_movement_2d(handle: &mut RainHandle, state: &mut State) {
     for (_, (position, velocity, acceleration, collider)) in handle.world.query::<(
         &mut Position2D, &mut Velocity2D, &Acceleration2D, Option<&mut Collider>,
     )>().iter() {
@@ -18,11 +20,9 @@ pub fn system_physics_movement_2d(handle: &mut RainHandle) {
             let new_collider = Collider::new(c.x + position_delta.x, c.y + position_delta.y, c.width, c.height);
             let chunk_position: ChunkPosition = position_to_chunk_position(new_collider.x, new_collider.y);
 
-            for (_, (chunk, _)) in handle.world.query::<(&ChunkData, &ModelMesh)>().iter() {
-                if chunk.position.x <= chunk_position.x + 1 &&
-                   chunk.position.x >= chunk_position.x - 1 &&
-                   chunk.position.y <= chunk_position.y + 1 &&
-                   chunk.position.y >= chunk_position.y - 1 {
+            for adjacent in ADJACENT {
+                let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
+                if let Some(chunk) = state.chunks.get(&adjacent_position) {
                     for object in &chunk.objects {
                         if object.collidable && new_collider.aabb_collision(&object.collider) {
                             let overlap_x = (new_collider.x + new_collider.width / 2.0) - (object.collider.x + object.collider.width / 2.0);

@@ -1,3 +1,7 @@
+use rain::engine::{core::RainHandle, mesh::ModelMesh};
+
+use crate::game::world::{chunk::{ChunkData, ChunkPosition, position_to_chunk_position}, object::Object};
+
 #[derive(Debug)]
 pub struct Collider {
     pub x: f32,
@@ -22,4 +26,24 @@ impl Collider {
         self.y < other.y + other.height &&
         self.y + self.height > other.y
     }
+}
+
+fn check_collision_with_object(handle: &mut RainHandle, collider: &Collider) -> Vec<Object> {
+    let collided: Vec<Object> = Vec::new();
+    let chunk_position: ChunkPosition = position_to_chunk_position(collider.x, collider.y);
+
+    for (_, (chunk, _)) in handle.world.query::<(&ChunkData, &ModelMesh)>().iter() {
+        if chunk.position.x <= chunk_position.x + 1 &&
+            chunk.position.x >= chunk_position.x - 1 &&
+            chunk.position.y <= chunk_position.y + 1 &&
+            chunk.position.y >= chunk_position.y - 1 {
+            for object in &chunk.objects {
+                if object.collidable && collider.aabb_collision(&object.collider) {
+                    
+                }
+            }
+        }
+    }
+
+    collided
 }

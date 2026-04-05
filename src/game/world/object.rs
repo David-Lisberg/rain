@@ -5,7 +5,7 @@ use hecs::Entity;
 use rain::engine::{component::{Priority, Visible}, core::RainHandle, mesh::ModelMesh, resource::{ARRAY_256X256_ID, ResourceManager}, texture::Texture, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
 use wgpu::util::DeviceExt;
 
-use crate::game::{core::collision::Collider, world::chunk::ChunkData};
+use crate::{State, game::{core::collision::Collider, world::chunk::ChunkPosition}};
 
 #[derive(Debug)]
 pub struct Object {
@@ -55,20 +55,21 @@ pub fn construct_object_default(_type: ObjectType, position: Vec2) -> Object {
     }
 }
 
-pub fn construct_object_mesh(handle: &mut RainHandle) -> ModelMesh {
+pub fn construct_object_mesh(handle: &mut RainHandle, state: &mut State) -> ModelMesh {
     let mut model_vertices: Vec<ModelVertex> = Vec::new();
     let mut model_indices: Vec<u16> = Vec::new();
     let mut objects: Vec<&Object> = Vec::new();
 
-    let mut query = handle.world.query::<(&ChunkData, &ModelMesh)>();
-    for (_, (chunk, _)) in query.iter() {
-        for object in &chunk.objects {
-            objects.push(object);
+    let mut query = handle.world.query::<(&ChunkPosition, &ModelMesh)>();
+    for (_, (chunk_position, _)) in query.iter() {
+        if let Some(chunk) = state.chunks.get(chunk_position) {
+            for object in &chunk.objects {
+                objects.push(object);
+            }
         }
     }
     
     objects.sort_by(|a, b| a.position.y.partial_cmp(&b.position.y).unwrap());
-    
     for (i, object) in objects.iter().enumerate() {
         let object_texture = object._type.fetch_texture(&handle.resource_manager);
 
@@ -83,6 +84,7 @@ pub fn construct_object_mesh(handle: &mut RainHandle) -> ModelMesh {
                 uv: [0.0, 0.0], layer: object_texture.index },
         ];
         let indices: Vec<u16> = SPRITE_QUAD_INDICES.iter().map(|x| x + i as u16 * 4).collect();
+        
         model_vertices.extend(vertices);
         model_indices.extend(indices);
     }
@@ -103,7 +105,7 @@ pub fn construct_object_mesh(handle: &mut RainHandle) -> ModelMesh {
     }
 }
 
-pub fn reload_object_mesh(handle: &mut RainHandle) {
+pub fn reload_object_mesh(handle: &mut RainHandle, state: &mut State) {
     let to_remove: Vec<Entity> = handle.world.query::<&ObjectMesh>()
         .iter()
         .map(|(e, _)| e)
@@ -111,6 +113,6 @@ pub fn reload_object_mesh(handle: &mut RainHandle) {
     for e in to_remove {
         handle.world.despawn(e).unwrap();
     }
-    let mesh = construct_object_mesh(handle);
+    let mesh = construct_object_mesh(handle, state);
     handle.world.spawn((mesh, ObjectMesh, Visible, Priority(0)));
 }

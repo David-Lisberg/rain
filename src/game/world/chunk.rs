@@ -5,13 +5,19 @@ use rain::engine::{component::{Position2D, Visible}, core::RainHandle, mesh::Mod
 use rand::{RngExt, rngs::ThreadRng};
 use wgpu::util::DeviceExt;
 
-use crate::game::{utility::noise::{noise_normalize, octave_noise_2d}, world::{generation::CHUNK_GENERATION_DISTANCE, object::{Object, ObjectType, construct_object_default, reload_object_mesh}, tile::{Tile, TileType}}};
+use crate::{State, game::{utility::noise::{noise_normalize, octave_noise_2d}, world::{generation::CHUNK_GENERATION_DISTANCE, object::{Object, ObjectType, construct_object_default, reload_object_mesh}, tile::{Tile, TileType}}}};
 use crate::game::player::movement::Player;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 pub struct ChunkPosition {
     pub x: i32,
     pub y: i32,
+}
+
+impl ChunkPosition {
+    pub fn new(x: i32, y: i32) -> Self {
+        Self { x, y }
+    }
 }
 
 impl From<&Position2D> for ChunkPosition {
@@ -115,26 +121,26 @@ pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData) -> Model
     }
 }
 
-pub fn system_manage_chunks(handle: &mut RainHandle) {
+pub fn system_manage_chunks(handle: &mut RainHandle, state: &mut State) {
     let mut to_deload: Vec<Entity> = Vec::new();
     let mut to_load: Vec<Entity> = Vec::new();
     for (_, (_, position)) in handle.world.query::<(&Player, &Position2D)>().iter() {
         let chunk_position: ChunkPosition = position.into();
 
-        for (e, (chunk, mesh)) in handle.world.query::<(&ChunkData, Option<&ModelMesh>)>().iter() {
+        for (e, (chunk, mesh)) in handle.world.query::<(&ChunkPosition, Option<&ModelMesh>)>().iter() {
             let radius = CHUNK_GENERATION_DISTANCE / 2;
             if mesh.is_some() {
-                if chunk.position.x > chunk_position.x + radius ||
-                   chunk.position.x < chunk_position.x - radius ||
-                   chunk.position.y > chunk_position.y + radius ||
-                   chunk.position.y < chunk_position.y - radius {
+                if chunk.x > chunk_position.x + radius ||
+                   chunk.x < chunk_position.x - radius ||
+                   chunk.y > chunk_position.y + radius ||
+                   chunk.y < chunk_position.y - radius {
                     to_deload.push(e);
                 }
             } else {
-                if chunk.position.x <= chunk_position.x + radius &&
-                   chunk.position.x >= chunk_position.x - radius &&
-                   chunk.position.y <= chunk_position.y + radius &&
-                   chunk.position.y >= chunk_position.y - radius {
+                if chunk.x <= chunk_position.x + radius &&
+                   chunk.x >= chunk_position.x - radius &&
+                   chunk.y <= chunk_position.y + radius &&
+                   chunk.y >= chunk_position.y - radius {
                     to_load.push(e);
                 }
             }
@@ -142,15 +148,17 @@ pub fn system_manage_chunks(handle: &mut RainHandle) {
     }
 
     if !to_deload.is_empty() || !to_load.is_empty() {
-        reload_object_mesh(handle);
+        reload_object_mesh(handle, state);
     }
 
     for e in to_deload {
         handle.world.remove_one::<ModelMesh>(e).unwrap();
     }
     for e in to_load {
-        let (chunk,)= handle.world.remove::<(ChunkData,)>(e).unwrap();
-        let mesh = construct_chunk_mesh(handle, &chunk);
-        handle.world.spawn((chunk, mesh, Visible));
+        let (chunk_position,) = handle.world.remove::<(ChunkPosition,)>(e).unwrap();
+        if let Some(chunk) = state.chunks.get(&chunk_position) {
+            let mesh = construct_chunk_mesh(handle, chunk);
+            handle.world.spawn((chunk_position, mesh, Visible));
+        }
     }
 }
