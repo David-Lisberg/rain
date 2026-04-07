@@ -15,6 +15,7 @@ use crate::game::core::physics::*;
 use crate::game::core::ui::render_ui;
 use crate::game::player::input::*;
 use crate::game::player::inventory::Inventory;
+use crate::game::player::inventory::system_inventory_select;
 use crate::game::player::item::Item;
 use crate::game::player::item::ItemType;
 use crate::game::player::movement::Player;
@@ -68,6 +69,7 @@ impl RainState for State {
         system_world_generation(handle, self);
         system_physics_friction(handle);
         system_player_input(handle, self);
+        system_inventory_select(handle, self);
         system_player_walk(handle);
         system_player_dash(handle);
         system_physics_movement_2d(handle, self);
@@ -94,6 +96,7 @@ impl RainState for State {
         handle.load_texture("object_tree1", "res/texture/tree1.png").expect("Error loading texture.");
         handle.load_texture("object_twig", "res/texture/twig.png").expect("Error loading texture.");
         handle.load_texture("inventory_slot", "res/texture/inventory_slot.png").expect("Error loading texture.");
+        handle.load_texture("inventory_slot_selected", "res/texture/inventory_slot_selected.png").expect("Error loading texture.");
 
         handle.world.spawn((
             Player, Sprite, Visible, 

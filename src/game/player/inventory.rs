@@ -1,7 +1,7 @@
 use std::ops::Range;
 
-use lgui::element::{EBuilder, Element, Scale, Shape};
-use rain::engine::core::RainHandle;
+use lgui::element::{EBuilder, Scale};
+use rain::engine::{core::RainHandle, input::MouseButton};
 
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, State, game::{core::ui::*, player::{item::Item, movement::Player}}};
 
@@ -13,6 +13,7 @@ pub const INVENTORY_SLOTS_INVENTORY: Range<usize> = 9..36;
 pub struct Inventory {
     pub open: bool,
     pub slots: Vec<InventorySlot>,
+    pub selected: Vec<usize>,
 }
 
 impl Inventory {
@@ -20,6 +21,7 @@ impl Inventory {
         Self {
             open: false,
             slots: vec![InventorySlot::new(); num_slots],
+            selected: Vec::new(),
         }
     }
 
@@ -49,7 +51,6 @@ impl Inventory {
 #[derive(Clone)]
 pub struct InventorySlot {
     pub item: Option<Item>,
-    pub selected: Vec<usize>,
     pub quantity: u32,
 }
 
@@ -57,7 +58,6 @@ impl InventorySlot {
     pub fn new() -> Self {
         Self {
             item: None,
-            selected: Vec::new(),
             quantity: 0,
         }
     }
@@ -69,17 +69,44 @@ pub fn system_inventory_select(handle: &mut RainHandle, state: &mut State) {
     let start = (SCREEN_WIDTH - slots_width) / 2.0; 
     let point = handle.mouse_position();
 
+    if !handle.is_button_released(MouseButton::Left) {
+        return;
+    }
+
     for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
         if inventory.open {
             for i in INVENTORY_SLOTS_HOTBAR {
                 let x = start + i as f32 * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP);
-                state.gui.button(EBuilder::new(0.0, 0.0)
-                    .shape(Shape::Rect(SCREEN_WIDTH, SCREEN_HEIGHT))
+                if state.gui.button(point, EBuilder::new(0.0, 0.0)
+                    .rect(SCREEN_WIDTH, SCREEN_HEIGHT)
                     .scale(Scale::NormalShift)
                     .sub_element(|| EBuilder::new(x, INVENTORY_SLOT_HEIGHT)
-                        .shape(Shape::Rect(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE))
+                        .rect(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE)
                         .build())
-                    .build(), point, handle);
+                    .build()) {
+                    if let Some(index) = inventory.selected.iter().position(|&x| x == i) {
+                        inventory.selected.remove(index);
+                    } else {
+                        inventory.selected.push(i);
+                    }
+                }
+            }
+            for i in INVENTORY_SLOTS_INVENTORY {
+                let x = start + (i % INVENTORY_SLOTS_WIDTH) as f32 * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP);
+                let y = INVENTORY_SLOT_HEIGHT - INVENTORY_GAP - (i / INVENTORY_SLOTS_WIDTH - 1) as f32 * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP);
+                if state.gui.button(point, EBuilder::new(0.0, 0.0)
+                    .rect(SCREEN_WIDTH, SCREEN_HEIGHT)
+                    .scale(Scale::NormalShift)
+                    .sub_element(|| EBuilder::new(x, y)
+                        .rect(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE)
+                        .build())
+                    .build()) {
+                    if let Some(index) = inventory.selected.iter().position(|&x| x == i) {
+                        inventory.selected.remove(index);
+                    } else {
+                        inventory.selected.push(i);
+                    }
+                }
             }
         }
     }

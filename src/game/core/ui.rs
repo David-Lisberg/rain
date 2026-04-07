@@ -39,6 +39,14 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
             let mut slot_element = EBuilder::new(x, INVENTORY_SLOT_HEIGHT)
                 .shape(Shape::Rect(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE))
                 .texture(handle.fetch_texture("inventory_slot").unwrap());
+            if inventory.selected.contains(&i) {
+                slot_element.sub_element_ex(||
+                    EBuilder::new(border_width / 2.0, border_width / 2.0)
+                        .rect(INVENTORY_SLOT_SIZE - border_width, INVENTORY_SLOT_SIZE - border_width)
+                        .texture(handle.fetch_texture("inventory_slot_selected").unwrap())
+                        .build()    
+                );
+            }
             if let Some(item) = &inventory.slots[i].item {
                 slot_element.sub_element_ex(||
                     EBuilder::new(border_width, border_width)
@@ -64,6 +72,14 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
                 let mut slot_element = EBuilder::new(x, y)
                     .shape(Shape::Rect(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE))
                     .texture(handle.fetch_texture("inventory_slot").unwrap());
+                if inventory.selected.contains(&i) {
+                    slot_element.sub_element_ex(||
+                        EBuilder::new(border_width / 2.0, border_width / 2.0)
+                            .rect(INVENTORY_SLOT_SIZE - border_width, INVENTORY_SLOT_SIZE - border_width)
+                            .texture(handle.fetch_texture("inventory_slot_selected").unwrap())
+                            .build()    
+                    );
+                }
                 if let Some(item) = &inventory.slots[i].item {
                     slot_element.sub_element_ex(||
                         EBuilder::new(border_width, border_width)
