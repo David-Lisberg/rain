@@ -985,12 +985,6 @@ dependencies = [
 
 [[package]]
 name = "glam"
-version = "0.30.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19fc433e8437a212d1b6f1e68c7824af3aed907da60afa994e7f542d18d12aa9"
-
-[[package]]
-name = "glam"
 version = "0.32.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f70749695b063ecbf6b62949ccccde2e733ec3ecbbd71d467dca4e5c6c97cca0"
@@ -1544,7 +1538,7 @@ checksum = "7a79a3332a6609480d7d0c9eab957bca6b455b91bb84e66d19f5ff66294b85b8"
 name = "lgui"
 version = "0.1.0"
 dependencies = [
- "glam 0.32.1",
+ "glam",
 ]
 
 [[package]]
@@ -2471,7 +2465,7 @@ dependencies = [
  "console_log",
  "env_logger",
  "fs_extra",
- "glam 0.30.10",
+ "glam",
  "glob",
  "glyphon",
  "hecs",

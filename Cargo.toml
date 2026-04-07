@@ -19,7 +19,7 @@ wgpu = "=25.0.2"
 pollster = "0.3"
 bytemuck = { version = "1.16", features = [ "derive" ] }
 image = { version = "0.24", default-features = false, features = ["png", "jpeg"] }
-glam = "0.30.5"
+glam = "0.32.1"
 fs_extra = "1.2"
 glob = "0.3"
 tobj = { version = "3.2", default-features = false, features = ["async"]}

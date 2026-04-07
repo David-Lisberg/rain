@@ -4,19 +4,21 @@ use lgui::element::*;
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, State, game::player::{inventory::*, movement::Player}};
 
 
-const INVENTORY_SLOT_SIZE: f32 = 54.0;
-const INVENTORY_SLOT_HEIGHT: f32 = SCREEN_HEIGHT - (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP);
-const INVENTORY_SLOT_GAP: f32 = 10.0;
-const INVENTORY_GAP: f32 = 250.0;
-const INVENTORY_SLOT_FONT_SIZE: u32 = 15;
+pub const INVENTORY_SLOT_SIZE: f32 = 54.0;
+pub const INVENTORY_SLOT_HEIGHT: f32 = SCREEN_HEIGHT - (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP);
+pub const INVENTORY_SLOT_GAP: f32 = 10.0;
+pub const INVENTORY_GAP: f32 = 250.0;
+pub const INVENTORY_SLOT_FONT_SIZE: u32 = 15;
 
 pub fn render_ui(handle: &mut RainHandle, state: &mut State) {
     let current_width = handle.renderer.config.width as f32;
     let current_height = handle.renderer.config.height as f32;
 
+    state.gui.begin(current_width, current_height);
+
     render_inventory(handle, state);
 
-    state.gui.finish(handle, current_width, current_height);
+    state.gui.finish(handle);
 }
 
 fn render_inventory(handle: &mut RainHandle, state: &mut State) {
@@ -38,21 +40,21 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
                 .shape(Shape::Rect(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE))
                 .texture(handle.fetch_texture("inventory_slot").unwrap());
             if let Some(item) = &inventory.slots[i].item {
-                slot_element.sub_element(||
+                slot_element.sub_element_ex(||
                     EBuilder::new(border_width, border_width)
                         .shape(Shape::Rect(INVENTORY_SLOT_SIZE - border_width * 2.0, INVENTORY_SLOT_SIZE - border_width * 2.0))
                         .texture(item._type.fetch_texture(&mut handle.resource_manager))
                         .build()
                 );
                 if inventory.slots[i].quantity > 1 {
-                    slot_element.sub_element(||
+                    slot_element.sub_element_ex(||
                         EBuilder::new(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE - INVENTORY_SLOT_FONT_SIZE as f32)
                             .shape(Shape::Text(format!("{}", inventory.slots[i].quantity), INVENTORY_SLOT_FONT_SIZE, Allignment::Right))
                             .build()
                     );
                 }
             }
-            element.sub_element(|| slot_element.build());
+            element.sub_element_ex(|| slot_element.build());
         }
 
         if inventory.open {
@@ -63,21 +65,21 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
                     .shape(Shape::Rect(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE))
                     .texture(handle.fetch_texture("inventory_slot").unwrap());
                 if let Some(item) = &inventory.slots[i].item {
-                    slot_element.sub_element(||
+                    slot_element.sub_element_ex(||
                         EBuilder::new(border_width, border_width)
                             .shape(Shape::Rect(INVENTORY_SLOT_SIZE - border_width * 2.0, INVENTORY_SLOT_SIZE - border_width * 2.0))
                             .texture(item._type.fetch_texture(&mut handle.resource_manager))
                             .build()
                     );
                     if inventory.slots[i].quantity > 1 {
-                        slot_element.sub_element(||
+                        slot_element.sub_element_ex(||
                             EBuilder::new(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE - INVENTORY_SLOT_FONT_SIZE as f32)
                                 .shape(Shape::Text(format!("{}", inventory.slots[i].quantity), INVENTORY_SLOT_FONT_SIZE, Allignment::Right))
                                 .build()
                         );
                     }
                 }
-                element.sub_element(|| slot_element.build());
+                element.sub_element_ex(|| slot_element.build());
             }
         }
     }
