@@ -16,8 +16,8 @@ pub fn check_available_recipes(inputs: &Vec<(ItemType, u32)>) -> Vec<Recipe> {
 
     for recipe in AVAILABLE_RECIPES {
         let mut i = 0;
-        let mut failed = true;
         loop {
+            let mut failed = true;
             for input in inputs {
                 if recipe.input[i].0 == input.0 && recipe.input[i].1 <= input.1 {
                     i += 1;
