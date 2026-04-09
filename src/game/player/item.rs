@@ -30,4 +30,11 @@ impl ItemType {
             ItemType::Sling => resource_manager.fetch_texture("item_sling").unwrap(),
         }
     }
+
+    pub fn stack_size_max(&self) -> u32 {
+        match self {
+            ItemType::Sling => 1,
+            _ => 100,
+        }
+    }
 }

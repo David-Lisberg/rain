@@ -27,14 +27,20 @@ impl Inventory {
         }
     }
 
-    pub fn add_item(&mut self, item: Item, quantity: u32) {
+    pub fn add_item(&mut self, item: Item, mut quantity: u32) {
         let mut item_found = false;
+        let stack_size_max = item._type.stack_size_max();
         for slot in self.slots.iter_mut() {
             if let Some(current_item) = &slot.item {
                 if item == *current_item {
-                    slot.quantity += quantity;
-                    item_found = true;
-                    break;
+                    if slot.quantity + quantity > stack_size_max {
+                        quantity -= stack_size_max - slot.quantity;
+                        slot.quantity = stack_size_max;
+                    } else {
+                        slot.quantity += quantity;
+                        item_found = true;
+                        break;
+                    }
                 }
             }
         }
