@@ -76,6 +76,15 @@ pub fn generate_chunk(chunk_position: ChunkPosition, perlin: &Perlin, rng: &mut 
                 objects.push(construct_object_default(ObjectType::Grass, position));
             }
         }
+        if _type == TileType::Stone {
+            let mut noise_value = octave_noise_2d(x * NOISE_OBJECT_SCALE_FACTOR, y * NOISE_OBJECT_SCALE_FACTOR, 2, 0.5, &perlin);
+            noise_value = noise_normalize(noise_value);
+            noise_value -= rng.random::<f64>();
+            let position = Vec2::new(x as f32 + (rng.random::<f32>() - 0.5) / 7.0, y as f32 + (rng.random::<f32>() - 0.5) / 7.0);
+            if noise_value < 0.3 && noise_value > 0.2 {
+                objects.push(construct_object_default(ObjectType::Stone, position));
+            }
+        }
 
         Tile { _type }
     });

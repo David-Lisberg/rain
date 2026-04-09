@@ -8,6 +8,7 @@ pub struct Recipe {
 
 const AVAILABLE_RECIPES: &[Recipe] = &[
     Recipe { input: &[(ItemType::Grass, 2)], output: (ItemType::Twine, 1)},
+    Recipe { input: &[(ItemType::Twine, 3), (ItemType::Twig, 2)], output: (ItemType::Sling, 1)},
 ];
 
 pub fn check_available_recipes(inputs: &Vec<(ItemType, u32)>) -> Vec<Recipe> {

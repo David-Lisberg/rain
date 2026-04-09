@@ -18,6 +18,7 @@ pub enum ItemType {
     Twig,
     Grass,
     Twine,
+    Sling,
 }
 
 impl ItemType {
@@ -26,6 +27,7 @@ impl ItemType {
             ItemType::Twig => resource_manager.fetch_texture("object_twig").unwrap(),
             ItemType::Grass => resource_manager.fetch_texture("object_grass").unwrap(),
             ItemType::Twine => resource_manager.fetch_texture("item_twine").unwrap(),
+            ItemType::Sling => resource_manager.fetch_texture("item_sling").unwrap(),
         }
     }
 }
