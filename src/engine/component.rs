@@ -12,6 +12,7 @@ pub struct Scale2D(pub Vec2);
 pub struct Scale3D(pub Vec3);
 pub struct Rotation(pub Quat);
 pub struct RotationZ(pub f32);
+pub struct Flip(pub bool, pub bool);
 #[derive(PartialEq)]
 pub struct Direction(pub Vec2);
 pub struct Dash;

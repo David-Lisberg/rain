@@ -1,4 +1,6 @@
-use rain::engine::{component::*, core::RainHandle};
+use std::sync::Arc;
+
+use rain::engine::{component::*, core::RainHandle, texture::Texture};
 
 use crate::{State, game::{core::collision::*, player::{inventory::Inventory, item::*, movement::Player}, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
 
@@ -29,5 +31,26 @@ pub fn item_pickup(handle: &mut RainHandle, state: &mut State) {
 
     if object_changed {
         reload_object_mesh(handle, state);
+    }
+}
+
+pub fn system_update_player_texture(handle: &mut RainHandle) {
+    let player_front = handle.fetch_texture("player_front").unwrap();
+    let player_back = handle.fetch_texture("player_back").unwrap();
+    let player_side = handle.fetch_texture("player_side").unwrap();
+    for (_, (_, direction, texture, flip)) in handle.world.query_mut::<(&Player, &Direction, &mut Arc<Texture>, &mut Flip)>() {
+        if direction.0.y > 0.8 {
+            *texture = player_back.clone();
+            *flip = Flip(false, false);
+        } else if direction.0.y < -0.8 {
+            *texture = player_front.clone();
+            *flip = Flip(false, false);
+        } else if direction.0.x.is_sign_positive() {
+            *texture = player_side.clone();
+            *flip = Flip(false, false);
+        } else if direction.0.x.is_sign_negative() {
+            *texture = player_side.clone();
+            *flip = Flip(true, false);
+        }
     }
 }

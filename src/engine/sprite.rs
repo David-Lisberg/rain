@@ -10,12 +10,13 @@ pub struct SpriteRender {
 
 impl SpriteRender {
     pub fn new(
-        pos: Option<&Position2D>, depth: Option<&DepthZ>, scale: Option<&Scale2D>, rotation: Option<&RotationZ>, color: Option<&Color>, texture: Option<&Arc<Texture>>
+        pos: Option<&Position2D>, depth: Option<&DepthZ>, scale: Option<&Scale2D>, rotation: Option<&RotationZ>, flip: Option<&Flip>, 
+        color: Option<&Color>, texture: Option<&Arc<Texture>>
     ) -> Self {
         let (instance, array_id) = if let Some(t) = texture {
-            (SpriteInstance::new(pos, depth, scale, rotation, color, t.index), t.array_id)
+            (SpriteInstance::new(pos, depth, scale, rotation, flip, color, t.index), t.array_id)
         } else {
-            (SpriteInstance::new(pos, depth, scale, rotation, color, 0), 0)
+            (SpriteInstance::new(pos, depth, scale, rotation, flip, color, 0), 0)
         };
         Self {
             instance,

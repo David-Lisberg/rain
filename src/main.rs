@@ -13,6 +13,7 @@ use crate::game::core::camera::*;
 use crate::game::core::collision::Collider;
 use crate::game::core::physics::*;
 use crate::game::core::ui::render_ui;
+use crate::game::player::action::system_update_player_texture;
 use crate::game::player::input::*;
 use crate::game::player::inventory::Inventory;
 use crate::game::player::inventory::system_inventory_interface;
@@ -74,6 +75,7 @@ impl RainState for State {
         system_player_walk(handle);
         system_player_dash(handle);
         system_physics_movement_2d(handle, self);
+        system_update_player_texture(handle);
         system_camera_controller(handle, self);
         system_camera_tracker(handle);
         system_camera_zoom(handle, self);
@@ -102,11 +104,15 @@ impl RainState for State {
         handle.load_texture("item_sling", "res/texture/item_sling.png").expect("Error loading texture.");
         handle.load_texture("inventory_slot", "res/texture/inventory_slot.png").expect("Error loading texture.");
         handle.load_texture("inventory_slot_selected", "res/texture/inventory_slot_selected.png").expect("Error loading texture.");
+        handle.load_texture("player_front", "res/texture/player_front.png").expect("Error loading texture.");
+        handle.load_texture("player_back", "res/texture/player_back.png").expect("Error loading texture.");
+        handle.load_texture("player_side", "res/texture/player_side.png").expect("Error loading texture.");
 
+        let player_texture = handle.fetch_texture("player_front").unwrap();
         handle.world.spawn((
             Player, Sprite, Visible, 
             Position2D(Vec2::ZERO), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), Friction(25.0),
-            Scale2D(Vec2::new(0.8, 0.8)), Direction(Vec2::new(0.0, -1.0)), Color::LIME, Priority(1), DepthZ(0.01), 
+            Scale2D(Vec2::new(0.8, 0.8)), Direction(Vec2::new(0.0, -1.0)), player_texture, Priority(1), DepthZ(0.01), Flip(false, false), 
             Collider::from_center(0.0, 0.0, 0.8, 0.8),
             Inventory::new(36),
         ));
