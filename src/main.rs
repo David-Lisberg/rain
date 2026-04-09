@@ -15,7 +15,7 @@ use crate::game::core::physics::*;
 use crate::game::core::ui::render_ui;
 use crate::game::player::input::*;
 use crate::game::player::inventory::Inventory;
-use crate::game::player::inventory::system_inventory_select;
+use crate::game::player::inventory::system_inventory_interface;
 use crate::game::player::item::Item;
 use crate::game::player::item::ItemType;
 use crate::game::player::movement::Player;
@@ -70,7 +70,7 @@ impl RainState for State {
         system_world_generation(handle, self);
         system_physics_friction(handle);
         system_player_input(handle, self);
-        system_inventory_select(handle, self);
+        system_inventory_interface(handle, self);
         system_player_walk(handle);
         system_player_dash(handle);
         system_physics_movement_2d(handle, self);
@@ -112,6 +112,8 @@ impl RainState for State {
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
             inventory.slots[3].item = Some(Item::new(ItemType::Twig));
             inventory.slots[3].quantity = 42;
+            inventory.slots[1].item = Some(Item::new(ItemType::Grass));
+            inventory.slots[1].quantity = 20;
         }
         handle.renderer.camera.set_z(8.0);
     }

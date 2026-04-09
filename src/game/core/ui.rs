@@ -97,6 +97,30 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
                 }
                 element.sub_element_ex(|| slot_element.build());
             }
+
+            let num_recipes = inventory.available_recipes.len() as f32;
+            let recipes_width = num_recipes * INVENTORY_SLOT_SIZE + (num_recipes - 1.0) * INVENTORY_SLOT_GAP;
+            let start = (SCREEN_WIDTH - recipes_width) / 2.0;
+            let y = INVENTORY_SLOT_HEIGHT - INVENTORY_GAP - (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP) * 3.2;
+            for (i, recipe) in inventory.available_recipes.iter().enumerate() {
+                let x = start + (i % INVENTORY_SLOTS_WIDTH) as f32 * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP);
+                let mut recipe_element = EBuilder::new(x, y)
+                    .rect(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE)
+                    .texture(handle.fetch_texture("inventory_slot").unwrap());
+                recipe_element.sub_element_ex(|| EBuilder::new(border_width, border_width)
+                    .rect(INVENTORY_SLOT_SIZE - border_width * 2.0, INVENTORY_SLOT_SIZE - border_width * 2.0)
+                    .texture(recipe.output.0.fetch_texture(&mut handle.resource_manager))
+                    .build()
+                );
+                if recipe.output.1 > 1 {
+                    recipe_element.sub_element_ex(||
+                        EBuilder::new(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE - INVENTORY_SLOT_FONT_SIZE as f32)
+                            .shape(Shape::Text(format!("{}", inventory.slots[i].quantity), INVENTORY_SLOT_FONT_SIZE, Allignment::Right))
+                            .build()
+                    );
+                }
+                element.sub_element_ex(|| recipe_element.build());
+            }
         }
     }
     state.gui.element(element.build());
