@@ -21,6 +21,7 @@ pub struct Object {
 pub enum ObjectType {
     Tree1,
     Twig,
+    Grass,
 }
 
 pub struct ObjectMesh;
@@ -30,6 +31,7 @@ impl ObjectType {
         match self {
             ObjectType::Tree1 => resource_manager.fetch_texture("object_tree1").unwrap(),
             ObjectType::Twig => resource_manager.fetch_texture("object_twig").unwrap(),
+            ObjectType::Grass => resource_manager.fetch_texture("object_grass").unwrap(),
         }
     }
 }
@@ -45,6 +47,14 @@ pub fn construct_object_default(_type: ObjectType, position: Vec2) -> Object {
             collidable: true,
         },
         ObjectType::Twig => Object { 
+            _type, 
+            position: Vec2::new(position.x + 0.1, position.y + 0.1), 
+            depth_z: 0.001,
+            size: Vec2::new(0.8, 0.8), 
+            collider: Collider::new(position.x + 0.1, position.y + 0.1, 0.8, 0.8),
+            collidable: false,
+        },
+        ObjectType::Grass => Object { 
             _type, 
             position: Vec2::new(position.x + 0.1, position.y + 0.1), 
             depth_z: 0.001,

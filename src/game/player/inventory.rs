@@ -1,9 +1,9 @@
-use std::ops::Range;
+use std::{collections::HashMap, ops::Range};
 
 use lgui::element::{EBuilder, Scale};
 use rain::engine::{core::RainHandle, input::MouseButton};
 
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, State, game::{core::ui::*, player::{item::Item, movement::Player}}};
+use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, State, game::{core::ui::*, player::{crafting::{Recipe, check_available_recipes}, item::{Item, ItemType}, movement::Player}}};
 
 pub const INVENTORY_SLOTS_PLAYER: usize = 36;
 pub const INVENTORY_SLOTS_WIDTH: usize = 9;
@@ -14,6 +14,7 @@ pub struct Inventory {
     pub open: bool,
     pub slots: Vec<InventorySlot>,
     pub selected: Vec<usize>,
+    pub available_recipes: Vec<Recipe>,
 }
 
 impl Inventory {
@@ -22,6 +23,7 @@ impl Inventory {
             open: false,
             slots: vec![InventorySlot::new(); num_slots],
             selected: Vec::new(),
+            available_recipes: Vec::new(),
         }
     }
 
@@ -68,6 +70,7 @@ pub fn system_inventory_select(handle: &mut RainHandle, state: &mut State) {
     let slots_width = num_slots * INVENTORY_SLOT_SIZE + (num_slots - 1.0) * INVENTORY_SLOT_GAP;
     let start = (SCREEN_WIDTH - slots_width) / 2.0; 
     let point = handle.mouse_position();
+    let mut updated = false;
 
     if !handle.is_button_released(MouseButton::Left) {
         return;
@@ -89,6 +92,7 @@ pub fn system_inventory_select(handle: &mut RainHandle, state: &mut State) {
                     } else {
                         inventory.selected.push(i);
                     }
+                    updated = true;
                 }
             }
             for i in INVENTORY_SLOTS_INVENTORY {
@@ -106,7 +110,20 @@ pub fn system_inventory_select(handle: &mut RainHandle, state: &mut State) {
                     } else {
                         inventory.selected.push(i);
                     }
+                    updated = true;
                 }
+            }
+            if updated {
+                let mut input_map: HashMap<ItemType, u32> = HashMap::new();
+                for selected in inventory.selected.iter() {
+                    let slot = inventory.slots.get(*selected).unwrap();
+                    if let Some(item) = &slot.item {
+                        *input_map.entry(item._type.clone()).or_insert(0) += slot.quantity;
+                    }
+                }
+                let inputs: Vec<(ItemType, u32)> = input_map.into_iter().collect();
+                inventory.available_recipes = check_available_recipes(&inputs);
+                println!("{:?}", inventory.available_recipes);
             }
         }
     }

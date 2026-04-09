@@ -16,6 +16,12 @@ pub fn item_pickup(handle: &mut RainHandle, state: &mut State) {
                         inventory.add_item(Item::new(ItemType::Twig), 1);
                     }
                 }
+                ObjectType::Grass => {
+                    if destroy_object(state, &object) {
+                        object_changed = true;
+                        inventory.add_item(Item::new(ItemType::Grass), 1);
+                    }
+                }
                 _ => {}
             }
         }

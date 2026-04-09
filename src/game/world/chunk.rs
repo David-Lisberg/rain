@@ -72,6 +72,8 @@ pub fn generate_chunk(chunk_position: ChunkPosition, perlin: &Perlin, rng: &mut 
                 objects.push(construct_object_default(ObjectType::Tree1, position));
             } else if noise_value < 0.3 && noise_value > 0.1 {
                 objects.push(construct_object_default(ObjectType::Twig, position));
+            } else if noise_value <= 0.1 && noise_value > 0.0 {
+                objects.push(construct_object_default(ObjectType::Grass, position));
             }
         }
 

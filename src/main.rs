@@ -48,6 +48,7 @@ pub mod game {
         pub mod movement;
         pub mod item;
         pub mod inventory;
+        pub mod crafting;
     }
     pub mod utility {
         pub mod noise;
@@ -95,6 +96,8 @@ impl RainState for State {
         handle.load_texture("tile_sand", "res/texture/sand.png").expect("Error loading texture.");
         handle.load_texture("object_tree1", "res/texture/tree1.png").expect("Error loading texture.");
         handle.load_texture("object_twig", "res/texture/twig.png").expect("Error loading texture.");
+        handle.load_texture("object_grass", "res/texture/object_grass.png").expect("Error loading texture.");
+        handle.load_texture("item_twine", "res/texture/item_twine.png").expect("Error loading texture.");
         handle.load_texture("inventory_slot", "res/texture/inventory_slot.png").expect("Error loading texture.");
         handle.load_texture("inventory_slot_selected", "res/texture/inventory_slot_selected.png").expect("Error loading texture.");
 
