@@ -38,7 +38,7 @@ impl SpriteInstance {
                 scale.x *= -1.0;
             }
             if f.1 {
-                scale.y *= 1.0;
+                scale.y *= -1.0;
             }
         }
         
