@@ -1,5 +1,7 @@
 use glam::*;
 
+use crate::engine::{core::RainHandle, utility::transform::framebuffer_to_ndc};
+
 const MAX_FOV: f32 = 180.0;
 
 pub const OPENGL_TO_WGPU_MATRIX: glam::Mat4 = glam::Mat4::from_cols(
@@ -128,5 +130,23 @@ impl Camera2dUniform {
 
     pub fn update_matrix(&mut self, camera: &Camera2d) {
         self.matrix = camera.build_view_projection_matrix().to_cols_array_2d();
+    }
+}
+
+impl RainHandle {
+    pub fn screen_position_to_world_position(&self, position: Vec2) -> Vec2 {
+        let inverse = self.renderer.camera.build_view_projection_matrix().inverse();
+        let ndc = framebuffer_to_ndc(position, self.renderer.config.width, self.renderer.config.height);
+
+        let near = inverse * Vec4::new(ndc.x, ndc.y, -1.0, 1.0);
+        let far = inverse * Vec4::new(ndc.x, ndc.y, 1.0, 1.0);
+
+        let near = near.truncate() / near.w;
+        let far = far.truncate() / far.w;
+
+        let t = (0.0 - near.z) / (far.z - near.z);
+
+        let world_position = near + t * (far - near);
+        Vec2::new(world_position.x, world_position.y)
     }
 }

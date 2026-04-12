@@ -45,7 +45,7 @@ pub fn construct_object_default(_type: ObjectType, position: Vec2) -> Object {
             position, 
             depth_z: 0.02,
             size: Vec2::new(1.0, 3.0), 
-            collider: Collider::new(position.x + 0.1, position.y, 0.8, 1.0),
+            collider: Collider::new(position.x + 0.2, position.y, 0.8, 1.0),
             collidable: true,
         },
         ObjectType::Twig => object_small_default(_type, position),
@@ -57,10 +57,10 @@ pub fn construct_object_default(_type: ObjectType, position: Vec2) -> Object {
 fn object_small_default(_type: ObjectType, position: Vec2) -> Object {
     Object { 
         _type, 
-        position: Vec2::new(position.x + 0.1, position.y + 0.1), 
+        position: Vec2::new(position.x + 0.2, position.y + 0.2), 
         depth_z: 0.001,
-        size: Vec2::new(0.8, 0.8), 
-        collider: Collider::new(position.x + 0.1, position.y + 0.1, 0.8, 0.8),
+        size: Vec2::new(0.6, 0.6), 
+        collider: Collider::new(position.x + 0.2, position.y + 0.2, 0.6, 0.6),
         collidable: false,
     }
 }

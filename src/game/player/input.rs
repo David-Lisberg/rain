@@ -2,7 +2,7 @@ use glam::Vec2;
 use hecs::Entity;
 use rain::engine::core::RainHandle;
 use rain::engine::component::*;
-use rain::engine::input::KeyboardKey;
+use rain::engine::input::{KeyboardKey, MouseButton};
 
 use crate::State;
 use crate::game::player::action::item_pickup;
@@ -15,8 +15,8 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
     let mut to_walk: Vec<Entity> = Vec::new();
     let mut to_remove_walk: Vec<Entity> = Vec::new();
     let mut open_inventory = false;
-    let mut pickup_item = false;
-    for (e, (_, direction)) in handle.world.query::<(&Player, &mut Direction)>().iter() {
+    let mut pickup_item: Option<Vec2> = None;
+    for (e, (_, direction, position)) in handle.world.query::<(&Player, &mut Direction, &Position2D)>().iter() {
         if handle.is_key_pressed(KeyboardKey::A) && handle.is_key_pressed(KeyboardKey::W) {
             *direction = Direction(Vec2::new(-1.0, 1.0).normalize());
             to_walk.push(e);
@@ -50,8 +50,8 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
         if handle.is_key_released(KeyboardKey::E) {
             open_inventory = true;
         }
-        if handle.is_key_released(KeyboardKey::Q) {
-            pickup_item = true;
+        if handle.is_button_released(MouseButton::Right) {
+            pickup_item = Some(position.0.clone());
         }
     }
 
@@ -72,7 +72,9 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
             }
         }
     }
-    if pickup_item {
-        item_pickup(handle, state);
+    if let Some(position) = pickup_item {
+        let mouse_position = handle.screen_position_to_world_position(handle.mouse_position());
+        let direction = (mouse_position - position).normalize();
+        item_pickup(handle, state, direction);
     }
 }
