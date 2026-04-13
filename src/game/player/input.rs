@@ -16,6 +16,7 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
     let mut to_remove_walk: Vec<Entity> = Vec::new();
     let mut open_inventory = false;
     let mut pickup_item: Option<Vec2> = None;
+    let mut inventory_hotbar_select: Option<usize> = None;
     for (e, (_, direction, position)) in handle.world.query::<(&Player, &mut Direction, &Position2D)>().iter() {
         if handle.is_key_pressed(KeyboardKey::A) && handle.is_key_pressed(KeyboardKey::W) {
             *direction = Direction(Vec2::new(-1.0, 1.0).normalize());
@@ -53,6 +54,25 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
         if handle.is_button_released(MouseButton::Right) {
             pickup_item = Some(position.0.clone());
         }
+        if handle.is_key_released(KeyboardKey::Digit1) {
+            inventory_hotbar_select = Some(0);
+        } else if handle.is_key_released(KeyboardKey::Digit2) {
+            inventory_hotbar_select = Some(1);
+        } else if handle.is_key_released(KeyboardKey::Digit3) {
+            inventory_hotbar_select = Some(2);
+        } else if handle.is_key_released(KeyboardKey::Digit4) {
+            inventory_hotbar_select = Some(3);
+        } else if handle.is_key_released(KeyboardKey::Digit5) {
+            inventory_hotbar_select = Some(4);
+        } else if handle.is_key_released(KeyboardKey::Digit6) {
+            inventory_hotbar_select = Some(5);
+        } else if handle.is_key_released(KeyboardKey::Digit7) {
+            inventory_hotbar_select = Some(6);
+        } else if handle.is_key_released(KeyboardKey::Digit8) {
+            inventory_hotbar_select = Some(7);
+        } else if handle.is_key_released(KeyboardKey::Digit9) {
+            inventory_hotbar_select = Some(8);
+        }
     }
 
     for e in to_dash {
@@ -69,6 +89,13 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
             inventory.open = !inventory.open;
             if !inventory.open {
                 inventory.selected.clear();
+            }
+        }
+    }
+    if let Some(index) = inventory_hotbar_select {
+        for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
+            if !inventory.open {
+                inventory.selected_hotbar = index;
             }
         }
     }

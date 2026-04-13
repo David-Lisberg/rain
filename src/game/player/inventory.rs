@@ -14,6 +14,7 @@ pub struct Inventory {
     pub open: bool,
     pub slots: Vec<InventorySlot>,
     pub selected: Vec<usize>,
+    pub selected_hotbar: usize,
     pub available_recipes: Vec<Recipe>,
 }
 
@@ -23,6 +24,7 @@ impl Inventory {
             open: false,
             slots: vec![InventorySlot::new(); num_slots],
             selected: Vec::new(),
+            selected_hotbar: 0,
             available_recipes: Vec::new(),
         }
     }

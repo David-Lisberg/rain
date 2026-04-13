@@ -41,6 +41,21 @@ pub fn item_pickup(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
     }
 }
 
+pub fn item_use(handle: &mut RainHandle, state: &mut State, direction: Vec2) {
+    let mut pending_use: Option<ItemType> = None;
+    for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
+        let slot = inventory.slots.get(inventory.selected_hotbar).unwrap();
+        if let Some(item) = &slot.item {
+            match item._type {
+                ItemType::Sling => {
+
+                }
+                _ => {}
+            }
+        }
+    }
+}
+
 pub fn system_update_player_texture(handle: &mut RainHandle) {
     let player_front = handle.fetch_texture("player_front").unwrap();
     let player_back = handle.fetch_texture("player_back").unwrap();

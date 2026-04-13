@@ -100,10 +100,10 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
 
             let num_recipes = inventory.available_recipes.len() as f32;
             let recipes_width = num_recipes * INVENTORY_SLOT_SIZE + (num_recipes - 1.0) * INVENTORY_SLOT_GAP;
-            let start = (SCREEN_WIDTH - recipes_width) / 2.0;
+            let start_recipe = (SCREEN_WIDTH - recipes_width) / 2.0;
             let y = INVENTORY_SLOT_HEIGHT - INVENTORY_GAP - (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP) * 3.2;
             for (i, recipe) in inventory.available_recipes.iter().enumerate() {
-                let x = start + (i % INVENTORY_SLOTS_WIDTH) as f32 * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP);
+                let x = start_recipe + (i % INVENTORY_SLOTS_WIDTH) as f32 * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP);
                 let mut recipe_element = EBuilder::new(x, y)
                     .rect(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE)
                     .texture(handle.fetch_texture("inventory_slot").unwrap());
@@ -121,6 +121,14 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
                 }
                 element.sub_element_ex(|| recipe_element.build());
             }
+        } else {
+            let x = start + inventory.selected_hotbar as f32 * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP);
+            element.sub_element_ex(||
+                EBuilder::new(x + border_width / 2.0, INVENTORY_SLOT_HEIGHT + border_width / 2.0)
+                    .rect(INVENTORY_SLOT_SIZE - border_width, INVENTORY_SLOT_SIZE - border_width)
+                    .texture(handle.fetch_texture("inventory_slot_selected").unwrap())
+                    .build()    
+            );
         }
     }
     state.gui.element(element.build());
