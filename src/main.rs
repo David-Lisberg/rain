@@ -32,6 +32,11 @@ use crate::game::world::generation::system_world_generation;
 pub const SCREEN_WIDTH: f32 = 850.0;
 pub const SCREEN_HEIGHT: f32 = 600.0;
 
+pub const DEPTH_TREES: f32 = 0.02;
+pub const DEPTH_PROJECTILE: f32 = 0.015;
+pub const DEPTH_PLAYER: f32 = 0.01;
+pub const DEPTH_SMALL_OBJECT: f32 = 0.001;
+
 pub mod game {
     pub mod world {
         pub mod generation;
@@ -119,7 +124,7 @@ impl RainState for State {
         handle.world.spawn((
             Player, Sprite, Visible, 
             Position2D(Vec2::ZERO), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), Friction(25.0),
-            Scale2D(Vec2::new(0.8, 0.8)), Direction(Vec2::new(0.0, -1.0)), player_texture, Priority(1), DepthZ(0.01), Flip(false, false), 
+            Scale2D(Vec2::new(0.8, 0.8)), Direction(Vec2::new(0.0, -1.0)), player_texture, Priority(1), DepthZ(DEPTH_PLAYER), Flip(false, false), 
             Collider::from_center(0.0, 0.0, 0.8, 0.8),
             Inventory::new(36),
         ));

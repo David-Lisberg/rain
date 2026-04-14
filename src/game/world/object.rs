@@ -5,7 +5,7 @@ use hecs::Entity;
 use rain::engine::{component::{Priority, Visible}, core::RainHandle, mesh::ModelMesh, resource::{ARRAY_256X256_ID, ResourceManager}, texture::Texture, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
 use wgpu::util::DeviceExt;
 
-use crate::{State, game::{core::collision::Collider, world::chunk::{ChunkPosition, position_to_chunk_position}}};
+use crate::{DEPTH_SMALL_OBJECT, DEPTH_TREES, State, game::{core::collision::Collider, world::chunk::{ChunkPosition, position_to_chunk_position}}};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Object {
@@ -43,7 +43,7 @@ pub fn construct_object_default(_type: ObjectType, position: Vec2) -> Object {
         ObjectType::Tree1 => Object { 
             _type, 
             position, 
-            depth_z: 0.02,
+            depth_z: DEPTH_TREES,
             size: Vec2::new(1.0, 3.0), 
             collider: Collider::new(position.x + 0.2, position.y, 0.8, 1.0),
             collidable: true,
@@ -58,7 +58,7 @@ fn object_small_default(_type: ObjectType, position: Vec2) -> Object {
     Object { 
         _type, 
         position: Vec2::new(position.x + 0.2, position.y + 0.2), 
-        depth_z: 0.001,
+        depth_z: DEPTH_SMALL_OBJECT,
         size: Vec2::new(0.6, 0.6), 
         collider: Collider::new(position.x + 0.2, position.y + 0.2, 0.6, 0.6),
         collidable: false,

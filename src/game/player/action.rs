@@ -4,9 +4,9 @@ use glam::Vec2;
 use hecs::Entity;
 use rain::engine::{component::*, core::RainHandle, input::MouseButton, texture::Texture};
 
-use crate::{State, game::{core::collision::*, entity::lifetime::Lifetime, player::{inventory::Inventory, item::*, movement::Player}, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
+use crate::{DEPTH_PROJECTILE, State, game::{core::collision::*, entity::lifetime::Lifetime, player::{inventory::Inventory, item::*, movement::Player}, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
 
-struct SlingHold(f32);
+struct SlingHold(f32, usize);
 
 pub fn item_pickup(handle: &mut RainHandle, state: &mut State, direction: Vec2) {
     let mut object_changed = false;
@@ -45,21 +45,21 @@ pub fn item_pickup(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
 }
 
 pub fn item_use(handle: &mut RainHandle, state: &mut State, direction: Vec2) {
-    let mut pending_use: Option<(ItemType, Entity)> = None;
+    let mut pending_use: Option<(ItemType, Entity, usize)> = None;
     for (e, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
         let slot = inventory.slots.get(inventory.selected_hotbar).unwrap();
         if let Some(item) = &slot.item {
             match item._type {
                 ItemType::Sling => {
-                    pending_use = Some((ItemType::Sling, e));
+                    pending_use = Some((ItemType::Sling, e, inventory.selected_hotbar));
                 }
                 _ => {}
             }
         }
     }
 
-    if let Some((_type, e)) = pending_use {
-        handle.world.insert_one(e, SlingHold(0.0)).unwrap();
+    if let Some((_type, e, slot)) = pending_use {
+        handle.world.insert_one(e, SlingHold(0.0, slot)).unwrap();
     }
 }
 
@@ -91,8 +91,14 @@ pub fn system_player_action(handle: &mut RainHandle, state: &mut State) {
 fn system_player_sling(handle: &mut RainHandle, state: &mut State) {
     let pressed = handle.is_button_pressed(MouseButton::Left);
     let mut sling_released: Option<(Entity, Vec2)> = None;
+    let mut sling_cancel: Option<Entity> = None;
 
-    for (e, (_, position, sling_hold)) in handle.world.query_mut::<(&Player, &Position2D, &mut SlingHold)>() {
+    for (e, (_, inventory, position, sling_hold)) in handle.world.query_mut::<(&Player, &Inventory, &Position2D, &mut SlingHold)>() {
+        if inventory.selected_hotbar != sling_hold.1 {
+            sling_cancel = Some(e);
+            break;
+        }
+
         if pressed {
             sling_hold.0 += handle.delta_time;
         } else {
@@ -100,16 +106,20 @@ fn system_player_sling(handle: &mut RainHandle, state: &mut State) {
         }
     }
 
+    if let Some(e) = sling_cancel {
+        handle.world.remove_one::<SlingHold>(e).unwrap();
+        return;
+    }
+
     if let Some((e, position)) = sling_released {
         let sling_hold = handle.world.remove_one::<SlingHold>(e).unwrap();
-        println!("{}", sling_hold.0);
         let mouse_position = handle.screen_position_to_world_position(handle.mouse_position());
         let direction = (mouse_position - position).normalize();
-        let velocity = Velocity2D(direction * sling_hold.0.min(1.5) * 10.0);
+        let velocity = Velocity2D(direction * sling_hold.0.min(1.5) * 28.0);
         let texture = handle.fetch_texture("object_stone").unwrap();
         handle.world.spawn((
             Sprite, Visible, Position2D(position), velocity, Acceleration2D(Vec2::ZERO), 
-            Lifetime(5.0), texture, Scale2D(Vec2::new(0.4, 0.4)), DepthZ(0.01)
+            Lifetime(5.0), texture, Scale2D(Vec2::new(0.4, 0.4)), DepthZ(DEPTH_PROJECTILE), Priority(1)
         ));
     }
 }
