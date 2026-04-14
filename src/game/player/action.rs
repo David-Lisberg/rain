@@ -1,9 +1,12 @@
 use std::sync::Arc;
 
 use glam::Vec2;
-use rain::engine::{component::*, core::RainHandle, texture::Texture};
+use hecs::Entity;
+use rain::engine::{component::*, core::RainHandle, input::MouseButton, texture::Texture};
 
-use crate::{State, game::{core::collision::*, player::{inventory::Inventory, item::*, movement::Player}, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
+use crate::{State, game::{core::collision::*, entity::lifetime::Lifetime, player::{inventory::Inventory, item::*, movement::Player}, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
+
+struct SlingHold(f32);
 
 pub fn item_pickup(handle: &mut RainHandle, state: &mut State, direction: Vec2) {
     let mut object_changed = false;
@@ -42,17 +45,21 @@ pub fn item_pickup(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
 }
 
 pub fn item_use(handle: &mut RainHandle, state: &mut State, direction: Vec2) {
-    let mut pending_use: Option<ItemType> = None;
-    for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
+    let mut pending_use: Option<(ItemType, Entity)> = None;
+    for (e, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
         let slot = inventory.slots.get(inventory.selected_hotbar).unwrap();
         if let Some(item) = &slot.item {
             match item._type {
                 ItemType::Sling => {
-
+                    pending_use = Some((ItemType::Sling, e));
                 }
                 _ => {}
             }
         }
+    }
+
+    if let Some((_type, e)) = pending_use {
+        handle.world.insert_one(e, SlingHold(0.0)).unwrap();
     }
 }
 
@@ -74,5 +81,35 @@ pub fn system_update_player_texture(handle: &mut RainHandle) {
             *texture = player_side.clone();
             *flip = Flip(true, false);
         }
+    }
+}
+
+pub fn system_player_action(handle: &mut RainHandle, state: &mut State) {
+    system_player_sling(handle, state);
+}
+
+fn system_player_sling(handle: &mut RainHandle, state: &mut State) {
+    let pressed = handle.is_button_pressed(MouseButton::Left);
+    let mut sling_released: Option<(Entity, Vec2)> = None;
+
+    for (e, (_, position, sling_hold)) in handle.world.query_mut::<(&Player, &Position2D, &mut SlingHold)>() {
+        if pressed {
+            sling_hold.0 += handle.delta_time;
+        } else {
+            sling_released = Some((e, position.0.clone()));
+        }
+    }
+
+    if let Some((e, position)) = sling_released {
+        let sling_hold = handle.world.remove_one::<SlingHold>(e).unwrap();
+        println!("{}", sling_hold.0);
+        let mouse_position = handle.screen_position_to_world_position(handle.mouse_position());
+        let direction = (mouse_position - position).normalize();
+        let velocity = Velocity2D(direction * sling_hold.0.min(1.5) * 10.0);
+        let texture = handle.fetch_texture("object_stone").unwrap();
+        handle.world.spawn((
+            Sprite, Visible, Position2D(position), velocity, Acceleration2D(Vec2::ZERO), 
+            Lifetime(5.0), texture, Scale2D(Vec2::new(0.4, 0.4)), DepthZ(0.01)
+        ));
     }
 }

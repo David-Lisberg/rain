@@ -511,12 +511,20 @@ impl RainHandle {
         self.keyboard.keys[key as usize].pressed
     }
 
+    pub fn is_key_just_pressed(&self, key: KeyboardKey) -> bool {
+        self.keyboard.keys[key as usize].just_pressed
+    }
+
     pub fn is_key_released(&self, key: KeyboardKey) -> bool {
         self.keyboard.keys[key as usize].released
     }
 
     pub fn is_button_pressed(&self, button: MouseButton) -> bool {
         self.mouse.buttons[button as usize].pressed
+    }
+
+    pub fn is_button_just_pressed(&self, button: MouseButton) -> bool {
+        self.mouse.buttons[button as usize].just_pressed
     }
 
     pub fn is_button_released(&self, button: MouseButton) -> bool {

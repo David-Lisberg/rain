@@ -13,6 +13,8 @@ use crate::game::core::camera::*;
 use crate::game::core::collision::Collider;
 use crate::game::core::physics::*;
 use crate::game::core::ui::render_ui;
+use crate::game::entity::lifetime::system_lifetime;
+use crate::game::player::action::system_player_action;
 use crate::game::player::action::system_update_player_texture;
 use crate::game::player::input::*;
 use crate::game::player::inventory::Inventory;
@@ -54,6 +56,9 @@ pub mod game {
     pub mod utility {
         pub mod noise;
     }
+    pub mod entity {
+        pub mod lifetime;
+    }
 }
 
 pub struct State {
@@ -74,7 +79,9 @@ impl RainState for State {
         system_inventory_interface(handle, self);
         system_player_walk(handle);
         system_player_dash(handle);
+        system_player_action(handle, self);
         system_physics_movement_2d(handle, self);
+        system_lifetime(handle);
         system_update_player_texture(handle);
         system_camera_controller(handle, self);
         system_camera_tracker(handle);
@@ -118,6 +125,8 @@ impl RainState for State {
         ));
 
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
+            inventory.slots[0].item = Some(Item::new(ItemType::Sling));
+            inventory.slots[0].quantity = 1;
             inventory.slots[3].item = Some(Item::new(ItemType::Twig));
             inventory.slots[3].quantity = 42;
             inventory.slots[1].item = Some(Item::new(ItemType::Grass));
