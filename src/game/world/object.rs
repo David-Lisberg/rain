@@ -47,7 +47,7 @@ pub fn construct_object_default(_type: ObjectType, position: Vec2) -> Object {
         ObjectType::Tree1 => Object { 
             _type, 
             position, 
-            hit_ticks: 5,
+            hit_ticks: 3,
             break_level: 1,
             depth_z: DEPTH_TREES,
             size: Vec2::new(1.0, 3.0), 
@@ -136,13 +136,16 @@ pub fn reload_object_mesh(handle: &mut RainHandle, state: &mut State) {
     handle.world.spawn((mesh, ObjectMesh, Visible, Priority(0)));
 }
 
-pub fn destroy_object(state: &mut State, object: &Object) -> bool {
+pub fn destroy_object(state: &mut State, object: &Object, hit_ticks: i32) -> bool {
     let chunk_position = position_to_chunk_position(object.position.x, object.position.y);
     if let Some(chunk) = state.chunks.get_mut(&chunk_position) {
         let mut to_remove: Option<usize> = None;
-        for (i, chunk_object) in chunk.objects.iter().enumerate() {
+        for (i, chunk_object) in chunk.objects.iter_mut().enumerate() {
             if chunk_object.position == object.position {
-                to_remove = Some(i);
+                chunk_object.hit_ticks -= hit_ticks;
+                if chunk_object.hit_ticks <= 0 {
+                    to_remove = Some(i);
+                }
                 break;
             }
         }

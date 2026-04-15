@@ -11,7 +11,7 @@ pub struct Item {
 impl Item {
     pub fn new(item_type: ItemType) -> Self {
         let category = match item_type {
-            ItemType::FlintHatchet => ItemCategory::Tool(1),
+            ItemType::FlintHatchet => ItemCategory::Tool(1, 1),
             _ => ItemCategory::Other,
         };
 
@@ -33,7 +33,7 @@ pub enum ItemType {
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum ItemCategory {
-    Tool(i32),
+    Tool(i32, i32),
     Other,
 }
 
