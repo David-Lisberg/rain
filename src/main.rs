@@ -116,6 +116,8 @@ impl RainState for State {
         handle.load_texture("object_flint", "res/texture/object_flint.png").expect("Error loading texture.");
         handle.load_texture("item_twine", "res/texture/item_twine.png").expect("Error loading texture.");
         handle.load_texture("item_sling", "res/texture/item_sling.png").expect("Error loading texture.");
+        handle.load_texture("item_wood", "res/texture/item_wood.png").expect("Error loading texture.");
+        handle.load_texture("flint_hatchet", "res/texture/flint_hatchet.png").expect("Error loading texture.");
         handle.load_texture("inventory_slot", "res/texture/inventory_slot.png").expect("Error loading texture.");
         handle.load_texture("inventory_slot_selected", "res/texture/inventory_slot_selected.png").expect("Error loading texture.");
         handle.load_texture("player_front", "res/texture/player_front.png").expect("Error loading texture.");

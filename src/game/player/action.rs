@@ -15,32 +15,48 @@ pub fn item_pickup(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
         let collider_position = position.0 + direction;
         let collider = Collider::from_center(collider_position.x, collider_position.y, 1.0, 1.0);
         if let Some(object) = check_collision_with_object(state, &collider) {
-            match object._type {
-                ObjectType::Twig => {
-                    if destroy_object(state, &object) {
-                        object_changed = true;
-                        inventory.add_item(Item::new(ItemType::Twig), 1);
-                    }
+            let break_level = if let Some(item) = &inventory.slots[inventory.selected_hotbar].item {
+                match item.category {
+                    ItemCategory::Tool(b) => b,
+                    _ => 0,
                 }
-                ObjectType::Grass => {
-                    if destroy_object(state, &object) {
-                        object_changed = true;
-                        inventory.add_item(Item::new(ItemType::Grass), 1);
+            } else {
+                0
+            };
+            if break_level >= object.break_level {
+                match object._type {
+                    ObjectType::Twig => {
+                        if destroy_object(state, &object) {
+                            object_changed = true;
+                            inventory.add_item(Item::new(ItemType::Twig), 1);
+                        }
                     }
-                }
-                ObjectType::Stone => {
-                    if destroy_object(state, &object) {
-                        object_changed = true;
-                        inventory.add_item(Item::new(ItemType::Stone), 1);
+                    ObjectType::Grass => {
+                        if destroy_object(state, &object) {
+                            object_changed = true;
+                            inventory.add_item(Item::new(ItemType::Grass), 1);
+                        }
                     }
-                }
-                ObjectType::Flint => {
-                    if destroy_object(state, &object) {
-                        object_changed = true;
-                        inventory.add_item(Item::new(ItemType::Flint), 1);
+                    ObjectType::Stone => {
+                        if destroy_object(state, &object) {
+                            object_changed = true;
+                            inventory.add_item(Item::new(ItemType::Stone), 1);
+                        }
                     }
+                    ObjectType::Flint => {
+                        if destroy_object(state, &object) {
+                            object_changed = true;
+                            inventory.add_item(Item::new(ItemType::Flint), 1);
+                        }
+                    }
+                    ObjectType::Tree1 => {
+                        if destroy_object(state, &object) {
+                            object_changed = true;
+                            inventory.add_item(Item::new(ItemType::Wood), 3);
+                        }
+                    }
+                    _ => {}
                 }
-                _ => {}
             }
         }
     }
@@ -97,7 +113,7 @@ pub fn system_player_action(handle: &mut RainHandle, state: &mut State) {
 }
 
 fn system_player_sling(handle: &mut RainHandle, state: &mut State) {
-    let pressed = handle.is_button_pressed(MouseButton::Left);
+    let pressed = handle.is_button_pressed(MouseButton::Right);
     let mut sling_released: Option<(Entity, Vec2)> = None;
     let mut sling_cancel: Option<Entity> = None;
 

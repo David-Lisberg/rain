@@ -52,10 +52,10 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
         if handle.is_key_released(KeyboardKey::E) {
             open_inventory = true;
         }
-        if handle.is_button_released(MouseButton::Right) {
+        if handle.is_button_released(MouseButton::Left) {
             pickup_item = Some(position.0.clone());
         }
-        if handle.is_button_just_pressed(MouseButton::Left) {
+        if handle.is_button_just_pressed(MouseButton::Right) {
             use_item = Some(direction.0.clone());
         }
         if handle.is_key_released(KeyboardKey::Digit1) {

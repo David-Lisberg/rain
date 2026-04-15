@@ -11,6 +11,8 @@ use crate::{DEPTH_SMALL_OBJECT, DEPTH_TREES, State, game::{core::collision::Coll
 pub struct Object {
     pub _type: ObjectType,
     pub position: Vec2,
+    pub hit_ticks: i32,
+    pub break_level: i32,
     pub depth_z: f32,
     pub size: Vec2,
     pub collider: Collider,
@@ -45,6 +47,8 @@ pub fn construct_object_default(_type: ObjectType, position: Vec2) -> Object {
         ObjectType::Tree1 => Object { 
             _type, 
             position, 
+            hit_ticks: 5,
+            break_level: 1,
             depth_z: DEPTH_TREES,
             size: Vec2::new(1.0, 3.0), 
             collider: Collider::new(position.x + 0.2, position.y, 0.8, 1.0),
@@ -61,6 +65,8 @@ fn object_small_default(_type: ObjectType, position: Vec2) -> Object {
     Object { 
         _type, 
         position: Vec2::new(position.x + 0.2, position.y + 0.2), 
+        hit_ticks: 1,
+        break_level: 0,
         depth_z: DEPTH_SMALL_OBJECT,
         size: Vec2::new(0.6, 0.6), 
         collider: Collider::new(position.x + 0.2, position.y + 0.2, 0.6, 0.6),

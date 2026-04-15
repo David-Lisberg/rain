@@ -9,6 +9,7 @@ pub struct Recipe {
 const AVAILABLE_RECIPES: &[Recipe] = &[
     Recipe { input: &[(ItemType::Grass, 2)], output: (ItemType::Twine, 1)},
     Recipe { input: &[(ItemType::Twine, 3), (ItemType::Twig, 2)], output: (ItemType::Sling, 1)},
+    Recipe { input: &[(ItemType::Twine, 2), (ItemType::Twig, 3), (ItemType::Flint, 2)], output: (ItemType::FlintHatchet, 1)},
 ];
 
 pub fn check_available_recipes(inputs: &Vec<(ItemType, u32)>) -> Vec<Recipe> {
@@ -63,5 +64,5 @@ pub fn craft_item(inventory: &mut Inventory, recipe: &Recipe) {
             return;
         }
     }
-    inventory.add_item(Item { _type: recipe.output.0.clone() }, recipe.output.1);
+    inventory.add_item(Item::new(recipe.output.0.clone()), recipe.output.1);
 }
