@@ -11,7 +11,7 @@ pub fn system_player_dash(handle: &mut RainHandle) {
         &Player, &Dash, &Direction, &mut Velocity2D
     )>().iter() {
         entities.push(e);
-        set_velocity_clamped(velocity, 75.0, direction);
+        set_velocity_clamped(velocity, 20.0, direction);
     }
 
     for e in entities {

@@ -34,6 +34,12 @@ pub fn item_pickup(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
                         inventory.add_item(Item::new(ItemType::Stone), 1);
                     }
                 }
+                ObjectType::Flint => {
+                    if destroy_object(state, &object) {
+                        object_changed = true;
+                        inventory.add_item(Item::new(ItemType::Flint), 1);
+                    }
+                }
                 _ => {}
             }
         }
@@ -51,7 +57,9 @@ pub fn item_use(handle: &mut RainHandle, state: &mut State, direction: Vec2) {
         if let Some(item) = &slot.item {
             match item._type {
                 ItemType::Sling => {
-                    pending_use = Some((ItemType::Sling, e, inventory.selected_hotbar));
+                    if inventory.search_item(ItemType::Stone, 1).is_some() {
+                        pending_use = Some((ItemType::Sling, e, inventory.selected_hotbar));
+                    }
                 }
                 _ => {}
             }
@@ -93,16 +101,19 @@ fn system_player_sling(handle: &mut RainHandle, state: &mut State) {
     let mut sling_released: Option<(Entity, Vec2)> = None;
     let mut sling_cancel: Option<Entity> = None;
 
-    for (e, (_, inventory, position, sling_hold)) in handle.world.query_mut::<(&Player, &Inventory, &Position2D, &mut SlingHold)>() {
-        if inventory.selected_hotbar != sling_hold.1 {
+    for (e, (_, inventory, position, sling_hold)) in handle.world.query_mut::<(&Player, &mut Inventory, &Position2D, &mut SlingHold)>() {
+        if inventory.selected_hotbar != sling_hold.1 || inventory.open {
             sling_cancel = Some(e);
             break;
         }
 
         if pressed {
             sling_hold.0 += handle.delta_time;
-        } else {
+        } else if inventory.remove_item(ItemType::Stone, 1) {
             sling_released = Some((e, position.0.clone()));
+        } else {
+            sling_cancel = Some(e);
+            break;
         }
     }
 

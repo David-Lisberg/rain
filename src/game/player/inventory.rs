@@ -56,6 +56,64 @@ impl Inventory {
             }
         }
     }
+
+    pub fn remove_item(&mut self, item_type: ItemType, mut quantity: u32) -> bool {
+        let mut to_remove: Vec<usize> = Vec::new();
+        let mut quantity_remaining: u32 = quantity;
+        let mut success = false;
+        for (i, slot) in self.slots.iter().enumerate() {
+            if let Some(item) = &slot.item {
+                if item._type == item_type {
+                    to_remove.push(i);
+                    if slot.quantity >= quantity_remaining {
+                        success = true;
+                        break;
+                    } else {
+                        quantity_remaining -= slot.quantity;
+                    }
+                }
+            }
+        }
+
+        if !success {
+            return false;
+        }
+
+        for i in to_remove {
+            let slot = self.slots.get_mut(i).unwrap();
+            if slot.quantity >= quantity {
+                slot.quantity -= quantity;
+                if slot.quantity == 0 {
+                    slot.item = None;
+                }
+                break;
+            } else {
+                quantity -= slot.quantity;
+                slot.quantity = 0;
+                slot.item = None;
+            }
+        }
+
+        true
+    }
+
+    pub fn search_item(&self, item_type: ItemType, quantity: u32) -> Option<Vec<usize>> {
+        let mut quantity_found = 0;
+        let mut slots_found: Vec<usize> = Vec::new();
+        for (i, slot) in self.slots.iter().enumerate() {
+            if let Some(item) = &slot.item {
+                if item._type == item_type {
+                    quantity_found += slot.quantity;
+                    slots_found.push(i);
+                }
+            }
+        }
+        if quantity_found >= quantity {
+            Some(slots_found)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Clone)]

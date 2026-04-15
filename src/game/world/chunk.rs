@@ -41,7 +41,7 @@ pub struct ChunkData {
 }
 
 pub const CHUNK_DIM: usize = 32; /* indices should be u32s if CHUNK_DIM > 64 */
-const NOISE_TILE_SCALE_FACTOR: f64 = 0.026;
+const NOISE_TILE_SCALE_FACTOR: f64 = 0.0123;
 const NOISE_OBJECT_SCALE_FACTOR: f64 = 0.017;
 
 pub fn generate_chunk(chunk_position: ChunkPosition, perlin: &Perlin, rng: &mut ThreadRng) -> ChunkData {
@@ -50,29 +50,30 @@ pub fn generate_chunk(chunk_position: ChunkPosition, perlin: &Perlin, rng: &mut 
     let tiles = std::array::from_fn(|i| {
         let x = (chunk_position.x * CHUNK_DIM as i32) as f64 + (i % CHUNK_DIM) as f64;
         let y = (chunk_position.y * CHUNK_DIM as i32) as f64 + (i / CHUNK_DIM) as f64;
-        let mut noise_value = octave_noise_2d(x * NOISE_TILE_SCALE_FACTOR, y * NOISE_TILE_SCALE_FACTOR, 4, 0.5, &perlin);
+        let mut noise_value = octave_noise_2d(x * NOISE_TILE_SCALE_FACTOR, y * NOISE_TILE_SCALE_FACTOR, 6, 0.5, &perlin);
         noise_value = noise_normalize(noise_value);
 
         let _type = match noise_value {
             v if v >= 0.85 => TileType::Cobblestone,
             v if v >= 0.65 && v < 0.85 => TileType::Stone,
             v if v >= 0.6 && v < 0.65 => TileType::Dirt,
-            v if v >= 0.35 && v < 0.6 => TileType::Grass,
+            v if v >= 0.48 && v < 0.6 => TileType::Grass2,
+            v if v >= 0.35 && v < 0.48 => TileType::Grass,
             v if v >= 0.3 && v < 0.35 => TileType::Sand,
             v if v < 0.3 => TileType::Water,
             _ => TileType::Dirt
         };
 
-        if _type == TileType::Grass {
+        if _type == TileType::Grass || _type == TileType::Grass2 {
             let mut noise_value = octave_noise_2d(x * NOISE_OBJECT_SCALE_FACTOR, y * NOISE_OBJECT_SCALE_FACTOR, 2, 0.5, &perlin);
             noise_value = noise_normalize(noise_value);
             noise_value -= rng.random::<f64>();
             let position = Vec2::new(x as f32 + (rng.random::<f32>() - 0.5) / 7.0, y as f32 + (rng.random::<f32>() - 0.5) / 7.0);
-            if noise_value > 0.5 {
+            if noise_value > 0.48 {
                 objects.push(construct_object_default(ObjectType::Tree1, position));
-            } else if noise_value < 0.3 && noise_value > 0.1 {
+            } else if noise_value <= 0.3 && noise_value > 0.2 {
                 objects.push(construct_object_default(ObjectType::Twig, position));
-            } else if noise_value <= 0.1 && noise_value > 0.0 {
+            } else if noise_value <= 0.1 && noise_value > 0.03 {
                 objects.push(construct_object_default(ObjectType::Grass, position));
             }
         }
@@ -81,8 +82,10 @@ pub fn generate_chunk(chunk_position: ChunkPosition, perlin: &Perlin, rng: &mut 
             noise_value = noise_normalize(noise_value);
             noise_value -= rng.random::<f64>();
             let position = Vec2::new(x as f32 + (rng.random::<f32>() - 0.5) / 7.0, y as f32 + (rng.random::<f32>() - 0.5) / 7.0);
-            if noise_value < 0.3 && noise_value > 0.2 {
+            if noise_value <= 0.3 && noise_value > 0.2 {
                 objects.push(construct_object_default(ObjectType::Stone, position));
+            } else if noise_value <= 0.1 && noise_value > 0.05 {
+                objects.push(construct_object_default(ObjectType::Flint, position));
             }
         }
 

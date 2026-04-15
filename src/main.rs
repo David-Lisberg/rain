@@ -104,6 +104,7 @@ impl RainState for State {
         handle.load_texture("circle", "res/texture/white_circle.png").expect("Error loading texture.");
         handle.load_texture("tile_dirt", "res/texture/dirt.png").expect("Error loading texture.");
         handle.load_texture("tile_grass", "res/texture/grass.png").expect("Error loading texture.");
+        handle.load_texture("tile_grass2", "res/texture/grass2.png").expect("Error loading texture.");
         handle.load_texture("tile_stone", "res/texture/stone.png").expect("Error loading texture.");
         handle.load_texture("tile_cobblestone", "res/texture/cobblestone.png").expect("Error loading texture.");
         handle.load_texture("tile_water", "res/texture/water.png").expect("Error loading texture.");
@@ -112,6 +113,7 @@ impl RainState for State {
         handle.load_texture("object_twig", "res/texture/twig.png").expect("Error loading texture.");
         handle.load_texture("object_grass", "res/texture/object_grass.png").expect("Error loading texture.");
         handle.load_texture("object_stone", "res/texture/object_stone.png").expect("Error loading texture.");
+        handle.load_texture("object_flint", "res/texture/object_flint.png").expect("Error loading texture.");
         handle.load_texture("item_twine", "res/texture/item_twine.png").expect("Error loading texture.");
         handle.load_texture("item_sling", "res/texture/item_sling.png").expect("Error loading texture.");
         handle.load_texture("inventory_slot", "res/texture/inventory_slot.png").expect("Error loading texture.");

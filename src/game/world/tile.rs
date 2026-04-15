@@ -17,6 +17,7 @@ pub struct Tile {
 #[derive(PartialEq)]
 pub enum TileType {
     Grass,
+    Grass2,
     Dirt,
     Stone,
     Cobblestone,
@@ -41,6 +42,7 @@ impl TileType {
         match self {
             TileType::Dirt => resource_manager.fetch_texture("tile_dirt").unwrap(),
             TileType::Grass => resource_manager.fetch_texture("tile_grass").unwrap(),
+            TileType::Grass2 => resource_manager.fetch_texture("tile_grass2").unwrap(),
             TileType::Stone => resource_manager.fetch_texture("tile_stone").unwrap(),
             TileType::Cobblestone => resource_manager.fetch_texture("tile_cobblestone").unwrap(),
             TileType::Water => resource_manager.fetch_texture("tile_water").unwrap(),

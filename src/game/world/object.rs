@@ -23,6 +23,7 @@ pub enum ObjectType {
     Twig,
     Grass,
     Stone,
+    Flint,
 }
 
 pub struct ObjectMesh;
@@ -34,6 +35,7 @@ impl ObjectType {
             ObjectType::Twig => resource_manager.fetch_texture("object_twig").unwrap(),
             ObjectType::Grass => resource_manager.fetch_texture("object_grass").unwrap(),
             ObjectType::Stone => resource_manager.fetch_texture("object_stone").unwrap(),
+            ObjectType::Flint => resource_manager.fetch_texture("object_flint").unwrap(),
         }
     }
 }
@@ -51,6 +53,7 @@ pub fn construct_object_default(_type: ObjectType, position: Vec2) -> Object {
         ObjectType::Twig => object_small_default(_type, position),
         ObjectType::Grass => object_small_default(_type, position),
         ObjectType::Stone => object_small_default(_type, position),
+        ObjectType::Flint => object_small_default(_type, position),
     }
 }
 
