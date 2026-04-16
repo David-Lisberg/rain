@@ -27,6 +27,7 @@ use crate::game::player::movement::system_player_walk;
 use crate::game::world::chunk::ChunkData;
 use crate::game::world::chunk::ChunkPosition;
 use crate::game::world::chunk::system_manage_chunks;
+use crate::game::world::config::WorldGenConfig;
 use crate::game::world::generation::system_world_generation;
 
 pub const SCREEN_WIDTH: f32 = 850.0;
@@ -43,6 +44,7 @@ pub mod game {
         pub mod chunk;
         pub mod tile;
         pub mod object;
+        pub mod config;
     }
     pub mod core {
         pub mod physics;
@@ -68,6 +70,7 @@ pub mod game {
 
 pub struct State {
     chunks: HashMap<ChunkPosition, ChunkData>,
+    world_gen_config: WorldGenConfig,
     gui: GUI,
     rng: ThreadRng,
     perlin: Perlin,
@@ -151,6 +154,7 @@ fn main() -> anyhow::Result<()> {
     let perlin = Perlin::new(seed);
     let state = State {
         chunks: HashMap::new(),
+        world_gen_config: WorldGenConfig::default(),
         gui: GUI::new(SCREEN_WIDTH, SCREEN_HEIGHT),
         rng,
         perlin,

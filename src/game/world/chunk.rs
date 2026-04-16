@@ -1,8 +1,7 @@
 use glam::Vec2;
 use hecs::Entity;
-use noise::Perlin;
 use rain::engine::{component::{Position2D, Visible}, core::RainHandle, mesh::ModelMesh, resource::ARRAY_256X256_ID, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
-use rand::{RngExt, rngs::ThreadRng};
+use rand::RngExt;
 use wgpu::util::DeviceExt;
 
 use crate::{State, game::{utility::noise::{noise_normalize, octave_noise_2d}, world::{generation::CHUNK_GENERATION_DISTANCE, object::{Object, ObjectType, construct_object_default, reload_object_mesh}, tile::{Tile, TileType}}}};
@@ -44,31 +43,40 @@ pub const CHUNK_DIM: usize = 32; /* indices should be u32s if CHUNK_DIM > 64 */
 const NOISE_TILE_SCALE_FACTOR: f64 = 0.0123;
 const NOISE_OBJECT_SCALE_FACTOR: f64 = 0.017;
 
-pub fn generate_chunk(chunk_position: ChunkPosition, perlin: &Perlin, rng: &mut ThreadRng) -> ChunkData {
+pub fn generate_chunk(chunk_position: ChunkPosition, state: &mut State) -> ChunkData {
     let mut objects: Vec<Object> = Vec::new();
 
     let tiles = std::array::from_fn(|i| {
         let x = (chunk_position.x * CHUNK_DIM as i32) as f64 + (i % CHUNK_DIM) as f64;
         let y = (chunk_position.y * CHUNK_DIM as i32) as f64 + (i / CHUNK_DIM) as f64;
-        let mut noise_value = octave_noise_2d(x * NOISE_TILE_SCALE_FACTOR, y * NOISE_TILE_SCALE_FACTOR, 6, 0.5, &perlin);
+        let mut noise_value = octave_noise_2d(x * NOISE_TILE_SCALE_FACTOR, y * NOISE_TILE_SCALE_FACTOR, 6, 0.5, &state.perlin);
         noise_value = noise_normalize(noise_value);
 
-        let _type = match noise_value {
-            v if v >= 0.85 => TileType::Cobblestone,
-            v if v >= 0.65 && v < 0.85 => TileType::Stone,
-            v if v >= 0.6 && v < 0.65 => TileType::Dirt,
-            v if v >= 0.48 && v < 0.6 => TileType::Grass2,
-            v if v >= 0.35 && v < 0.48 => TileType::Grass,
-            v if v >= 0.3 && v < 0.35 => TileType::Sand,
-            v if v < 0.3 => TileType::Water,
-            _ => TileType::Dirt
+        let _type = {
+            let mut _type: Option<TileType> = None;
+            for ((low, high), tile) in state.world_gen_config.tile_noise {
+                if noise_value >= *low && noise_value < *high {
+                    _type = Some(tile.clone());
+                }
+            }
+            _type.unwrap_or(state.world_gen_config.default_tile.clone())
         };
+        // let _type = match noise_value {
+        //     v if v >= 0.85 => TileType::Cobblestone,
+        //     v if v >= 0.65 && v < 0.85 => TileType::Stone,
+        //     v if v >= 0.6 && v < 0.65 => TileType::Dirt,
+        //     v if v >= 0.48 && v < 0.6 => TileType::Grass2,
+        //     v if v >= 0.35 && v < 0.48 => TileType::Grass,
+        //     v if v >= 0.3 && v < 0.35 => TileType::Sand,
+        //     v if v < 0.3 => TileType::Water,
+        //     _ => TileType::Dirt
+        // };
 
         if _type == TileType::Grass || _type == TileType::Grass2 {
-            let mut noise_value = octave_noise_2d(x * NOISE_OBJECT_SCALE_FACTOR, y * NOISE_OBJECT_SCALE_FACTOR, 2, 0.5, &perlin);
+            let mut noise_value = octave_noise_2d(x * NOISE_OBJECT_SCALE_FACTOR, y * NOISE_OBJECT_SCALE_FACTOR, 2, 0.5, &state.perlin);
             noise_value = noise_normalize(noise_value);
-            noise_value -= rng.random::<f64>();
-            let position = Vec2::new(x as f32 + (rng.random::<f32>() - 0.5) / 7.0, y as f32 + (rng.random::<f32>() - 0.5) / 7.0);
+            noise_value -= state.rng.random::<f64>();
+            let position = Vec2::new(x as f32 + (state.rng.random::<f32>() - 0.5) / 7.0, y as f32 + (state.rng.random::<f32>() - 0.5) / 7.0);
             if noise_value > 0.48 {
                 objects.push(construct_object_default(ObjectType::Tree1, position));
             } else if noise_value <= 0.3 && noise_value > 0.2 {
@@ -78,10 +86,10 @@ pub fn generate_chunk(chunk_position: ChunkPosition, perlin: &Perlin, rng: &mut 
             }
         }
         if _type == TileType::Stone {
-            let mut noise_value = octave_noise_2d(x * NOISE_OBJECT_SCALE_FACTOR, y * NOISE_OBJECT_SCALE_FACTOR, 2, 0.5, &perlin);
+            let mut noise_value = octave_noise_2d(x * NOISE_OBJECT_SCALE_FACTOR, y * NOISE_OBJECT_SCALE_FACTOR, 2, 0.5, &state.perlin);
             noise_value = noise_normalize(noise_value);
-            noise_value -= rng.random::<f64>();
-            let position = Vec2::new(x as f32 + (rng.random::<f32>() - 0.5) / 7.0, y as f32 + (rng.random::<f32>() - 0.5) / 7.0);
+            noise_value -= state.rng.random::<f64>();
+            let position = Vec2::new(x as f32 + (state.rng.random::<f32>() - 0.5) / 7.0, y as f32 + (state.rng.random::<f32>() - 0.5) / 7.0);
             if noise_value <= 0.3 && noise_value > 0.2 {
                 objects.push(construct_object_default(ObjectType::Stone, position));
             } else if noise_value <= 0.1 && noise_value > 0.05 {

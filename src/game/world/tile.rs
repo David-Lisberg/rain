@@ -14,7 +14,7 @@ pub struct Tile {
     pub _type: TileType, 
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum TileType {
     Grass,
     Grass2,
