@@ -2,7 +2,7 @@ use glam::Vec2;
 
 use crate::{State, game::{core::physics::ADJACENT, world::{chunk::{ChunkPosition, position_to_chunk_position}, object::Object}}};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Collider {
     pub x: f32,
     pub y: f32,

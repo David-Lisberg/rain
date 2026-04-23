@@ -13,6 +13,7 @@ use crate::game::core::camera::*;
 use crate::game::core::collision::Collider;
 use crate::game::core::physics::*;
 use crate::game::core::ui::render_ui;
+use crate::game::entity::enemy::system_spawn_enemy;
 use crate::game::entity::lifetime::system_lifetime;
 use crate::game::player::action::system_player_action;
 use crate::game::player::action::system_update_player_texture;
@@ -64,6 +65,7 @@ pub mod game {
         pub mod noise;
     }
     pub mod entity {
+        pub mod enemy;
         pub mod lifetime;
     }
 }
@@ -82,6 +84,7 @@ impl RainState for State {
     fn update(&mut self, handle: &mut RainHandle) {
         system_manage_chunks(handle, self);
         system_world_generation(handle, self);
+        system_spawn_enemy(handle, self);
         system_physics_friction(handle);
         system_player_input(handle, self);
         system_inventory_interface(handle, self);
