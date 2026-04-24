@@ -13,6 +13,8 @@ use crate::game::core::camera::*;
 use crate::game::core::collision::Collider;
 use crate::game::core::physics::*;
 use crate::game::core::ui::render_ui;
+use crate::game::entity::damage::system_hitbox_hurtbox_collision;
+use crate::game::entity::enemy::spawn_enemy;
 use crate::game::entity::enemy::system_spawn_enemy;
 use crate::game::entity::lifetime::system_lifetime;
 use crate::game::player::action::system_player_action;
@@ -67,6 +69,7 @@ pub mod game {
     pub mod entity {
         pub mod enemy;
         pub mod lifetime;
+        pub mod damage;
     }
 }
 
@@ -93,6 +96,7 @@ impl RainState for State {
         system_player_action(handle, self);
         system_physics_movement_2d(handle, self);
         system_lifetime(handle);
+        system_hitbox_hurtbox_collision(handle);
         system_update_player_texture(handle);
         system_camera_controller(handle, self);
         system_camera_tracker(handle);
@@ -142,11 +146,16 @@ impl RainState for State {
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
             inventory.slots[0].item = Some(Item::new(ItemType::Sling));
             inventory.slots[0].quantity = 1;
+            inventory.slots[2].item = Some(Item::new(ItemType::Stone));
+            inventory.slots[2].quantity = 99;
             inventory.slots[3].item = Some(Item::new(ItemType::Twig));
             inventory.slots[3].quantity = 42;
             inventory.slots[1].item = Some(Item::new(ItemType::Grass));
             inventory.slots[1].quantity = 20;
         }
+
+        spawn_enemy(handle, self, Vec2::new(5.0, 0.0));
+
         handle.renderer.camera.set_z(8.0);
     }
 }

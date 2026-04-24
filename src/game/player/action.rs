@@ -4,7 +4,7 @@ use glam::Vec2;
 use hecs::Entity;
 use rain::engine::{component::*, core::RainHandle, input::MouseButton, texture::Texture};
 
-use crate::{DEPTH_PROJECTILE, State, game::{core::collision::*, entity::lifetime::Lifetime, player::{inventory::Inventory, item::*, movement::Player}, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
+use crate::{DEPTH_PROJECTILE, State, game::{core::collision::*, entity::{damage::HitBox, lifetime::Lifetime}, player::{inventory::Inventory, item::*, movement::Player}, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
 
 struct SlingHold(f32, usize);
 
@@ -116,8 +116,10 @@ fn system_player_sling(handle: &mut RainHandle, state: &mut State) {
     let pressed = handle.is_button_pressed(MouseButton::Right);
     let mut sling_released: Option<(Entity, Vec2)> = None;
     let mut sling_cancel: Option<Entity> = None;
+    let mut player_entity: Option<Entity> = None;
 
     for (e, (_, inventory, position, sling_hold)) in handle.world.query_mut::<(&Player, &mut Inventory, &Position2D, &mut SlingHold)>() {
+        player_entity = Some(e);
         if inventory.selected_hotbar != sling_hold.1 || inventory.open {
             sling_cancel = Some(e);
             break;
@@ -143,10 +145,17 @@ fn system_player_sling(handle: &mut RainHandle, state: &mut State) {
         let mouse_position = handle.screen_position_to_world_position(handle.mouse_position());
         let direction = (mouse_position - position).normalize();
         let velocity = Velocity2D(direction * sling_hold.0.min(1.5) * 28.0);
+        let hitbox = HitBox {
+            damage: 10.0,
+            collider: Collider::from_center(position.x, position.y, 0.4, 0.4),
+            safe: vec![player_entity.unwrap()]
+        };
+
         let texture = handle.fetch_texture("object_stone").unwrap();
         handle.world.spawn((
             Sprite, Visible, Position2D(position), velocity, Acceleration2D(Vec2::ZERO), 
-            Lifetime(5.0), texture, Scale2D(Vec2::new(0.4, 0.4)), DepthZ(DEPTH_PROJECTILE), Priority(1)
+            Lifetime(5.0), texture, Scale2D(Vec2::new(0.4, 0.4)), DepthZ(DEPTH_PROJECTILE), Priority(1),
+            hitbox,
         ));
     }
 }
