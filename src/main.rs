@@ -15,7 +15,7 @@ use crate::game::core::physics::*;
 use crate::game::core::ui::render_ui;
 use crate::game::entity::damage::system_hitbox_hurtbox_collision;
 use crate::game::entity::enemy::spawn_enemy;
-use crate::game::entity::enemy::system_spawn_enemy;
+use crate::game::entity::enemy::system_enemy_management;
 use crate::game::entity::lifetime::system_lifetime;
 use crate::game::player::action::system_player_action;
 use crate::game::player::action::system_update_player_texture;
@@ -81,13 +81,14 @@ pub struct State {
     perlin: Perlin,
     zoom: f32,
     counter: i32,
+    enemy_count: i32,
 }
 
 impl RainState for State {
     fn update(&mut self, handle: &mut RainHandle) {
         system_manage_chunks(handle, self);
         system_world_generation(handle, self);
-        system_spawn_enemy(handle, self);
+        system_enemy_management(handle, self);
         system_physics_friction(handle);
         system_player_input(handle, self);
         system_inventory_interface(handle, self);
@@ -96,7 +97,7 @@ impl RainState for State {
         system_player_action(handle, self);
         system_physics_movement_2d(handle, self);
         system_lifetime(handle);
-        system_hitbox_hurtbox_collision(handle);
+        system_hitbox_hurtbox_collision(handle, self);
         system_update_player_texture(handle);
         system_camera_controller(handle, self);
         system_camera_tracker(handle);
@@ -172,6 +173,7 @@ fn main() -> anyhow::Result<()> {
         perlin,
         zoom: 1.0,
         counter: 0,
+        enemy_count: 0,
     };
     let _ = RainApp::new(state)
         .size(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32)

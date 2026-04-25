@@ -1,7 +1,7 @@
 use hecs::Entity;
 use rain::engine::core::RainHandle;
 
-use crate::game::core::collision::Collider;
+use crate::{State, game::{core::collision::Collider, entity::enemy::Enemy}};
 
 pub struct HurtBox(pub Collider);
 #[derive(Clone)]
@@ -13,7 +13,7 @@ pub struct HitBox {
 
 pub struct Health(pub f32);
 
-pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle) {
+pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle, state: &mut State) {
     let mut hitboxes: Vec<(Entity, HitBox)> = Vec::new();
     let mut to_remove: Vec<Entity> = Vec::new();
     for (e, hitbox) in handle.world.query::<&HitBox>().iter() {
@@ -34,6 +34,9 @@ pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle) {
         }
     }
     for e in to_remove {
+        if handle.world.get::<&Enemy>(e).is_ok() {
+            state.enemy_count -= 1;
+        }
         handle.world.despawn(e).unwrap();
     }
 }

@@ -1,4 +1,5 @@
 use glam::Vec2;
+use hecs::Entity;
 use rain::engine::{color::Color, component::*, core::RainHandle};
 use rand::RngExt;
 
@@ -6,21 +7,42 @@ use crate::{DEPTH_PLAYER, State, game::{core::collision::{Collider, check_collis
 
 const SPAWN_RADIUS_MIN: f32 = 20.0;
 const SPAWN_RADIUS_MAX: f32 = 40.0;
+const DESPAWN_RADIUS: f32 = 50.0;
+const SPAWN_CAP: i32 = 5;
 
-pub fn system_spawn_enemy(handle: &mut RainHandle, state: &mut State) {
+pub struct Enemy;
+
+pub fn system_enemy_management(handle: &mut RainHandle, state: &mut State) {
     if state.counter % 60 != 0 {
         return;
     }
+    let mut player_position: Option<Vec2> = None;
     let mut enemy_position: Option<Vec2> = None;
+    let mut to_remove: Vec<Entity> = Vec::new();
     for (_, (_, position)) in handle.world.query::<(&Player, &Position2D)>().iter() {
-        let radius = state.rng.random::<f32>() * (SPAWN_RADIUS_MAX - SPAWN_RADIUS_MIN) + SPAWN_RADIUS_MIN;
-        let angle = state.rng.random::<f32>() * 2.0 * std::f32::consts::PI;
-        let x = f32::cos(angle) * radius + position.0.x;
-        let y = f32::sin(angle) * radius + position.0.y;
-        enemy_position = Some(Vec2::new(x, y));
+        player_position = Some(position.0.clone());
+    }
+    if let Some(position) = player_position {
+        for (e, (_, enemy_position)) in handle.world.query::<(&Enemy, &Position2D)>().iter() {
+            let distance = (enemy_position.0 - position).length();
+            if distance > DESPAWN_RADIUS {
+                to_remove.push(e);
+            }
+        }
+        if state.enemy_count < SPAWN_CAP {
+            let radius = state.rng.random::<f32>() * (SPAWN_RADIUS_MAX - SPAWN_RADIUS_MIN) + SPAWN_RADIUS_MIN;
+            let angle = state.rng.random::<f32>() * 2.0 * std::f32::consts::PI;
+            let x = f32::cos(angle) * radius + position.x;
+            let y = f32::sin(angle) * radius + position.y;
+            enemy_position = Some(Vec2::new(x, y));
+        }
     }
     if let Some(position) = enemy_position {
         spawn_enemy(handle, state, position);
+    }
+    for e in to_remove {
+        state.enemy_count -= 1;
+        handle.world.despawn(e).unwrap();
     }
 }
 
@@ -29,7 +51,8 @@ pub fn spawn_enemy(handle: &mut RainHandle, state: &mut State, position: Vec2) {
     if check_collision_with_object(state, &collider).is_some() {
         return;
     }
+    state.enemy_count += 1;
 
-    handle.world.spawn((Sprite, Visible, Position2D(position), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), 
+    handle.world.spawn((Sprite, Visible, Enemy, Position2D(position), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), 
         Color::RED, Scale2D(Vec2::new(0.8, 0.8)), DepthZ(DEPTH_PLAYER), Priority(1), Health(5.0), collider, HurtBox(collider)));
 }
