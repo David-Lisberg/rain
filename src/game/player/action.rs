@@ -1,28 +1,36 @@
 use std::sync::Arc;
 
 use glam::Vec2;
-use hecs::Entity;
+use hecs::{DynamicBundle, Entity};
 use rain::engine::{component::*, core::RainHandle, input::MouseButton, texture::Texture};
 
 use crate::{DEPTH_PROJECTILE, State, game::{core::collision::*, entity::{damage::HitBox, lifetime::Lifetime}, player::{inventory::Inventory, item::*, movement::Player}, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
 
 struct SlingHold(f32, usize);
 
-pub fn item_pickup(handle: &mut RainHandle, state: &mut State, direction: Vec2) {
+pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) {
     let mut object_changed = false;
+    let mut to_spawn: Vec<HitBox> = Vec::new();
     let query = handle.world.query_mut::<(&Player, &Position2D, &mut Inventory)>();
-    for (_, (_, position, inventory)) in query {
+    for (e, (_, position, inventory)) in query {
         let collider_position = position.0 + direction;
         let collider = Collider::from_center(collider_position.x, collider_position.y, 1.0, 1.0);
+        let (break_level, hit_ticks, damage) = if let Some(item) = &inventory.slots[inventory.selected_hotbar].item {
+            match item.category {
+                ItemCategory::Tool(b, h, d) => (b, h, d),
+                _ => (0, 1, 1.0),
+            }
+        } else {
+            (0, 1, 1.0)
+        };
+        let hitbox = HitBox {
+            damage,
+            collider,
+            safe: vec![e],
+            uses: 1,
+        };
+        to_spawn.push(hitbox);
         if let Some(object) = check_collision_with_object(state, &collider) {
-            let (break_level, hit_ticks) = if let Some(item) = &inventory.slots[inventory.selected_hotbar].item {
-                match item.category {
-                    ItemCategory::Tool(b, h) => (b, h),
-                    _ => (0, 1),
-                }
-            } else {
-                (0, 1)
-            };
             if break_level >= object.break_level {
                 match object._type {
                     ObjectType::Twig => {
@@ -59,6 +67,9 @@ pub fn item_pickup(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
                 }
             }
         }
+    }
+    for hitbox in to_spawn {
+        handle.world.spawn((hitbox, Lifetime(0.3)));
     }
 
     if object_changed {
@@ -148,7 +159,8 @@ fn system_player_sling(handle: &mut RainHandle, state: &mut State) {
         let hitbox = HitBox {
             damage: 10.0,
             collider: Collider::from_center(position.x, position.y, 0.4, 0.4),
-            safe: vec![player_entity.unwrap()]
+            safe: vec![player_entity.unwrap()],
+            uses: 1,
         };
 
         let texture = handle.fetch_texture("object_stone").unwrap();

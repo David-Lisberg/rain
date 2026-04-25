@@ -153,6 +153,7 @@ impl RainState for State {
             inventory.slots[3].quantity = 42;
             inventory.slots[1].item = Some(Item::new(ItemType::Grass));
             inventory.slots[1].quantity = 20;
+            inventory.add_item(Item::new(ItemType::FlintHatchet), 1);
         }
 
         spawn_enemy(handle, self, Vec2::new(5.0, 0.0));

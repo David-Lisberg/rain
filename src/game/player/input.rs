@@ -5,7 +5,7 @@ use rain::engine::component::*;
 use rain::engine::input::{KeyboardKey, MouseButton};
 
 use crate::State;
-use crate::game::player::action::{item_pickup, item_use};
+use crate::game::player::action::{item_attack, item_use};
 use crate::game::player::inventory::Inventory;
 use crate::game::player::movement::Player;
 
@@ -106,7 +106,7 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
     if let Some(position) = pickup_item {
         let mouse_position = handle.screen_position_to_world_position(handle.mouse_position());
         let direction = (mouse_position - position).normalize();
-        item_pickup(handle, state, direction);
+        item_attack(handle, state, direction);
     }
     if let Some(direction) = use_item {
         item_use(handle, state, direction);
