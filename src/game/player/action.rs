@@ -10,7 +10,8 @@ struct SlingHold(f32, usize);
 
 pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) {
     let mut object_changed = false;
-    let mut to_spawn: Vec<HitBox> = Vec::new();
+    let mut to_spawn_hitbox: Vec<HitBox> = Vec::new();
+    let mut to_spawn_item_drop: Vec<(Position2D, Item, i32)> = Vec::new();
     let query = handle.world.query_mut::<(&Player, &Position2D, &mut Inventory)>();
     for (e, (_, position, inventory)) in query {
         let collider_position = position.0 + direction;
@@ -29,49 +30,32 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
             safe: vec![e],
             uses: 1,
         };
-        to_spawn.push(hitbox);
+        to_spawn_hitbox.push(hitbox);
         if let Some(object) = check_collision_with_object(state, &collider) {
             if break_level >= object.break_level {
-                match object._type {
-                    ObjectType::Twig => {
-                        if destroy_object(state, &object, hit_ticks) {
-                            object_changed = true;
-                            inventory.add_item(Item::new(ItemType::Twig), 1);
-                        }
+                if destroy_object(state, &object, hit_ticks) {
+                    let (item, quantity) = match object._type {
+                        ObjectType::Twig => (Item::new(ItemType::Twig), 1),
+                        ObjectType::Grass => (Item::new(ItemType::Grass), 1),
+                        ObjectType::Stone => (Item::new(ItemType::Stone), 1),
+                        ObjectType::Flint => (Item::new(ItemType::Flint), 1),
+                        ObjectType::Tree1 => (Item::new(ItemType::Wood), 3),
+                    };
+                    object_changed = true;
+                    let remaining = inventory.add_item(item.clone(), quantity);
+                    if remaining > 0 {
+                        to_spawn_item_drop.push((Position2D(object.center()), item, remaining));
                     }
-                    ObjectType::Grass => {
-                        if destroy_object(state, &object, hit_ticks) {
-                            object_changed = true;
-                            inventory.add_item(Item::new(ItemType::Grass), 1);
-                        }
-                    }
-                    ObjectType::Stone => {
-                        if destroy_object(state, &object, hit_ticks) {
-                            object_changed = true;
-                            inventory.add_item(Item::new(ItemType::Stone), 1);
-                        }
-                    }
-                    ObjectType::Flint => {
-                        if destroy_object(state, &object, hit_ticks) {
-                            object_changed = true;
-                            inventory.add_item(Item::new(ItemType::Flint), 1);
-                        }
-                    }
-                    ObjectType::Tree1 => {
-                        if destroy_object(state, &object, hit_ticks) {
-                            object_changed = true;
-                            inventory.add_item(Item::new(ItemType::Wood), 3);
-                        }
-                    }
-                    _ => {}
                 }
             }
         }
     }
-    for hitbox in to_spawn {
+    for hitbox in to_spawn_hitbox {
         handle.world.spawn((hitbox, Lifetime(0.3)));
     }
-
+    for (position, item, quantity) in to_spawn_item_drop {
+        spawn_item_drop(handle, position, item, quantity);
+    }
     if object_changed {
         reload_object_mesh(handle, state);
     }

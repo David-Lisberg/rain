@@ -92,7 +92,6 @@ pub fn system_item_drop_pickup(handle: &mut RainHandle) {
             let distance = (item_drop_position.0 - position.0).length();
             if distance <= ITEM_PICKUP_RANGE {
                 let remaining = inventory.add_item(item_drop.item.clone(), item_drop.quantity);
-                println!("remaining: {}", remaining);
                 if remaining > 0 {
                     to_update_quantity.push((*e, remaining));
                 } else {

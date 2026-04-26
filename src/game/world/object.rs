@@ -19,6 +19,12 @@ pub struct Object {
     pub collidable: bool,
 }
 
+impl Object {
+    pub fn center(&self) -> Vec2 {
+        self.position + self.size / 2.0
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum ObjectType {
     Tree1,

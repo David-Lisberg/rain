@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use glam::Vec2;
 use hecs::Entity;
-use rain::engine::{color::Color, component::*, core::RainHandle, resource::ResourceManager, texture::Texture};
+use rain::engine::{component::*, core::RainHandle, resource::ResourceManager, texture::Texture};
 use rand::RngExt;
 
 use crate::{DEPTH_PLAYER, State, game::{core::collision::{Collider, check_collision_with_object}, entity::damage::{Health, HurtBox}, player::movement::Player}};
