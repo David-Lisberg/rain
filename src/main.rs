@@ -89,19 +89,24 @@ pub struct State {
 
 impl RainState for State {
     fn update(&mut self, handle: &mut RainHandle) {
+        system_player_input(handle, self);
+        system_inventory_interface(handle, self);
+
         system_manage_chunks(handle, self);
         system_world_generation(handle, self);
         system_enemy_management(handle, self);
-        system_item_drop_pickup(handle);
-        system_physics_friction(handle);
-        system_player_input(handle, self);
-        system_inventory_interface(handle, self);
+        
         system_player_walk(handle);
         system_player_dash(handle);
         system_player_action(handle, self);
+
+        system_physics_friction(handle);
         system_physics_movement_2d(handle, self);
-        system_lifetime(handle);
+
         system_hitbox_hurtbox_collision(handle, self);
+        system_item_drop_pickup(handle);
+        system_lifetime(handle);
+
         system_update_player_texture(handle);
         system_camera_controller(handle, self);
         system_camera_tracker(handle);

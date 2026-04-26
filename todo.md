@@ -9,3 +9,5 @@
     - moving items around
 - improved visuals
     - 2.5d shadows?
+
+- maybe change render backend from wgpu to vulkan (long term)
