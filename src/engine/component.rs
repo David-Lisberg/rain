@@ -3,6 +3,7 @@ use glam::*;
 pub struct Sprite;
 pub struct Model;
 pub struct Visible;
+#[derive(Clone)]
 pub struct Position2D(pub Vec2);
 pub struct Position3D(pub Vec3);
 pub struct Velocity2D(pub Vec2);

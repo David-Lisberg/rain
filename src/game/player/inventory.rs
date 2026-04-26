@@ -29,7 +29,7 @@ impl Inventory {
         }
     }
 
-    pub fn add_item(&mut self, item: Item, mut quantity: u32) {
+    pub fn add_item(&mut self, item: Item, mut quantity: i32) -> i32 {
         let mut item_found = false;
         let stack_size_max = item._type.stack_size_max();
         for slot in self.slots.iter_mut() {
@@ -40,6 +40,7 @@ impl Inventory {
                         slot.quantity = stack_size_max;
                     } else {
                         slot.quantity += quantity;
+                        quantity = 0;
                         item_found = true;
                         break;
                     }
@@ -51,15 +52,17 @@ impl Inventory {
                 if slot.item.is_none() {
                     slot.item = Some(item);
                     slot.quantity += quantity;
+                    quantity = 0;
                     break;
                 }
             }
         }
+        quantity
     }
 
-    pub fn remove_item(&mut self, item_type: ItemType, mut quantity: u32) -> bool {
+    pub fn remove_item(&mut self, item_type: ItemType, mut quantity: i32) -> bool {
         let mut to_remove: Vec<usize> = Vec::new();
-        let mut quantity_remaining: u32 = quantity;
+        let mut quantity_remaining: i32 = quantity;
         let mut success = false;
         for (i, slot) in self.slots.iter().enumerate() {
             if let Some(item) = &slot.item {
@@ -97,7 +100,7 @@ impl Inventory {
         true
     }
 
-    pub fn search_item(&self, item_type: ItemType, quantity: u32) -> Option<Vec<usize>> {
+    pub fn search_item(&self, item_type: ItemType, quantity: i32) -> Option<Vec<usize>> {
         let mut quantity_found = 0;
         let mut slots_found: Vec<usize> = Vec::new();
         for (i, slot) in self.slots.iter().enumerate() {
@@ -119,7 +122,7 @@ impl Inventory {
 #[derive(Clone)]
 pub struct InventorySlot {
     pub item: Option<Item>,
-    pub quantity: u32,
+    pub quantity: i32,
 }
 
 impl InventorySlot {
@@ -197,14 +200,14 @@ pub fn system_inventory_interface(handle: &mut RainHandle, state: &mut State) {
                 }
             }
             if updated {
-                let mut input_map: HashMap<ItemType, u32> = HashMap::new();
+                let mut input_map: HashMap<ItemType, i32> = HashMap::new();
                 for selected in inventory.selected.iter() {
                     let slot = inventory.slots.get(*selected).unwrap();
                     if let Some(item) = &slot.item {
                         *input_map.entry(item._type.clone()).or_insert(0) += slot.quantity;
                     }
                 }
-                let inputs: Vec<(ItemType, u32)> = input_map.into_iter().collect();
+                let inputs: Vec<(ItemType, i32)> = input_map.into_iter().collect();
                 inventory.available_recipes = check_available_recipes(&inputs);
             }
         }

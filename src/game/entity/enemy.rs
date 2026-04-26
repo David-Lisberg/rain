@@ -1,6 +1,8 @@
+use std::sync::Arc;
+
 use glam::Vec2;
 use hecs::Entity;
-use rain::engine::{color::Color, component::*, core::RainHandle};
+use rain::engine::{color::Color, component::*, core::RainHandle, resource::ResourceManager, texture::Texture};
 use rand::RngExt;
 
 use crate::{DEPTH_PLAYER, State, game::{core::collision::{Collider, check_collision_with_object}, entity::damage::{Health, HurtBox}, player::movement::Player}};
@@ -10,7 +12,21 @@ const SPAWN_RADIUS_MAX: f32 = 40.0;
 const DESPAWN_RADIUS: f32 = 50.0;
 const SPAWN_CAP: i32 = 5;
 
-pub struct Enemy;
+pub struct Enemy {
+    pub _type: EnemyType,
+}
+
+pub enum EnemyType {
+    Coati,
+}
+
+impl EnemyType {
+    pub fn fetch_texture(&self, resource_manager: &ResourceManager) -> Arc<Texture> {
+        match self {
+            EnemyType::Coati => resource_manager.fetch_texture("enemy_coati").unwrap(),
+        }
+    }
+}
 
 pub fn system_enemy_management(handle: &mut RainHandle, state: &mut State) {
     if state.counter % 60 != 0 {
@@ -38,7 +54,7 @@ pub fn system_enemy_management(handle: &mut RainHandle, state: &mut State) {
         }
     }
     if let Some(position) = enemy_position {
-        spawn_enemy(handle, state, position);
+        spawn_enemy(handle, state, position, Enemy { _type: EnemyType::Coati });
     }
     for e in to_remove {
         state.enemy_count -= 1;
@@ -46,13 +62,14 @@ pub fn system_enemy_management(handle: &mut RainHandle, state: &mut State) {
     }
 }
 
-pub fn spawn_enemy(handle: &mut RainHandle, state: &mut State, position: Vec2) {
+pub fn spawn_enemy(handle: &mut RainHandle, state: &mut State, position: Vec2, enemy: Enemy) {
     let collider = Collider::from_center(position.x, position.y, 0.8, 0.8);
+    let texture = enemy._type.fetch_texture(&handle.resource_manager);
     if check_collision_with_object(state, &collider).is_some() {
         return;
     }
     state.enemy_count += 1;
 
-    handle.world.spawn((Sprite, Visible, Enemy, Position2D(position), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), 
-        Color::RED, Scale2D(Vec2::new(0.8, 0.8)), DepthZ(DEPTH_PLAYER), Priority(1), Health(5.0), collider, HurtBox(collider)));
+    handle.world.spawn((Sprite, Visible, enemy, Position2D(position), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), 
+        texture, Scale2D(Vec2::new(1.0, 1.0)), DepthZ(DEPTH_PLAYER), Priority(1), Health(5.0), collider, HurtBox(collider)));
 }

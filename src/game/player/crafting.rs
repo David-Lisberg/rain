@@ -2,8 +2,8 @@ use crate::game::player::{inventory::Inventory, item::{Item, ItemType}};
 
 #[derive(Clone, Debug)]
 pub struct Recipe {
-    pub input: &'static [(ItemType, u32)],
-    pub output: (ItemType, u32),
+    pub input: &'static [(ItemType, i32)],
+    pub output: (ItemType, i32),
 }
 
 const AVAILABLE_RECIPES: &[Recipe] = &[
@@ -12,7 +12,7 @@ const AVAILABLE_RECIPES: &[Recipe] = &[
     Recipe { input: &[(ItemType::Twine, 2), (ItemType::Twig, 3), (ItemType::Flint, 2)], output: (ItemType::FlintHatchet, 1)},
 ];
 
-pub fn check_available_recipes(inputs: &Vec<(ItemType, u32)>) -> Vec<Recipe> {
+pub fn check_available_recipes(inputs: &Vec<(ItemType, i32)>) -> Vec<Recipe> {
     let mut available_recipes: Vec<Recipe> = Vec::new();
 
     for recipe in AVAILABLE_RECIPES {

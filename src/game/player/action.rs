@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use glam::Vec2;
-use hecs::{DynamicBundle, Entity};
+use hecs::Entity;
 use rain::engine::{component::*, core::RainHandle, input::MouseButton, texture::Texture};
 
 use crate::{DEPTH_PROJECTILE, State, game::{core::collision::*, entity::{damage::HitBox, lifetime::Lifetime}, player::{inventory::Inventory, item::*, movement::Player}, world::object::{ObjectType, destroy_object, reload_object_mesh}}};

@@ -14,6 +14,8 @@ use crate::game::core::collision::Collider;
 use crate::game::core::physics::*;
 use crate::game::core::ui::render_ui;
 use crate::game::entity::damage::system_hitbox_hurtbox_collision;
+use crate::game::entity::enemy::Enemy;
+use crate::game::entity::enemy::EnemyType;
 use crate::game::entity::enemy::spawn_enemy;
 use crate::game::entity::enemy::system_enemy_management;
 use crate::game::entity::lifetime::system_lifetime;
@@ -24,6 +26,7 @@ use crate::game::player::inventory::Inventory;
 use crate::game::player::inventory::system_inventory_interface;
 use crate::game::player::item::Item;
 use crate::game::player::item::ItemType;
+use crate::game::player::item::system_item_drop_pickup;
 use crate::game::player::movement::Player;
 use crate::game::player::movement::system_player_dash;
 use crate::game::player::movement::system_player_walk;
@@ -89,6 +92,7 @@ impl RainState for State {
         system_manage_chunks(handle, self);
         system_world_generation(handle, self);
         system_enemy_management(handle, self);
+        system_item_drop_pickup(handle);
         system_physics_friction(handle);
         system_player_input(handle, self);
         system_inventory_interface(handle, self);
@@ -134,6 +138,8 @@ impl RainState for State {
         handle.load_texture("player_front", "res/texture/player_front.png").expect("Error loading texture.");
         handle.load_texture("player_back", "res/texture/player_back.png").expect("Error loading texture.");
         handle.load_texture("player_side", "res/texture/player_side.png").expect("Error loading texture.");
+        handle.load_texture("enemy_coati", "res/texture/enemy_coati.png").expect("Error loading texture.");
+        handle.load_texture("item_coati_pelt", "res/texture/item_coati_pelt.png").expect("Error loading texture.");
 
         let player_texture = handle.fetch_texture("player_front").unwrap();
         handle.world.spawn((
@@ -156,7 +162,7 @@ impl RainState for State {
             inventory.add_item(Item::new(ItemType::FlintHatchet), 1);
         }
 
-        spawn_enemy(handle, self, Vec2::new(5.0, 0.0));
+        spawn_enemy(handle, self, Vec2::new(5.0, 0.0), Enemy { _type: EnemyType::Coati });
 
         handle.renderer.camera.set_z(8.0);
     }

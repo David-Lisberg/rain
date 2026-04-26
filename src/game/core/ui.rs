@@ -1,4 +1,4 @@
-use rain::engine::core::RainHandle;
+use rain::engine::{component::Position2D, core::RainHandle};
 use lgui::element::*;
 
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, State, game::player::{inventory::*, movement::Player}};
@@ -16,6 +16,9 @@ pub fn render_ui(handle: &mut RainHandle, state: &mut State) {
 
     state.gui.begin(current_width, current_height);
 
+    for (_, (_, position)) in handle.world.query::<(&Player, &Position2D)>().iter() {
+        state.gui.element(EBuilder::new(10.0, 10.0).shape(Shape::Text(format!("{}, {}", position.0.x, position.0.y), 20, Allignment::Left)).build());
+    }
     render_inventory(handle, state);
 
     state.gui.finish(handle);
