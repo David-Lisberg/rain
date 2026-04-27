@@ -360,13 +360,7 @@ impl Renderer {
                 unclipped_depth: false,
                 conservative: false,
             },
-            depth_stencil: Some(wgpu::DepthStencilState {
-                format: TextureWGPU::DEPTH_FORMAT,
-                depth_write_enabled: true,
-                depth_compare: wgpu::CompareFunction::Less,
-                stencil: wgpu::StencilState::default(),
-                bias: wgpu::DepthBiasState::default(),
-            }),
+            depth_stencil: None,
             multisample: wgpu::MultisampleState {
                 count: 1,
                 mask: !0,
@@ -557,22 +551,30 @@ impl Renderer {
         let mut to_render = vec![no_priority];
         to_render.extend(priority_buffer_sorted);
 
-        let mut first_pass = true;
+        let mut first_pass_color = true;
+        let mut first_pass_depth = true;
         for (models, sprites) in to_render {
             if !models.is_empty() {
-                if first_pass {
+                if first_pass_color && first_pass_depth {
                     self.render_models(resource_manager, &mut encoder, models, base_color_attachment.clone(), base_depth_ops.clone());
-                    first_pass = false;
+                    first_pass_color = false;
+                    first_pass_depth = false;
+                } else if first_pass_color {
+                    self.render_models(resource_manager, &mut encoder, models, base_color_attachment.clone(), depth_ops.clone());
+                    first_pass_color = false;
+                } else if first_pass_depth {
+                    self.render_models(resource_manager, &mut encoder, models, color_attachment.clone(), base_depth_ops.clone());
+                    first_pass_depth = false;
                 } else {
                     self.render_models(resource_manager, &mut encoder, models, color_attachment.clone(), depth_ops.clone());
                 }
             }
             if !sprites.is_empty() {
-                if first_pass {
-                    self.render_sprites(resource_manager, &mut encoder, sprites, base_color_attachment.clone(), base_depth_ops.clone());
-                    first_pass = false;
+                if first_pass_color {
+                    self.render_sprites(resource_manager, &mut encoder, sprites, base_color_attachment.clone());
+                    first_pass_color = false;
                 } else {
-                    self.render_sprites(resource_manager, &mut encoder, sprites, color_attachment.clone(), depth_ops.clone());
+                    self.render_sprites(resource_manager, &mut encoder, sprites, color_attachment.clone());
                 }
             }
         }
@@ -710,7 +712,6 @@ impl Renderer {
         encoder: &mut wgpu::CommandEncoder, 
         to_render: Vec<SpriteRender>,
         color_attachment: Option<wgpu::RenderPassColorAttachment<'_>>,
-        depth_ops: Option<wgpu::Operations<f32>>,
     ) {
         let mut buffer_segments: [BufferSegmentSpriteInstance; 2] = [
             BufferSegmentSpriteInstance::new(ARRAY_256X256_ID),
@@ -741,11 +742,7 @@ impl Renderer {
                 color_attachments: &[
                     color_attachment
                 ],
-                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                    view: &self.depth_texture.view,
-                    depth_ops,
-                    stencil_ops: None,
-                }),
+                depth_stencil_attachment: None,
                 occlusion_query_set: None,
                 timestamp_writes: None,
             });
