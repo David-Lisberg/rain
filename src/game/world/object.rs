@@ -5,7 +5,7 @@ use hecs::Entity;
 use rain::engine::{component::{Priority, Visible}, core::RainHandle, mesh::ModelMesh, resource::{ARRAY_256X256_ID, ResourceManager}, texture::Texture, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
 use wgpu::util::DeviceExt;
 
-use crate::{DEPTH_SMALL_OBJECT, DEPTH_TREES, State, game::{core::collision::Collider, world::chunk::{ChunkPosition, position_to_chunk_position}}};
+use crate::{DEPTH_PLAYER, DEPTH_SMALL_OBJECT, DEPTH_TREES, State, game::{core::collision::Collider, world::chunk::{ChunkPosition, position_to_chunk_position}}};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Object {
@@ -80,9 +80,10 @@ fn object_small_default(_type: ObjectType, position: Vec2) -> Object {
     }
 }
 
-pub fn construct_object_mesh(handle: &mut RainHandle, state: &mut State) -> ModelMesh {
-    let mut model_vertices: Vec<ModelVertex> = Vec::new();
-    let mut model_indices: Vec<u16> = Vec::new();
+pub fn construct_object_mesh(handle: &mut RainHandle, state: &mut State) -> Vec<ModelMesh> {
+    let mut model_vertices: Vec<Vec<ModelVertex>> = vec![Vec::new(); 2];
+    let mut model_indices: Vec<Vec<u16>> = vec![Vec::new(); 2];
+    let mut meshes: Vec<ModelMesh> = Vec::new();
     let mut objects: Vec<&Object> = Vec::new();
 
     let mut query = handle.world.query::<(&ChunkPosition, &ModelMesh)>();
@@ -93,9 +94,10 @@ pub fn construct_object_mesh(handle: &mut RainHandle, state: &mut State) -> Mode
             }
         }
     }
+    let mut indices_start: Vec<u16> = vec![0, 0];
     
     objects.sort_by(|a, b| a.position.y.partial_cmp(&b.position.y).unwrap());
-    for (i, object) in objects.iter().enumerate() {
+    for object in objects.iter() {
         let object_texture = object._type.fetch_texture(&handle.resource_manager);
 
         let vertices = vec![
@@ -108,26 +110,35 @@ pub fn construct_object_mesh(handle: &mut RainHandle, state: &mut State) -> Mode
             ModelVertex { position: [object.position.x, object.position.y + object.size.y, object.depth_z], 
                 uv: [0.0, 0.0], layer: object_texture.index },
         ];
-        let indices: Vec<u16> = SPRITE_QUAD_INDICES.iter().map(|x| x + i as u16 * 4).collect();
+        let index = if object.depth_z < DEPTH_PLAYER {
+            0
+        } else {
+            1
+        };
         
-        model_vertices.extend(vertices);
-        model_indices.extend(indices);
+        let indices: Vec<u16> = SPRITE_QUAD_INDICES.iter().map(|x| x + indices_start[index]).collect();
+        model_vertices[index].extend(vertices);
+        model_indices[index].extend(indices);
+        indices_start[index] += 4;
     }
 
-    ModelMesh {
-        vertices: handle.renderer.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("object_vertex_buffer"),
-            contents: bytemuck::cast_slice(&model_vertices),
-            usage: wgpu::BufferUsages::VERTEX,
-        }),
-        indices: handle.renderer.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("object_index_buffer"),
-            contents: bytemuck::cast_slice(&model_indices),
-            usage: wgpu::BufferUsages::INDEX,
-        }),
-        num_indices: model_indices.len() as u32,
-        array_id: ARRAY_256X256_ID,
+    for (vertices, indices) in model_vertices.iter().zip(model_indices.iter()) {
+        meshes.push(ModelMesh {
+            vertices: handle.renderer.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("object_vertex_buffer"),
+                contents: bytemuck::cast_slice(vertices),
+                usage: wgpu::BufferUsages::VERTEX,
+            }),
+            indices: handle.renderer.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("object_index_buffer"),
+                contents: bytemuck::cast_slice(indices),
+                usage: wgpu::BufferUsages::INDEX,
+            }),
+            num_indices: indices.len() as u32,
+            array_id: ARRAY_256X256_ID,
+        })
     }
+    meshes
 }
 
 pub fn reload_object_mesh(handle: &mut RainHandle, state: &mut State) {
@@ -138,8 +149,9 @@ pub fn reload_object_mesh(handle: &mut RainHandle, state: &mut State) {
     for e in to_remove {
         handle.world.despawn(e).unwrap();
     }
-    let mesh = construct_object_mesh(handle, state);
-    handle.world.spawn((mesh, ObjectMesh, Visible, Priority(0)));
+    let mut meshes = construct_object_mesh(handle, state);
+    handle.world.spawn((meshes.remove(0), ObjectMesh, Visible, Priority(0)));
+    handle.world.spawn((meshes.remove(0), ObjectMesh, Visible, Priority(2)));
 }
 
 pub fn destroy_object(state: &mut State, object: &Object, hit_ticks: i32) -> bool {
