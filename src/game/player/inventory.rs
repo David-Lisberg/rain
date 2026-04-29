@@ -100,6 +100,19 @@ impl Inventory {
         true
     }
 
+    pub fn remove_item_from_slot(&mut self, index: usize, quantity: i32) -> bool {
+        let slot = self.slots.get_mut(index).unwrap();
+        if slot.quantity >= quantity {
+            slot.quantity -= quantity;
+            if slot.quantity == 0 {
+                slot.item = None;
+            }
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn search_item(&self, item_type: ItemType, quantity: i32) -> Option<Vec<usize>> {
         let mut quantity_found = 0;
         let mut slots_found: Vec<usize> = Vec::new();

@@ -4,7 +4,7 @@ use glam::Vec2;
 use hecs::Entity;
 use rain::engine::{component::*, core::RainHandle, input::MouseButton, texture::Texture};
 
-use crate::{DEPTH_PROJECTILE, State, game::{core::collision::*, entity::{damage::HitBox, lifetime::Lifetime}, player::{inventory::Inventory, item::*, movement::Player}, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
+use crate::{DEPTH_PROJECTILE, State, game::{core::collision::*, entity::{damage::HitBox, despawn::TimerDespawn}, player::{inventory::Inventory, item::*, movement::Player}, utility::timer::Timer, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
 
 struct SlingHold(f32, usize);
 
@@ -51,7 +51,7 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
         }
     }
     for hitbox in to_spawn_hitbox {
-        handle.world.spawn((hitbox, Lifetime(0.3)));
+        handle.world.spawn((hitbox, TimerDespawn(Timer(0.3))));
     }
     for (position, item, quantity) in to_spawn_item_drop {
         spawn_item_drop(handle, position, item, quantity);
@@ -149,8 +149,8 @@ fn system_player_sling(handle: &mut RainHandle, state: &mut State) {
 
         let texture = handle.fetch_texture("object_stone").unwrap();
         handle.world.spawn((
-            Sprite, Visible, Position2D(position), velocity, Acceleration2D(Vec2::ZERO), 
-            Lifetime(5.0), texture, Scale2D(Vec2::new(0.4, 0.4)), DepthZ(DEPTH_PROJECTILE), Priority(1),
+            Sprite, Visible, Position2D(position), velocity, Acceleration2D(Vec2::ZERO), TimerDespawn(Timer(5.0)),
+            texture, Scale2D(Vec2::new(0.4, 0.4)), DepthZ(DEPTH_PROJECTILE), Priority(1),
             hitbox,
         ));
     }

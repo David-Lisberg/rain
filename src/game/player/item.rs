@@ -4,9 +4,11 @@ use glam::Vec2;
 use hecs::Entity;
 use rain::engine::{component::*, core::RainHandle, resource::ResourceManager, texture::Texture};
 
-use crate::{DEPTH_PLAYER, game::player::{inventory::Inventory, movement::Player}};
+use crate::{DEPTH_PLAYER, game::{player::{inventory::Inventory, movement::Player}, utility::timer::Timer}};
 
 const ITEM_PICKUP_RANGE: f32 = 1.0;
+
+pub struct TimerPickup(pub Timer);
 
 #[derive(Clone, PartialEq)]
 pub struct Item {
@@ -80,11 +82,19 @@ pub fn spawn_item_drop(handle: &mut RainHandle, position: Position2D, item: Item
     handle.world.spawn((Sprite, Visible, texture, item_drop, position, Scale2D(Vec2::new(0.3, 0.3)), DepthZ(DEPTH_PLAYER), Priority(1)));
 }
 
+pub fn spawn_item_drop_with_timer(handle: &mut RainHandle, position: Position2D, item: Item, quantity: i32, time: f32) {
+    let texture = item._type.fetch_texture(&handle.resource_manager);
+    let item_drop = ItemDrop { item, quantity };
+    handle.world.spawn((
+        Sprite, Visible, texture, item_drop, position, Scale2D(Vec2::new(0.3, 0.3)), DepthZ(DEPTH_PLAYER), Priority(1), TimerPickup(Timer(time)),
+    ));
+}
+
 pub fn system_item_drop_pickup(handle: &mut RainHandle) {
     let mut item_drops: Vec<(Entity, ItemDrop, Position2D)> = Vec::new();
     let mut to_despawn: Vec<Entity> = Vec::new();
     let mut to_update_quantity: Vec<(Entity, i32)> = Vec::new();
-    for (e, (item_drop, position)) in handle.world.query::<(&ItemDrop, &Position2D)>().iter() {
+    for (e, (item_drop, position)) in handle.world.query::<(&ItemDrop, &Position2D)>().without::<&TimerPickup>().iter() {
         item_drops.push((e, item_drop.clone(), position.clone()));
     }
     for (_, (_, inventory, position)) in handle.world.query_mut::<(&Player, &mut Inventory, &Position2D)>() {
@@ -106,5 +116,40 @@ pub fn system_item_drop_pickup(handle: &mut RainHandle) {
     }
     for e in to_despawn {
         handle.world.despawn(e).unwrap();
+    }
+}
+
+pub fn drop_current_item(handle: &mut RainHandle, drop_all: bool) {
+    let mut to_spawn: Vec<(Position2D, Item, i32)> = Vec::new();
+    for (_, (_, position, inventory)) in handle.world.query_mut::<(&Player, &Position2D, &mut Inventory)>() {
+        if let Some(item) = &inventory.slots[inventory.selected_hotbar].item {
+            let item = item.clone();
+            if drop_all {
+                let quantity = inventory.slots[inventory.selected_hotbar].quantity;
+                inventory.remove_item_from_slot(inventory.selected_hotbar, quantity);
+                to_spawn.push((position.clone(), item.clone(), quantity));
+            } else {
+                inventory.remove_item_from_slot(inventory.selected_hotbar, 1);
+                to_spawn.push((position.clone(), item.clone(), 1));
+            }
+        }
+    }
+
+    for (position, item, quantity) in to_spawn {
+        spawn_item_drop_with_timer(handle, position, item, quantity, 2.0);
+    }
+}
+
+pub fn system_timer_pickup(handle: &mut RainHandle) {
+    let mut to_remove: Vec<Entity> = Vec::new();
+
+    for (e, timer_pickup) in handle.world.query_mut::<&mut TimerPickup>() {
+        if timer_pickup.0.step(handle.delta_time) {
+            to_remove.push(e);
+        }
+    }
+
+    for e in to_remove {
+        handle.world.remove_one::<TimerPickup>(e).unwrap();
     }
 }

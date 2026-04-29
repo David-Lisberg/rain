@@ -7,6 +7,7 @@ use rain::engine::input::{KeyboardKey, MouseButton};
 use crate::State;
 use crate::game::player::action::{item_attack, item_use};
 use crate::game::player::inventory::Inventory;
+use crate::game::player::item::drop_current_item;
 use crate::game::player::movement::Player;
 
 
@@ -17,6 +18,7 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
     let mut open_inventory = false;
     let mut pickup_item: Option<Vec2> = None;
     let mut use_item: Option<Vec2> = None;
+    let mut drop_item: Option<bool> = None;
     let mut inventory_hotbar_select: Option<usize> = None;
     for (e, (_, direction, position)) in handle.world.query::<(&Player, &mut Direction, &Position2D)>().iter() {
         if handle.is_key_pressed(KeyboardKey::A) && handle.is_key_pressed(KeyboardKey::W) {
@@ -51,6 +53,13 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
         }
         if handle.is_key_released(KeyboardKey::E) {
             open_inventory = true;
+        }
+        if handle.is_key_released(KeyboardKey::Q) {
+            if handle.is_key_pressed(KeyboardKey::ControlLeft) {
+                drop_item = Some(true);
+            } else {
+                drop_item = Some(false);
+            }
         }
         if handle.is_button_released(MouseButton::Left) {
             pickup_item = Some(position.0.clone());
@@ -110,5 +119,8 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
     }
     if let Some(direction) = use_item {
         item_use(handle, state, direction);
+    }
+    if let Some(drop_all) = drop_item {
+        drop_current_item(handle, drop_all);
     }
 }

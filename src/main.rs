@@ -18,7 +18,7 @@ use crate::game::entity::enemy::Enemy;
 use crate::game::entity::enemy::EnemyType;
 use crate::game::entity::enemy::spawn_enemy;
 use crate::game::entity::enemy::system_enemy_management;
-use crate::game::entity::lifetime::system_lifetime;
+use crate::game::entity::despawn::system_timer_despawn;
 use crate::game::player::action::system_player_action;
 use crate::game::player::action::system_update_player_texture;
 use crate::game::player::input::*;
@@ -27,6 +27,7 @@ use crate::game::player::inventory::system_inventory_interface;
 use crate::game::player::item::Item;
 use crate::game::player::item::ItemType;
 use crate::game::player::item::system_item_drop_pickup;
+use crate::game::player::item::system_timer_pickup;
 use crate::game::player::movement::Player;
 use crate::game::player::movement::system_player_dash;
 use crate::game::player::movement::system_player_walk;
@@ -68,10 +69,11 @@ pub mod game {
     }
     pub mod utility {
         pub mod noise;
+        pub mod timer;
     }
     pub mod entity {
         pub mod enemy;
-        pub mod lifetime;
+        pub mod despawn;
         pub mod damage;
     }
 }
@@ -105,7 +107,8 @@ impl RainState for State {
 
         system_hitbox_hurtbox_collision(handle, self);
         system_item_drop_pickup(handle);
-        system_lifetime(handle);
+        system_timer_despawn(handle);
+        system_timer_pickup(handle);
 
         system_update_player_texture(handle);
         system_camera_controller(handle, self);
