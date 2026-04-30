@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::Range};
 
 use lgui::element::{EBuilder, Scale};
-use rain::engine::{core::RainHandle, input::MouseButton};
+use rain::engine::{core::RainHandle, input::{KeyboardKey, MouseButton}};
 
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, State, game::{core::ui::*, player::{crafting::{Recipe, check_available_recipes, craft_item}, item::{Item, ItemType}, movement::Player}}};
 
@@ -154,12 +154,17 @@ pub fn system_inventory_interface(handle: &mut RainHandle, state: &mut State) {
     let point = handle.mouse_position();
     let mut updated = false;
 
-    if !handle.is_button_released(MouseButton::Left) {
+    let right_button_released = handle.is_button_released(MouseButton::Right);
+    let left_button_released = handle.is_button_released(MouseButton::Left);
+    if !right_button_released && !left_button_released {
         return;
     }
 
+    let shift_pressed = handle.is_key_pressed(KeyboardKey::ShiftLeft);
+
     for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
         if inventory.open {
+            let mut index: Option<usize> = None;
             for i in INVENTORY_SLOTS_HOTBAR {
                 let x = start + i as f32 * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP);
                 if state.gui.button(point, EBuilder::new(0.0, 0.0)
@@ -169,12 +174,7 @@ pub fn system_inventory_interface(handle: &mut RainHandle, state: &mut State) {
                         .rect(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE)
                         .build())
                     .build()) {
-                    if let Some(index) = inventory.selected.iter().position(|&x| x == i) {
-                        inventory.selected.remove(index);
-                    } else {
-                        inventory.selected.push(i);
-                    }
-                    updated = true;
+                    index = Some(i);
                 }
             }
             for i in INVENTORY_SLOTS_INVENTORY {
@@ -187,14 +187,31 @@ pub fn system_inventory_interface(handle: &mut RainHandle, state: &mut State) {
                         .rect(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE)
                         .build())
                     .build()) {
-                    if let Some(index) = inventory.selected.iter().position(|&x| x == i) {
-                        inventory.selected.remove(index);
+                    index = Some(i);
+                }
+            }
+            if let Some(i) = index {
+                if left_button_released {
+                    if let Some(selected) = inventory.selected.iter().position(|&x| x == i) {
+                        inventory.selected.remove(selected);
                     } else {
+                        if !shift_pressed {
+                            inventory.selected.clear();
+                        }
                         inventory.selected.push(i);
                     }
                     updated = true;
+                } else if right_button_released {
+                    if inventory.selected.len() == 1 {
+                        let selected = inventory.selected[0];
+                        inventory.slots.swap(selected, i);
+                        inventory.selected[0] = i;
+                    }
                 }
+            } else {
+                inventory.selected.clear();
             }
+
             let num_recipes = inventory.available_recipes.len() as f32;
             let recipes_width = num_recipes * INVENTORY_SLOT_SIZE + (num_recipes - 1.0) * INVENTORY_SLOT_GAP;
             let start = (SCREEN_WIDTH - recipes_width) / 2.0;

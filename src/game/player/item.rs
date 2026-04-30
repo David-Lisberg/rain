@@ -122,14 +122,23 @@ pub fn system_item_drop_pickup(handle: &mut RainHandle) {
 pub fn drop_current_item(handle: &mut RainHandle, drop_all: bool) {
     let mut to_spawn: Vec<(Position2D, Item, i32)> = Vec::new();
     for (_, (_, position, inventory)) in handle.world.query_mut::<(&Player, &Position2D, &mut Inventory)>() {
-        if let Some(item) = &inventory.slots[inventory.selected_hotbar].item {
+        let index = if inventory.open {
+            if let Some(i) = inventory.selected.get(0) {
+                *i
+            } else {
+                return;
+            }
+        } else {
+            inventory.selected_hotbar
+        };
+        if let Some(item) = &inventory.slots[index].item {
             let item = item.clone();
             if drop_all {
-                let quantity = inventory.slots[inventory.selected_hotbar].quantity;
-                inventory.remove_item_from_slot(inventory.selected_hotbar, quantity);
+                let quantity = inventory.slots[index].quantity;
+                inventory.remove_item_from_slot(index, quantity);
                 to_spawn.push((position.clone(), item.clone(), quantity));
             } else {
-                inventory.remove_item_from_slot(inventory.selected_hotbar, 1);
+                inventory.remove_item_from_slot(index, 1);
                 to_spawn.push((position.clone(), item.clone(), 1));
             }
         }
