@@ -1,12 +1,8 @@
 - enemy ai
-- refactor system order
 - item drop animation
 - animating literally anything 
 - swimming
 - better spawn checking
-- better inventory caps
-    - dropping items
-    - moving items around
 - improved visuals
     - 2.5d shadows?
 

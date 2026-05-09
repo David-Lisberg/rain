@@ -102,6 +102,8 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
             inventory.open = !inventory.open;
             if !inventory.open {
                 inventory.selected.clear();
+            } else {
+                inventory.just_opened = true;
             }
         }
     }

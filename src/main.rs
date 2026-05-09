@@ -159,15 +159,7 @@ impl RainState for State {
         ));
 
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
-            inventory.slots[0].item = Some(Item::new(ItemType::Sling));
-            inventory.slots[0].quantity = 1;
-            inventory.slots[2].item = Some(Item::new(ItemType::Stone));
-            inventory.slots[2].quantity = 99;
-            inventory.slots[3].item = Some(Item::new(ItemType::Twig));
-            inventory.slots[3].quantity = 42;
-            inventory.slots[1].item = Some(Item::new(ItemType::Grass));
-            inventory.slots[1].quantity = 20;
-            inventory.add_item(Item::new(ItemType::FlintHatchet), 1);
+
         }
 
         spawn_enemy(handle, self, Vec2::new(5.0, 0.0), Enemy { _type: EnemyType::Coati });

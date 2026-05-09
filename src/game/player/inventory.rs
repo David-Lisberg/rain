@@ -12,6 +12,7 @@ pub const INVENTORY_SLOTS_INVENTORY: Range<usize> = 9..36;
 
 pub struct Inventory {
     pub open: bool,
+    pub just_opened: bool,
     pub slots: Vec<InventorySlot>,
     pub selected: Vec<usize>,
     pub selected_hotbar: usize,
@@ -22,6 +23,7 @@ impl Inventory {
     pub fn new(num_slots: usize) -> Self {
         Self {
             open: false,
+            just_opened: false,
             slots: vec![InventorySlot::new(); num_slots],
             selected: Vec::new(),
             selected_hotbar: 0,
@@ -130,6 +132,17 @@ impl Inventory {
             None
         }
     }
+
+    pub fn collect_items(&self) -> Vec<(ItemType, i32)> {
+        let mut input_map: HashMap<ItemType, i32> = HashMap::new();
+        for selected in self.selected.iter() {
+            let slot = self.slots.get(*selected).unwrap();
+            if let Some(item) = &slot.item {
+                *input_map.entry(item._type.clone()).or_insert(0) += slot.quantity;
+            }
+        }
+        input_map.into_iter().collect()
+    }
 }
 
 #[derive(Clone)]
@@ -156,13 +169,20 @@ pub fn system_inventory_interface(handle: &mut RainHandle, state: &mut State) {
 
     let right_button_released = handle.is_button_released(MouseButton::Right);
     let left_button_released = handle.is_button_released(MouseButton::Left);
-    if !right_button_released && !left_button_released {
-        return;
-    }
 
     let shift_pressed = handle.is_key_pressed(KeyboardKey::ShiftLeft);
 
     for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
+        if inventory.just_opened {
+            inventory.just_opened = false;
+            let inputs = inventory.collect_items();
+            inventory.available_recipes = check_available_recipes(&inputs)
+        }
+
+        if !right_button_released && !left_button_released {
+            return;
+        }
+
         if inventory.open {
             let mut index: Option<usize> = None;
             for i in INVENTORY_SLOTS_HOTBAR {
@@ -190,27 +210,6 @@ pub fn system_inventory_interface(handle: &mut RainHandle, state: &mut State) {
                     index = Some(i);
                 }
             }
-            if let Some(i) = index {
-                if left_button_released {
-                    if let Some(selected) = inventory.selected.iter().position(|&x| x == i) {
-                        inventory.selected.remove(selected);
-                    } else {
-                        if !shift_pressed {
-                            inventory.selected.clear();
-                        }
-                        inventory.selected.push(i);
-                    }
-                    updated = true;
-                } else if right_button_released {
-                    if inventory.selected.len() == 1 {
-                        let selected = inventory.selected[0];
-                        inventory.slots.swap(selected, i);
-                        inventory.selected[0] = i;
-                    }
-                }
-            } else {
-                inventory.selected.clear();
-            }
 
             let num_recipes = inventory.available_recipes.len() as f32;
             let recipes_width = num_recipes * INVENTORY_SLOT_SIZE + (num_recipes - 1.0) * INVENTORY_SLOT_GAP;
@@ -229,15 +228,29 @@ pub fn system_inventory_interface(handle: &mut RainHandle, state: &mut State) {
                     updated = true;
                 }
             }
-            if updated {
-                let mut input_map: HashMap<ItemType, i32> = HashMap::new();
-                for selected in inventory.selected.iter() {
-                    let slot = inventory.slots.get(*selected).unwrap();
-                    if let Some(item) = &slot.item {
-                        *input_map.entry(item._type.clone()).or_insert(0) += slot.quantity;
+            if let Some(i) = index {
+                if left_button_released {
+                    if let Some(selected) = inventory.selected.iter().position(|&x| x == i) {
+                        inventory.selected.remove(selected);
+                    } else {
+                        if !shift_pressed {
+                            inventory.selected.clear();
+                        }
+                        inventory.selected.push(i);
+                    }
+                    updated = true;
+                } else if right_button_released {
+                    if inventory.selected.len() == 1 {
+                        let selected = inventory.selected[0];
+                        inventory.slots.swap(selected, i);
+                        inventory.selected[0] = i;
                     }
                 }
-                let inputs: Vec<(ItemType, i32)> = input_map.into_iter().collect();
+            } else if !updated {
+                inventory.selected.clear();
+            }
+            if updated {
+                let inputs: Vec<(ItemType, i32)> = inventory.collect_items();
                 inventory.available_recipes = check_available_recipes(&inputs);
             }
         }

@@ -8,7 +8,7 @@ pub struct Recipe {
 
 const AVAILABLE_RECIPES: &[Recipe] = &[
     Recipe { input: &[(ItemType::Grass, 2)], output: (ItemType::Twine, 1)},
-    Recipe { input: &[(ItemType::Twine, 3), (ItemType::Twig, 2)], output: (ItemType::Sling, 1)},
+    Recipe { input: &[(ItemType::Twine, 3), (ItemType::Twig, 2), (ItemType::CoatiPelt, 2)], output: (ItemType::Sling, 1)},
     Recipe { input: &[(ItemType::Twine, 2), (ItemType::Twig, 3), (ItemType::Flint, 2)], output: (ItemType::FlintHatchet, 1)},
 ];
 
