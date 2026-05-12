@@ -13,12 +13,14 @@ use crate::game::core::camera::*;
 use crate::game::core::collision::Collider;
 use crate::game::core::physics::*;
 use crate::game::core::ui::render_ui;
+use crate::game::entity::ai::system_enemy_pathfinding;
 use crate::game::entity::damage::system_hitbox_hurtbox_collision;
 use crate::game::entity::enemy::Enemy;
 use crate::game::entity::enemy::EnemyType;
 use crate::game::entity::enemy::spawn_enemy;
 use crate::game::entity::enemy::system_enemy_management;
 use crate::game::entity::despawn::system_timer_despawn;
+use crate::game::entity::path::system_path_walk;
 use crate::game::player::action::system_player_action;
 use crate::game::player::action::system_update_player_texture;
 use crate::game::player::input::*;
@@ -75,6 +77,8 @@ pub mod game {
         pub mod enemy;
         pub mod despawn;
         pub mod damage;
+        pub mod ai;
+        pub mod path;
     }
 }
 
@@ -97,6 +101,8 @@ impl RainState for State {
         system_manage_chunks(handle, self);
         system_world_generation(handle, self);
         system_enemy_management(handle, self);
+        system_enemy_pathfinding(handle, self);
+        system_path_walk(handle);
         
         system_player_walk(handle);
         system_player_dash(handle);
