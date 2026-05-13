@@ -20,6 +20,7 @@ use crate::game::entity::enemy::EnemyType;
 use crate::game::entity::enemy::spawn_enemy;
 use crate::game::entity::enemy::system_enemy_management;
 use crate::game::entity::despawn::system_timer_despawn;
+use crate::game::entity::enemy::system_update_enemy_facing;
 use crate::game::entity::path::system_path_walk;
 use crate::game::player::action::system_player_action;
 use crate::game::player::action::system_update_player_texture;
@@ -117,6 +118,7 @@ impl RainState for State {
         system_timer_pickup(handle);
 
         system_update_player_texture(handle);
+        system_update_enemy_facing(handle);
         system_camera_controller(handle, self);
         system_camera_tracker(handle);
         system_camera_zoom(handle, self);

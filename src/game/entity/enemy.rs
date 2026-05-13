@@ -10,7 +10,7 @@ use crate::{DEPTH_PLAYER, State, game::{core::collision::{Collider, check_collis
 const SPAWN_RADIUS_MIN: f32 = 20.0;
 const SPAWN_RADIUS_MAX: f32 = 40.0;
 const DESPAWN_RADIUS: f32 = 50.0;
-const SPAWN_CAP: i32 = 1;
+const SPAWN_CAP: i32 = 5;
 
 pub struct Enemy {
     pub _type: EnemyType,
@@ -71,5 +71,15 @@ pub fn spawn_enemy(handle: &mut RainHandle, state: &mut State, position: Vec2, e
     state.enemy_count += 1;
 
     handle.world.spawn((Sprite, Visible, enemy, Position2D(position), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), 
-        texture, Scale2D(Vec2::new(1.0, 1.0)), DepthZ(DEPTH_PLAYER), Priority(1), Health(5.0), collider, HurtBox(collider)));
+        texture, Scale2D(Vec2::new(1.0, 1.0)), DepthZ(DEPTH_PLAYER), Priority(1), Flip(false, false), Health(5.0), collider, HurtBox(collider)));
+}
+
+pub fn system_update_enemy_facing(handle: &mut RainHandle) {
+    for (_, (_, velocity, flip)) in handle.world.query_mut::<(&Enemy, &Velocity2D, &mut Flip)>() {
+        if velocity.0.x.is_sign_positive() {
+            *flip = Flip(false, false);
+        } else if velocity.0.x.is_sign_negative() {
+            *flip = Flip(true, false);
+        }
+    }
 }
