@@ -10,7 +10,7 @@ use crate::{DEPTH_PLAYER, State, game::{core::collision::{Collider, check_collis
 const SPAWN_RADIUS_MIN: f32 = 20.0;
 const SPAWN_RADIUS_MAX: f32 = 40.0;
 const DESPAWN_RADIUS: f32 = 50.0;
-const SPAWN_CAP: i32 = 5;
+const SPAWN_CAP: i32 = 30;
 
 pub struct Enemy {
     pub _type: EnemyType,

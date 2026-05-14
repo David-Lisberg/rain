@@ -1,20 +1,22 @@
-use std::{cmp::Ordering, collections::VecDeque};
+use std::collections::VecDeque;
 
-use glam::{IVec2, Vec2};
+use glam::Vec2;
 use hecs::Entity;
 use rain::engine::{component::Position2D, core::RainHandle};
 
-use crate::{State, game::{entity::{enemy::Enemy, path::Path}, player::movement::Player}};
+use crate::{State, game::{core::collision::Collider, entity::{enemy::Enemy, path::Path}, player::movement::Player, world::chunk::{ChunkPosition, position_to_chunk_position}}};
 
-const ADJACENT: [IVec2; 8] = [
-    IVec2::new(1, 0), IVec2::new(-1, 0),
-    IVec2::new(0, 1), IVec2::new(0, -1),
-    IVec2::new(1, 1), IVec2::new(1, -1),
-    IVec2::new(-1, 1), IVec2::new(-1, -1),
+const ADJACENT: [Vec2; 8] = [
+    Vec2::new(0.5, 0.0), Vec2::new(-0.5, 0.0),
+    Vec2::new(0.0, 0.5), Vec2::new(0.0, -0.5),
+    Vec2::new(0.5, 0.5), Vec2::new(0.5, -0.5),
+    Vec2::new(-0.5, 0.5), Vec2::new(-0.5, -0.5),
 ];
+const EPSILON: f32 = 0.001;
 
+#[derive(Clone)]
 struct AStarNode {
-    position: IVec2,
+    position: Vec2,
     parent: usize,
     f: f32,
     g: f32,
@@ -22,15 +24,12 @@ struct AStarNode {
 }
 
 impl AStarNode {
-    fn default(position: IVec2, parent: usize) -> Self {
+    fn default(position: Vec2, parent: usize) -> Self {
         Self { position, parent, f: 0.0, g: 0.0, h: 0.0 }
     }
 }
 
 pub fn system_enemy_pathfinding(handle: &mut RainHandle, state: &mut State) {
-    if state.counter % 60 != 0 {
-        return;
-    }
     let mut to_add_path: Vec<(Entity, Path)> = Vec::new();
     let mut player_position: Option<Position2D> = None;
     for (_, (_, position)) in handle.world.query::<(&Player, &Position2D)>().iter() {
@@ -38,8 +37,24 @@ pub fn system_enemy_pathfinding(handle: &mut RainHandle, state: &mut State) {
     }
     let player_position = player_position.unwrap();
 
-    for (e, (_, position)) in handle.world.query::<(&Enemy, &Position2D)>().iter() {
-        let positions = a_star(position.0.as_ivec2(), player_position.0.as_ivec2());
+    for (i, (e, (_, position, collider))) in handle.world.query::<(&Enemy, &Position2D, &Collider)>().iter().enumerate() {
+        if state.counter % 60 != i as i32 {
+            continue;
+        }
+        let mut object_colliders: Vec<Collider> = Vec::new();
+        let chunk_position = position_to_chunk_position(position.0.x, position.0.y);
+        for adjacent in ADJACENT {
+            let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.x as i32, chunk_position.y + adjacent.y as i32);
+            if let Some(chunk) = state.chunks.get(&adjacent_position) {
+                for object in &chunk.objects {
+                    if object.collidable {
+                        object_colliders.push(object.collider.clone());
+                    }
+                }
+            }
+        }
+        let positions = a_star(position.0, player_position.0, collider, &object_colliders);
+
         if !positions.is_empty() {
             let path = Path::new(positions.into_iter().collect());
             to_add_path.push((e, path));
@@ -50,8 +65,11 @@ pub fn system_enemy_pathfinding(handle: &mut RainHandle, state: &mut State) {
     }
 }
 
-fn a_star(start: IVec2, finish: IVec2) -> VecDeque<IVec2> {
-    if start == finish {
+fn a_star(start: Vec2, finish: Vec2, collider: &Collider, other_colliders: &Vec<Collider>) -> VecDeque<Vec2> {
+    let start = start.round();
+    let finish = finish.round();
+
+    if start.abs_diff_eq(finish, EPSILON) {
         return VecDeque::new();
     }
 
@@ -70,38 +88,50 @@ fn a_star(start: IVec2, finish: IVec2) -> VecDeque<IVec2> {
         for adjacent in ADJACENT {
             let mut successor = AStarNode::default(node.position + adjacent, closed_list.len());
 
-            successor.g = node.g + adjacent.as_vec2().length();
-            successor.h = (finish - successor.position).as_vec2().length();
-            successor.f = successor.g + successor.h * 1.1;
+            successor.g = node.g + adjacent.length();
+            successor.h = (finish - successor.position).length();
+            successor.f = successor.g + successor.h * 1.5;
 
-            if successor.position == finish {
+            if successor.position.abs_diff_eq(finish, EPSILON) {
                 final_node = Some(successor);
                 break;
             }
 
+            let successor_collider = Collider::from_center(successor.position.x as f32, successor.position.y as f32, collider.width, collider.height);
+            if other_colliders.iter().any(|other| successor_collider.aabb_collision(other)) {
+                continue;
+            }
+
             if open_list.iter()
-               .any(|other| other.position == successor.position && other.f < successor.f) ||
+               .any(|other| other.position.abs_diff_eq(successor.position, EPSILON) && other.f < successor.f) ||
                closed_list.iter()
-               .any(|other| other.position == successor.position && other.f < successor.f) {
+               .any(|other| other.position.abs_diff_eq(successor.position, EPSILON) && other.f < successor.f) {
                 continue;
             }
             open_list.push(successor);
         }
         closed_list.push(node);
-        if final_node.is_some() {
+        if final_node.is_some() || open_list.len() >= 200 {
             break;
         }
     }
-    
+
     if let Some(f) = final_node {
         a_star_node_to_path(&closed_list, f)
     } else {
+        let closest = closed_list.iter()
+            .min_by(|a, b| a.h.partial_cmp(&b.h).unwrap());
+        if let Some(c) = closest {
+            if c.parent != 0 {
+                return a_star_node_to_path(&closed_list, c.clone());
+            }
+        }
         VecDeque::new()
     }
 }
 
-fn a_star_node_to_path(closed_list: &Vec<AStarNode>, final_node: AStarNode) -> VecDeque<IVec2> {
-    let mut path: VecDeque<IVec2> = VecDeque::new();
+fn a_star_node_to_path(closed_list: &Vec<AStarNode>, final_node: AStarNode) -> VecDeque<Vec2> {
+    let mut path: VecDeque<Vec2> = VecDeque::new();
     let mut current_index = final_node.parent;
     path.push_front(final_node.position);
 
