@@ -1,6 +1,6 @@
 use glam::Vec2;
 
-use crate::{State, game::{core::physics::ADJACENT, world::{chunk::{ChunkPosition, position_to_chunk_position}, object::Object}}};
+use crate::{State, game::{core::physics::ADJACENT_I32, world::{chunk::{ChunkPosition, position_to_chunk_position}, object::Object}}};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Collider {
@@ -31,6 +31,38 @@ impl Collider {
         self.y + self.height > other.y
     }
 
+    pub fn aabb_collision_point(&self, point: &Vec2) -> bool {
+        self.x < point.x &&
+        self.x + self.width > point.x &&
+        self.y < point.y &&
+        self.y + self.height > point.y
+    }
+
+    pub fn aabb_collision_ray(&self, start: &Vec2, finish: &Vec2) -> bool {
+        let inverted_direction = 1.0 / (finish - start).normalize();
+        let length = (finish - start).length();
+
+        let t_min_x = (self.x - start.x) * inverted_direction.x;
+        let t_max_x = (self.x + self.width - start.x) * inverted_direction.x;
+        let t_min_y = (self.y - start.y) * inverted_direction.y;
+        let t_max_y = (self.y + self.height - start.y) * inverted_direction.y;
+
+        let t_enter = t_min_x.min(t_max_x).max(t_min_y.min(t_max_y));
+        let t_exit  = t_min_x.max(t_max_x).min(t_min_y.max(t_max_y));
+        
+        t_exit >= 0.0 && t_enter <= t_exit && t_enter <= length
+    }
+
+    pub fn aabb_collision_swept(&self, other: &Collider, start: &Vec2, finish: &Vec2) -> bool {
+        let new_collider = Collider::new(
+            other.x - self.width / 2.0,
+            other.y - self.height / 2.0,
+            other.width + self.width,
+            other.height + self.height
+        );
+        new_collider.aabb_collision_ray(start, finish)
+    }
+
     pub fn center(&self) -> Vec2 {
         Vec2::new(self.x + self.width / 2.0, self.y + self.height / 2.0)
     }
@@ -40,7 +72,7 @@ pub fn check_collision_with_object(state: &mut State, collider: &Collider) -> Op
     let mut collided: Vec<Object> = Vec::new();
     let chunk_position: ChunkPosition = position_to_chunk_position(collider.x, collider.y);
 
-    for adjacent in ADJACENT {
+    for adjacent in ADJACENT_I32 {
         let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
         if let Some(chunk) = state.chunks.get(&adjacent_position) {
             for object in chunk.objects.iter() {

@@ -7,7 +7,7 @@ use crate::game::core::collision::Collider;
 use crate::game::entity::damage::{HitBox, HurtBox};
 use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
 
-pub const ADJACENT: [(i32, i32); 9] = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 0), (0, 1), (1, -1), (1, 0), (1, 1)];
+pub const ADJACENT_I32: [(i32, i32); 9] = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 0), (0, 1), (1, -1), (1, 0), (1, 1)];
 
 pub fn system_physics_movement_2d(handle: &mut RainHandle, state: &mut State) {
     let mut colliders: Vec<(Option<Entity>, Collider)> = Vec::new();
@@ -26,7 +26,7 @@ pub fn system_physics_movement_2d(handle: &mut RainHandle, state: &mut State) {
             let chunk_position: ChunkPosition = position_to_chunk_position(new_collider.x, new_collider.y);
             let mut object_colliders: Vec<Collider> = Vec::new();
 
-            for adjacent in ADJACENT {
+            for adjacent in ADJACENT_I32 {
                 let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
                 if let Some(chunk) = state.chunks.get(&adjacent_position) {
                     for object in &chunk.objects {
