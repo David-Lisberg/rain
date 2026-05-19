@@ -5,7 +5,7 @@ use hecs::Entity;
 use rain::engine::{component::*, core::RainHandle, resource::ResourceManager, texture::Texture};
 use rand::RngExt;
 
-use crate::{DEPTH_PLAYER, State, game::{core::collision::{Collider, check_collision_with_object}, entity::damage::{Health, HurtBox}, player::movement::Player}};
+use crate::{DEPTH_PLAYER, State, game::{core::collision::{Collider, check_collision_with_object}, entity::{ai::Idle, damage::{Health, HurtBox}}, player::movement::Player}};
 
 const SPAWN_RADIUS_MIN: f32 = 20.0;
 const SPAWN_RADIUS_MAX: f32 = 40.0;
@@ -14,6 +14,27 @@ const SPAWN_CAP: i32 = 1;
 
 pub struct Enemy {
     pub _type: EnemyType,
+    pub walk_speed: f32,
+    pub attack_speed: f32,
+    pub sight_range: f32,
+    pub tracking_range: f32,
+    pub tracking_distance: f32,
+}
+
+impl Enemy {
+    pub fn new(_type: EnemyType) -> Self {
+        let (walk_speed, attack_speed, sight_range, tracking_range, tracking_distance) = match _type {
+            EnemyType::Coati => (2.0, 10.0, 10.0, 25.0, 3.0)
+        };
+        Self {
+            _type,
+            walk_speed,
+            attack_speed,
+            sight_range,
+            tracking_range,
+            tracking_distance,
+        }
+    }
 }
 
 pub enum EnemyType {
@@ -54,7 +75,7 @@ pub fn system_enemy_management(handle: &mut RainHandle, state: &mut State) {
         }
     }
     if let Some(position) = enemy_position {
-        spawn_enemy(handle, state, position, Enemy { _type: EnemyType::Coati });
+        spawn_enemy(handle, state, position, Enemy::new(EnemyType::Coati));
     }
     for e in to_remove {
         state.enemy_count -= 1;
@@ -70,7 +91,7 @@ pub fn spawn_enemy(handle: &mut RainHandle, state: &mut State, position: Vec2, e
     }
     state.enemy_count += 1;
 
-    handle.world.spawn((Sprite, Visible, enemy, Position2D(position), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), 
+    handle.world.spawn((Sprite, Visible, enemy, Idle, Position2D(position), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), 
         texture, Scale2D(Vec2::new(1.0, 1.0)), DepthZ(DEPTH_PLAYER), Priority(1), Flip(false, false), Health(5.0), collider, HurtBox(collider)));
 }
 

@@ -1,8 +1,9 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, f32::consts::PI};
 
 use glam::Vec2;
 use hecs::Entity;
-use rain::engine::{component::{Position2D, Velocity2D}, core::RainHandle};
+use rain::engine::{component::{Friction, Position2D, Velocity2D}, core::RainHandle};
+use rand::RngExt;
 
 use crate::{State, game::{core::{collision::Collider, physics::ADJACENT_I32}, entity::{enemy::Enemy, path::Path}, player::movement::Player, utility::timer::Timer, world::chunk::{ChunkPosition, position_to_chunk_position}}};
 
@@ -13,9 +14,11 @@ const ADJACENT: [Vec2; 8] = [
     Vec2::new(-0.5, 0.5), Vec2::new(-0.5, -0.5),
 ];
 const EPSILON: f32 = 0.001;
+const IDLE_TIME: i32 = 600;
 
-pub struct Target(Entity);
-pub struct TimerLoseTarget(Timer);
+pub struct Idle;
+pub struct Tracking(Entity, Timer);
+pub struct Attacking(Entity, Timer, bool);
 
 #[derive(Clone)]
 struct AStarNode {
@@ -32,73 +35,174 @@ impl AStarNode {
     }
 }
 
-pub fn system_enemy_line_of_sight(handle: &mut RainHandle, state: &mut State) {
+pub fn system_enemy_idle(handle: &mut RainHandle, state: &mut State) {
+    let mut to_track: Vec<Entity> = Vec::new();
+    let mut to_add_path: Vec<(Entity, Path)> = Vec::new();
+    
     let mut player: Option<(Entity, Position2D)> = None;
     for (e, (_, position)) in handle.world.query::<(&Player, &Position2D)>().iter() {
         player = Some((e, position.clone()));
     }
     let (player_e, player_position) = player.unwrap();
-    let mut to_target: Vec<Entity> = Vec::new();
 
-    for (e, (_, position, collider)) in handle.world.query::<(&Enemy, &Position2D, &Collider)>().iter() {
-        if (position.0 - player_position.0).length() <= 60.0 {
-            let mut object_colliders: Vec<Collider> = Vec::new();
-            let chunk_position = position_to_chunk_position(position.0.x, position.0.y);
-            for adjacent in ADJACENT_I32 {
-                let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
-                if let Some(chunk) = state.chunks.get(&adjacent_position) {
-                    for object in &chunk.objects {
-                        if object.collidable {
-                            object_colliders.push(object.collider.clone());
-                        }
-                    }
-                }
-            }
-
-            let collider_center = collider.center();
-            let new_collider = Collider::from_center(collider_center.x, collider_center.y, collider.width / 2.0, collider.height / 2.0);
-            if line_of_sight_raycast(position.0, player_position.0, Some(&new_collider), &object_colliders) {
-                to_target.push(e);
-            }
-        } 
-    }
-
-    for e in to_target {
-        handle.world.insert(e, (Target(player_e), TimerLoseTarget(Timer(5.0)))).unwrap();
-    }
-}
-
-pub fn system_enemy_pathfinding(handle: &mut RainHandle, state: &mut State) {
-    let mut to_add_path: Vec<(Entity, Path)> = Vec::new();
-
-    for (i, (e, (_, position, collider, target))) in handle.world.query::<(&Enemy, &Position2D, &Collider, &Target)>().iter().enumerate() {
-        if state.counter % 60 != i as i32 {
-            continue;
+    for (i, (e, (_, enemy, position, collider))) in handle.world.query::<(&Idle, &Enemy, &Position2D, &Collider)>().iter().enumerate() {
+        if check_line_of_sight(state, position.0, player_position.0, collider, enemy.sight_range) {
+            to_track.push(e);
         }
-        if let Ok(target_position) = handle.world.get::<&Position2D>(target.0) {
-            let mut object_colliders: Vec<Collider> = Vec::new();
-            let chunk_position = position_to_chunk_position(position.0.x, position.0.y);
-            for adjacent in ADJACENT {
-                let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.x as i32, chunk_position.y + adjacent.y as i32);
-                if let Some(chunk) = state.chunks.get(&adjacent_position) {
-                    for object in &chunk.objects {
-                        if object.collidable {
-                            object_colliders.push(object.collider.clone());
-                        }
-                    }
-                }
-            }
-            let positions = a_star(position.0, target_position.0, collider, &object_colliders);
-    
-            if !positions.is_empty() {
-                let path = Path::new(positions.into_iter().collect());
+        if state.counter % IDLE_TIME == (i as i32 * 137) % IDLE_TIME {
+            let radians = state.rng.random::<f32>() * 2.0 * PI;
+            let direction = Vec2::from_angle(radians);
+            let distance = state.rng.random::<f32>() * 4.0 + 5.0;
+            let target = direction * distance + position.0;
+            if let Some(path) = generate_path(state, position.0, target, collider) {
                 to_add_path.push((e, path));
             }
         }
     }
+
+    for e in to_track {
+        println!("idle -> track");
+        handle.world.insert_one(e, Tracking(player_e, Timer::new(5.0))).unwrap();
+        handle.world.remove_one::<Idle>(e).unwrap();
+    }
     for (e, path) in to_add_path {
+        println!("idle path walking");
         handle.world.insert_one(e, path).unwrap();
     }
+}
+
+pub fn system_enemy_tracking(handle: &mut RainHandle, state: &mut State) {
+    let mut to_idle: Vec<Entity> = Vec::new();
+    let mut to_attack: Vec<(Entity, Entity)> = Vec::new();
+    let mut to_add_path: Vec<(Entity, Path)> = Vec::new();
+
+    let mut target: Option<Vec2> = None;
+    for (_, tracking) in handle.world.query::<&Tracking>().iter() {
+        target = Some(handle.world.get::<&Position2D>(tracking.0).unwrap().0);
+    }
+    if let Some(target_position) = target {
+        for (e, (tracking, enemy, position, collider)) in handle.world.query_mut::<(&mut Tracking, &Enemy, &Position2D, &Collider)>() {
+            if check_line_of_sight(state, position.0, target_position, collider, enemy.tracking_range) {
+                tracking.1.reset();
+            } else {
+                if tracking.1.step(handle.delta_time) {
+                    to_idle.push(e);
+                    continue;
+                }
+            }
+
+            if (target_position - position.0).length() <= enemy.tracking_distance + 1.0 {
+                to_attack.push((e, tracking.0));
+                continue;
+            }
+
+            let direction = (position.0 - target_position).normalize();
+            let tracking_position = target_position + direction * enemy.tracking_distance;
+            if let Some(path) = generate_path(state, position.0, tracking_position, collider) {
+                to_add_path.push((e, path));
+            }
+        }
+    }
+
+    for e in to_idle {
+        println!("track -> idle");
+        handle.world.insert_one(e, Idle).unwrap();
+        handle.world.remove_one::<Tracking>(e).unwrap();
+    }
+    for (e, path) in to_add_path {
+        println!("track path wakling");
+        handle.world.insert_one(e, path).unwrap();
+    }
+    for (e, target_entity) in to_attack {
+        println!("track -> attack");
+        handle.world.insert_one(e, Attacking(target_entity, Timer::new(1.0), false)).unwrap();
+        handle.world.remove_one::<Tracking>(e).unwrap();
+        let removed = handle.world.remove_one::<Path>(e).is_ok();
+        if removed {
+            if let Ok(mut velocity) = handle.world.get::<&mut Velocity2D>(e) {
+                velocity.0 = Vec2::ZERO;
+            }
+        }
+    }
+}
+
+pub fn system_enemy_attacking(handle: &mut RainHandle) {
+    let mut to_idle: Vec<Entity> = Vec::new();
+    let mut to_add_friction: Vec<(Entity, Friction)> = Vec::new();
+
+    let mut target: Option<Vec2> = None;
+    for (_, attacking) in handle.world.query::<&Attacking>().iter() {
+        target = Some(handle.world.get::<&Position2D>(attacking.0).unwrap().0);
+    }
+    if let Some(target_position) = target {
+        for (e, (attacking, enemy, position, velocity)) in handle.world.query_mut::<(&mut Attacking, &Enemy, &Position2D, &mut Velocity2D)>() {
+            if !attacking.1.step(handle.delta_time) {
+                continue;
+            }
+            if velocity.0.length() < 0.01 {
+                if attacking.2 {
+                    to_idle.push(e);
+                } else {
+                    let direction = (target_position - position.0).normalize();
+                    velocity.0 = direction * enemy.attack_speed;
+                    to_add_friction.push((e, Friction(5.0)));
+                    attacking.2 = true;
+                }
+            }
+        }
+    }
+
+    for e in to_idle {
+        println!("attack -> idle");
+        handle.world.insert_one(e, Idle).unwrap();
+        handle.world.remove_one::<Attacking>(e).unwrap();
+        let _ = handle.world.remove_one::<Friction>(e).is_ok();
+    }
+    for (e, friction) in to_add_friction {
+        handle.world.insert_one(e, friction).unwrap();
+    }
+}
+
+fn check_line_of_sight(state: &mut State, start: Vec2, finish: Vec2, collider: &Collider, sight_range: f32) -> bool {
+    if (finish - start).length() > sight_range {
+        return false;
+    }
+    let object_colliders = fetch_object_colliders(state, start);
+
+    let collider_center = collider.center();
+    let new_collider = Collider::from_center(collider_center.x, collider_center.y, collider.width / 2.0, collider.height / 2.0);
+    if line_of_sight_raycast(start, finish, Some(&new_collider), &object_colliders) {
+        return true;
+    }
+
+    false
+}
+
+fn fetch_object_colliders(state: &mut State, position: Vec2) -> Vec<Collider> {
+    let mut object_colliders: Vec<Collider> = Vec::new();
+    let chunk_position = position_to_chunk_position(position.x, position.y);
+    for adjacent in ADJACENT_I32 {
+        let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
+        if let Some(chunk) = state.chunks.get(&adjacent_position) {
+            for object in &chunk.objects {
+                if object.collidable {
+                    object_colliders.push(object.collider.clone());
+                }
+            }
+        }
+    }
+    object_colliders
+}
+
+fn generate_path(state: &mut State, start: Vec2, finish: Vec2, collider: &Collider) -> Option<Path> {
+    let object_colliders = fetch_object_colliders(state, start);
+    let positions = a_star(start, finish, collider, &object_colliders);
+
+    if !positions.is_empty() {
+        let path = Path::new(positions.into_iter().collect());
+        return Some(path);
+    }
+    None
 }
 
 fn a_star(start: Vec2, finish: Vec2, collider: &Collider, other_colliders: &Vec<Collider>) -> VecDeque<Vec2> {
@@ -190,22 +294,22 @@ fn line_of_sight_raycast(start: Vec2, finish: Vec2, collider: Option<&Collider>,
     }
 }
 
-pub fn system_timer_lose_target(handle: &mut RainHandle) {
-    let mut to_lose_target: Vec<Entity> = Vec::new();
+// pub fn system_timer_lose_target(handle: &mut RainHandle) {
+//     let mut to_lose_target: Vec<Entity> = Vec::new();
 
-    for (e, timer_lose_target) in handle.world.query_mut::<&mut TimerLoseTarget>() {
-        if timer_lose_target.0.step(handle.delta_time) {
-            to_lose_target.push(e);
-        }
-    }
+//     for (e, timer_lose_target) in handle.world.query_mut::<&mut TimerLoseTracking>() {
+//         if timer_lose_target.0.step(handle.delta_time) {
+//             to_lose_target.push(e);
+//         }
+//     }
 
-    for e in to_lose_target {
-        handle.world.remove::<(Target, TimerLoseTarget)>(e).unwrap();
-        let removed = handle.world.remove_one::<Path>(e).is_ok();
-        if removed {
-            if let Ok(mut velocity) = handle.world.get::<&mut Velocity2D>(e) {
-                velocity.0 = Vec2::ZERO;
-            }
-        }
-    }
-}
+//     for e in to_lose_target {
+//         handle.world.remove::<(Tracking, TimerLoseTracking)>(e).unwrap();
+//         let removed = handle.world.remove_one::<Path>(e).is_ok();
+//         if removed {
+//             if let Ok(mut velocity) = handle.world.get::<&mut Velocity2D>(e) {
+//                 velocity.0 = Vec2::ZERO;
+//             }
+//         }
+//     }
+// }

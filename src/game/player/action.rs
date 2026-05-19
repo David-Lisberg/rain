@@ -51,7 +51,7 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
         }
     }
     for hitbox in to_spawn_hitbox {
-        handle.world.spawn((hitbox, TimerDespawn(Timer(0.3))));
+        handle.world.spawn((hitbox, TimerDespawn(Timer::new(0.3))));
     }
     for (position, item, quantity) in to_spawn_item_drop {
         spawn_item_drop(handle, position, item, quantity);
@@ -149,7 +149,7 @@ fn system_player_sling(handle: &mut RainHandle, state: &mut State) {
 
         let texture = handle.fetch_texture("object_stone").unwrap();
         handle.world.spawn((
-            Sprite, Visible, Position2D(position), velocity, Acceleration2D(Vec2::ZERO), TimerDespawn(Timer(5.0)),
+            Sprite, Visible, Position2D(position), velocity, Acceleration2D(Vec2::ZERO), TimerDespawn(Timer::new(5.0)),
             texture, Scale2D(Vec2::new(0.4, 0.4)), DepthZ(DEPTH_PROJECTILE), Priority(1),
             hitbox,
         ));

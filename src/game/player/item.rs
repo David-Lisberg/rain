@@ -86,8 +86,8 @@ pub fn spawn_item_drop_with_timer(handle: &mut RainHandle, position: Position2D,
     let texture = item._type.fetch_texture(&handle.resource_manager);
     let item_drop = ItemDrop { item, quantity };
     handle.world.spawn((
-        Sprite, Visible, texture, item_drop, position, Scale2D(Vec2::new(0.3, 0.3)), DepthZ(DEPTH_PLAYER), Priority(1), TimerPickup(Timer(time)),
-    ));
+        Sprite, Visible, texture, item_drop, position, Scale2D(Vec2::new(0.3, 0.3)), DepthZ(DEPTH_PLAYER), Priority(1), TimerPickup(Timer::new(time))),
+    );
 }
 
 pub fn system_item_drop_pickup(handle: &mut RainHandle) {

@@ -1,3 +1,4 @@
+use glam::Vec2;
 use hecs::Entity;
 use rain::engine::core::RainHandle;
 use rain::engine::component::*;
@@ -82,24 +83,12 @@ pub fn system_physics_movement_2d(handle: &mut RainHandle, state: &mut State) {
 }
 
 pub fn system_physics_friction(handle: &mut RainHandle) {
-    for (_, (velocity, acceleration, friction)) in handle.world.query::<(
-        &mut Velocity2D, &mut Acceleration2D, &Friction
-    )>().iter() {
-        if velocity.0.x > 0.1 {
-            acceleration.0.x = -friction.0;
-        } else if velocity.0.x < -0.1 {
-            acceleration.0.x = friction.0;
+    for (_, (velocity, friction)) in handle.world.query::<(&mut Velocity2D, &Friction)>().iter() {
+        let friction_force = velocity.0.normalize_or_zero() * friction.0 * handle.delta_time;
+        if friction_force.length_squared() > velocity.0.length_squared() {
+            velocity.0 = Vec2::ZERO;
         } else {
-            acceleration.0.x = 0.0;
-            velocity.0.x = 0.0;
-        }
-        if velocity.0.y > 0.1 {
-            acceleration.0.y = -friction.0;
-        } else if velocity.0.y < -0.1 {
-            acceleration.0.y = friction.0;
-        } else {
-            acceleration.0.y = 0.0;
-            velocity.0.y = 0.0;
+            velocity.0 -= friction_force;
         }
     }
 }

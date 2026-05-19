@@ -13,9 +13,10 @@ use crate::game::core::camera::*;
 use crate::game::core::collision::Collider;
 use crate::game::core::physics::*;
 use crate::game::core::ui::render_ui;
-use crate::game::entity::ai::system_enemy_line_of_sight;
-use crate::game::entity::ai::system_enemy_pathfinding;
-use crate::game::entity::ai::system_timer_lose_target;
+use crate::game::entity::ai::system_enemy_attacking;
+use crate::game::entity::ai::system_enemy_idle;
+use crate::game::entity::ai::system_enemy_tracking;
+// use crate::game::entity::ai::system_timer_lose_target;
 use crate::game::entity::damage::system_hitbox_hurtbox_collision;
 use crate::game::entity::enemy::Enemy;
 use crate::game::entity::enemy::EnemyType;
@@ -104,8 +105,11 @@ impl RainState for State {
         system_manage_chunks(handle, self);
         system_world_generation(handle, self);
         system_enemy_management(handle, self);
-        system_enemy_line_of_sight(handle, self);
-        system_enemy_pathfinding(handle, self);
+        system_enemy_idle(handle, self);
+        system_enemy_tracking(handle, self);
+        system_enemy_attacking(handle);
+        // system_enemy_line_of_sight(handle, self);
+        // system_enemy_pathfinding(handle, self);
         system_path_walk(handle);
         
         system_player_walk(handle);
@@ -119,7 +123,7 @@ impl RainState for State {
         system_item_drop_pickup(handle);
         system_timer_despawn(handle);
         system_timer_pickup(handle);
-        system_timer_lose_target(handle);
+        // system_timer_lose_target(handle);
 
         system_update_player_texture(handle);
         system_update_enemy_facing(handle);
@@ -174,7 +178,7 @@ impl RainState for State {
 
         }
 
-        spawn_enemy(handle, self, Vec2::new(5.0, 1.0), Enemy { _type: EnemyType::Coati });
+        spawn_enemy(handle, self, Vec2::new(20.0, 1.0), Enemy::new(EnemyType::Coati));
 
         handle.renderer.camera.set_z(8.0);
     }
