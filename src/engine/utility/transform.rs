@@ -7,6 +7,13 @@ pub fn framebuffer_to_ndc(point: impl Into<Vec2>, width: u32, height: u32) -> Ve
     Vec2::new(ndc_x, ndc_y)
 }
 
+pub fn ndc_to_framebuffer(ndc: impl Into<Vec2>, width: u32, height: u32) -> Vec2 {
+    let ndc = ndc.into();
+    let x = (ndc.x + 1.0) / 2.0 * width as f32;
+    let y = (1.0 - ndc.y) / 2.0 * height as f32;
+    Vec2::new(x, y)
+}
+
 pub fn rotate_around_pivot(point: impl Into<Vec2>, pivot: impl Into<Vec2>, degrees: f32) -> Vec2 {
     let angle = degrees.to_radians();
 

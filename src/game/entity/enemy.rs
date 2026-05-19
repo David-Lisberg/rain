@@ -5,12 +5,12 @@ use hecs::Entity;
 use rain::engine::{component::*, core::RainHandle, resource::ResourceManager, texture::Texture};
 use rand::RngExt;
 
-use crate::{DEPTH_PLAYER, State, game::{core::collision::{Collider, check_collision_with_object}, entity::{ai::Idle, damage::{Health, HurtBox}}, player::movement::Player}};
+use crate::{DEPTH_PLAYER, State, game::{core::collision::{Collider, check_collision_with_object}, entity::{ai::Idle, damage::{Health, HealthBar, HurtBox}}, player::movement::Player, utility::timer::Timer}};
 
 const SPAWN_RADIUS_MIN: f32 = 20.0;
 const SPAWN_RADIUS_MAX: f32 = 40.0;
 const DESPAWN_RADIUS: f32 = 50.0;
-const SPAWN_CAP: i32 = 10;
+const SPAWN_CAP: i32 = 1;
 
 pub struct Enemy {
     pub _type: EnemyType,
@@ -93,8 +93,9 @@ pub fn spawn_enemy(handle: &mut RainHandle, state: &mut State, position: Vec2, e
     }
     state.enemy_count += 1;
 
-    handle.world.spawn((Sprite, Visible, enemy, Idle, Position2D(position), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), 
+    let e = handle.world.spawn((Sprite, Visible, enemy, Idle, Position2D(position), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), 
         texture, Scale2D(Vec2::new(1.0, 1.0)), DepthZ(DEPTH_PLAYER), Priority(1), Flip(false, false), Health::new(5.0), collider, HurtBox(collider)));
+    handle.world.spawn((HealthBar(e, Timer::new(2.0), 1.0),));
 }
 
 pub fn system_update_enemy_facing(handle: &mut RainHandle) {

@@ -29,7 +29,7 @@ impl Health {
     }
 }
 
-pub struct HealthBar(Entity, Timer, f32);
+pub struct HealthBar(pub Entity, pub Timer, pub f32);
 
 pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle, state: &mut State) {
     let mut hitboxes: Vec<(Entity, HitBox)> = Vec::new();
@@ -83,7 +83,32 @@ pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle, state: &mut Stat
 }
 
 pub fn system_health_bar(handle: &mut RainHandle) {
-    for (_, health_bar) in handle.world.query::<&HealthBar>().iter() {
-        
+    let mut parents: Vec<(Entity, Entity)> = Vec::new();
+    let mut to_despawn: Vec<Entity> = Vec::new();
+
+    for (e, health_bar) in handle.world.query::<&HealthBar>().iter() {
+        parents.push((e, health_bar.0));
+    }
+    for (e, parent) in parents {
+        let health_percent = {
+            if let Ok(health) = handle.world.get::<&Health>(parent) {
+                health.current / health.max
+            } else {
+                to_despawn.push(e);
+                continue;
+            }
+        };
+        if let Ok(health_bar) = handle.world.query_one_mut::<&mut HealthBar>(e) {
+            if health_percent != health_bar.2 {
+                health_bar.2 = health_percent;
+                health_bar.1.reset();
+            } else {
+                health_bar.1.step(handle.delta_time);
+            }
+        }
+    }
+
+    for e in to_despawn {
+        handle.world.despawn(e).unwrap();
     }
 }

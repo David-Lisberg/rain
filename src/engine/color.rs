@@ -18,6 +18,15 @@ impl Color {
         }
     }
 
+    pub fn from_f32(r: f32, g: f32, b: f32, a: f32) -> Self {
+        Self {
+            r: (r * 255.0) as u8,
+            g: (g * 255.0) as u8,
+            b: (b * 255.0) as u8,
+            a: (a * 255.0) as u8,
+        }
+    }
+
     pub fn rain_color_to_wgpu_color(color: &Self) -> wgpu::Color {
         wgpu::Color {
             r: Self::srgb_to_linear(color.r as f32/ 255.0) as f64,

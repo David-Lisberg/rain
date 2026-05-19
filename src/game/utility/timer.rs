@@ -16,4 +16,8 @@ impl Timer {
     pub fn reset(&mut self) {
         self.time = self.start;
     }
+
+    pub fn finished(&self) -> bool {
+        self.time <= 0.0
+    }
 }

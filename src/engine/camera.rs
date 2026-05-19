@@ -1,6 +1,6 @@
 use glam::*;
 
-use crate::engine::{core::RainHandle, utility::transform::framebuffer_to_ndc};
+use crate::engine::{core::RainHandle, utility::transform::{framebuffer_to_ndc, ndc_to_framebuffer}};
 
 const MAX_FOV: f32 = 180.0;
 
@@ -148,5 +148,13 @@ impl RainHandle {
 
         let world_position = near + t * (far - near);
         Vec2::new(world_position.x, world_position.y)
+    }
+
+    pub fn world_position_to_screen_position(&self, position: Vec2) -> Vec2 {
+        let matrix = self.renderer.camera.build_view_projection_matrix();
+        let world_position = Vec4::new(position.x, position.y, 0.0, 1.0);
+        let clip_position = matrix * world_position;
+        let ndc = clip_position.xy() / clip_position.w;
+        ndc_to_framebuffer(ndc, self.renderer.config.width, self.renderer.config.height)
     }
 }

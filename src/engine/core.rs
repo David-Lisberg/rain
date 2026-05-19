@@ -156,7 +156,6 @@ where
             .with_inner_size(PhysicalSize::new(self.width, self.height));
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
 
-
         self.handle = Some(pollster::block_on(RainHandle::new(window, self.width, self.height)).unwrap());
         
         let handle = self.handle.as_mut().unwrap();

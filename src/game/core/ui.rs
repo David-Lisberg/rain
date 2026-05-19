@@ -1,7 +1,9 @@
-use rain::engine::{color::Color, component::Position2D, core::RainHandle};
+use glam::Vec2;
+use hecs::Entity;
+use rain::engine::{color::Color, component::{Position2D, Scale2D}, core::RainHandle};
 use lgui::element::*;
 
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, State, game::{entity::damage::Health, player::{inventory::*, movement::Player}}};
+use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, State, game::{entity::damage::{Health, HealthBar}, player::{inventory::*, movement::Player}}};
 
 
 pub const INVENTORY_SLOT_SIZE: f32 = 54.0;
@@ -12,6 +14,7 @@ pub const INVENTORY_SLOT_FONT_SIZE: u32 = 15;
 const HEALTH_BAR_GAP: f32 = 40.0;
 const HEALTH_BAR_HEIGHT: f32 = INVENTORY_SLOT_HEIGHT - HEALTH_BAR_GAP;
 const HEALTH_BAR_WIDTH: f32 = INVENTORY_SLOT_SIZE * 7.5;
+const ENEMY_HEALTH_BAR_WIDTH: f32 = 25.0;
 
 pub fn render_ui(handle: &mut RainHandle, state: &mut State) {
     let current_width = handle.renderer.config.width as f32;
@@ -22,9 +25,43 @@ pub fn render_ui(handle: &mut RainHandle, state: &mut State) {
     for (_, (_, position)) in handle.world.query::<(&Player, &Position2D)>().iter() {
         state.gui.element(EBuilder::new(10.0, 10.0).shape(Shape::Text(format!("{}, {}", position.0.x, position.0.y), 20, Allignment::Left)).build());
     }
+    render_health_bar(handle, state);
     render_inventory(handle, state);
 
     state.gui.finish(handle);
+}
+
+fn render_health_bar(handle: &mut RainHandle, state: &mut State) {
+    let mut health_bars: Vec<(Entity, bool, f32)> = Vec::new();
+
+    for (_, health_bar) in handle.world.query::<&HealthBar>().iter() {
+        health_bars.push((health_bar.0, health_bar.1.finished(), health_bar.2));
+    }
+    for (parent, hide, health_percent) in health_bars {
+        if hide {
+            continue;
+        }
+        if let Ok(mut q) = handle.world.query_one::<(&Position2D, &Scale2D)>(parent) {
+            if let Some((position, scale)) = q.get() {
+                let world_position = Vec2::new(position.0.x, position.0.y + scale.0.y * 0.6);
+                let screen_position = handle.world_position_to_screen_position(world_position);
+
+                let background_color = Color::from_f32(0.0, 0.0, 0.0, 0.7);
+                state.gui.element(EBuilder::new(screen_position.x - ENEMY_HEALTH_BAR_WIDTH / 2.0, screen_position.y)
+                    .shape(Shape::Rect(ENEMY_HEALTH_BAR_WIDTH, ENEMY_HEALTH_BAR_WIDTH / 10.0))
+                    .color(background_color.into())
+                    .scale(Scale::None)
+                    .build()
+                );
+                state.gui.element(EBuilder::new(screen_position.x - ENEMY_HEALTH_BAR_WIDTH / 2.0, screen_position.y)
+                    .shape(Shape::Rect(ENEMY_HEALTH_BAR_WIDTH * health_percent, ENEMY_HEALTH_BAR_WIDTH / 10.0))
+                    .color(Color::RED.into())
+                    .scale(Scale::None)
+                    .build()
+                );
+            }
+        }
+    }
 }
 
 fn render_inventory(handle: &mut RainHandle, state: &mut State) {

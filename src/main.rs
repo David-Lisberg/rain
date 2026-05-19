@@ -18,6 +18,7 @@ use crate::game::entity::ai::system_enemy_idle;
 use crate::game::entity::ai::system_enemy_tracking;
 use crate::game::entity::damage::Health;
 use crate::game::entity::damage::HurtBox;
+use crate::game::entity::damage::system_health_bar;
 // use crate::game::entity::ai::system_timer_lose_target;
 use crate::game::entity::damage::system_hitbox_hurtbox_collision;
 use crate::game::entity::enemy::Enemy;
@@ -124,6 +125,7 @@ impl RainState for State {
         system_hitbox_hurtbox_collision(handle, self);
         system_manage_projectiles(handle);
         system_item_drop_pickup(handle);
+        system_health_bar(handle);
         system_timer_despawn(handle);
         system_timer_pickup(handle);
 
