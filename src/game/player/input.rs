@@ -16,8 +16,8 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
     let mut to_walk: Vec<Entity> = Vec::new();
     let mut to_remove_walk: Vec<Entity> = Vec::new();
     let mut open_inventory = false;
+    let mut use_item = false;
     let mut pickup_item: Option<Vec2> = None;
-    let mut use_item: Option<Vec2> = None;
     let mut drop_item: Option<bool> = None;
     let mut inventory_hotbar_select: Option<usize> = None;
     for (e, (_, direction, position)) in handle.world.query::<(&Player, &mut Direction, &Position2D)>().iter() {
@@ -65,7 +65,7 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
             pickup_item = Some(position.0.clone());
         }
         if handle.is_button_just_pressed(MouseButton::Right) {
-            use_item = Some(direction.0.clone());
+            use_item = true;
         }
         if handle.is_key_released(KeyboardKey::Digit1) {
             inventory_hotbar_select = Some(0);
@@ -119,8 +119,8 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
         let direction = (mouse_position - position).normalize();
         item_attack(handle, state, direction);
     }
-    if let Some(direction) = use_item {
-        item_use(handle, state, direction);
+    if use_item {
+        item_use(handle);
     }
     if let Some(drop_all) = drop_item {
         drop_current_item(handle, drop_all);

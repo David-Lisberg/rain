@@ -10,6 +10,7 @@ const AVAILABLE_RECIPES: &[Recipe] = &[
     Recipe { input: &[(ItemType::Grass, 2)], output: (ItemType::Twine, 1)},
     Recipe { input: &[(ItemType::Twine, 3), (ItemType::Twig, 2), (ItemType::CoatiPelt, 2)], output: (ItemType::Sling, 1)},
     Recipe { input: &[(ItemType::Twine, 2), (ItemType::Twig, 3), (ItemType::Flint, 2)], output: (ItemType::FlintHatchet, 1)},
+    Recipe { input: &[(ItemType::Wood, 1)], output: (ItemType::WoodPlanks, 2)},
 ];
 
 pub fn check_available_recipes(inputs: &Vec<(ItemType, i32)>) -> Vec<Recipe> {

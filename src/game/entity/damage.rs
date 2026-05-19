@@ -64,6 +64,7 @@ pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle, state: &mut Stat
             match enemy._type {
                 EnemyType::Coati => {
                     to_spawn.push((position.clone(), Item::new(ItemType::CoatiPelt), 2));
+                    to_spawn.push((position.clone(), Item::new(ItemType::CoatiBone), 3));
                 }
             }
             state.enemy_count -= 1;

@@ -37,12 +37,14 @@ pub enum ItemType {
     Flint,
     FlintHatchet,
     Wood,
+    WoodPlanks,
     CoatiPelt,
+    CoatiBone,
 }
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum ItemCategory {
-    Tool(i32, i32, f32),
+    Tool(i32, i32, f32), /* break level, hit ticks, damage */
     Other,
 }
 
@@ -55,9 +57,11 @@ impl ItemType {
             ItemType::Flint => resource_manager.fetch_texture("object_flint").unwrap(),
             ItemType::FlintHatchet => resource_manager.fetch_texture("flint_hatchet").unwrap(),
             ItemType::Wood => resource_manager.fetch_texture("item_wood").unwrap(),
+            ItemType::WoodPlanks => resource_manager.fetch_texture("item_wood_planks").unwrap(),
             ItemType::Twine => resource_manager.fetch_texture("item_twine").unwrap(),
             ItemType::Sling => resource_manager.fetch_texture("item_sling").unwrap(),
             ItemType::CoatiPelt => resource_manager.fetch_texture("item_coati_pelt").unwrap(),
+            ItemType::CoatiBone => resource_manager.fetch_texture("item_coati_bone").unwrap(),
         }
     }
 

@@ -120,7 +120,7 @@ impl RainState for State {
         
         system_player_walk(handle);
         system_player_dash(handle);
-        system_player_action(handle, self);
+        system_player_action(handle);
 
         system_physics_friction(handle);
         system_physics_movement_2d(handle, self);
@@ -165,6 +165,7 @@ impl RainState for State {
         handle.load_texture("item_twine", "res/texture/item_twine.png").expect("Error loading texture.");
         handle.load_texture("item_sling", "res/texture/item_sling.png").expect("Error loading texture.");
         handle.load_texture("item_wood", "res/texture/item_wood.png").expect("Error loading texture.");
+        handle.load_texture("item_wood_planks", "res/texture/item_wood.png").expect("Error loading texture.");
         handle.load_texture("flint_hatchet", "res/texture/flint_hatchet.png").expect("Error loading texture.");
         handle.load_texture("health_bar_frame", "res/texture/health_bar_frame.png").expect("Error loading texture.");
         handle.load_texture("health_bar_background", "res/texture/health_bar_background.png").expect("Error loading texture.");
@@ -175,6 +176,7 @@ impl RainState for State {
         handle.load_texture("player_side", "res/texture/player_side.png").expect("Error loading texture.");
         handle.load_texture("enemy_coati", "res/texture/enemy_coati.png").expect("Error loading texture.");
         handle.load_texture("item_coati_pelt", "res/texture/item_coati_pelt.png").expect("Error loading texture.");
+        handle.load_texture("item_coati_bone", "res/texture/item_coati_bone.png").expect("Error loading texture.");
 
         let player_texture = handle.fetch_texture("player_front").unwrap();
         let player_collider = Collider::from_center(0.0, 0.0, 0.8, 0.8);

@@ -61,7 +61,7 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
     }
 }
 
-pub fn item_use(handle: &mut RainHandle, state: &mut State, direction: Vec2) {
+pub fn item_use(handle: &mut RainHandle) {
     let mut pending_use: Option<(ItemType, Entity, usize)> = None;
     for (e, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
         let slot = inventory.slots.get(inventory.selected_hotbar).unwrap();
@@ -103,11 +103,11 @@ pub fn system_update_player_texture(handle: &mut RainHandle) {
     }
 }
 
-pub fn system_player_action(handle: &mut RainHandle, state: &mut State) {
-    system_player_sling(handle, state);
+pub fn system_player_action(handle: &mut RainHandle) {
+    system_player_sling(handle);
 }
 
-fn system_player_sling(handle: &mut RainHandle, state: &mut State) {
+fn system_player_sling(handle: &mut RainHandle) {
     let pressed = handle.is_button_pressed(MouseButton::Right);
     let mut sling_released: Option<(Entity, Vec2)> = None;
     let mut sling_cancel: Option<Entity> = None;
