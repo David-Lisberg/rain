@@ -10,12 +10,13 @@ use crate::{DEPTH_PLAYER, State, game::{core::collision::{Collider, check_collis
 const SPAWN_RADIUS_MIN: f32 = 20.0;
 const SPAWN_RADIUS_MAX: f32 = 40.0;
 const DESPAWN_RADIUS: f32 = 50.0;
-const SPAWN_CAP: i32 = 1;
+const SPAWN_CAP: i32 = 10;
 
 pub struct Enemy {
     pub _type: EnemyType,
     pub walk_speed: f32,
     pub attack_speed: f32,
+    pub damage: f32,
     pub sight_range: f32,
     pub tracking_range: f32,
     pub tracking_distance: f32,
@@ -23,13 +24,14 @@ pub struct Enemy {
 
 impl Enemy {
     pub fn new(_type: EnemyType) -> Self {
-        let (walk_speed, attack_speed, sight_range, tracking_range, tracking_distance) = match _type {
-            EnemyType::Coati => (2.0, 10.0, 10.0, 25.0, 3.0)
+        let (walk_speed, attack_speed, damage, sight_range, tracking_range, tracking_distance) = match _type {
+            EnemyType::Coati => (2.0, 10.0, 10.0, 10.0, 25.0, 3.0)
         };
         Self {
             _type,
             walk_speed,
             attack_speed,
+            damage,
             sight_range,
             tracking_range,
             tracking_distance,
@@ -49,8 +51,8 @@ impl EnemyType {
     }
 }
 
-pub fn system_enemy_management(handle: &mut RainHandle, state: &mut State) {
-    if state.counter % 60 != 0 {
+pub fn system_manage_enemies(handle: &mut RainHandle, state: &mut State) {
+    if state.counter % 180 != 0 {
         return;
     }
     let mut player_position: Option<Vec2> = None;

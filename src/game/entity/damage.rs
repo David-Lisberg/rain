@@ -1,7 +1,7 @@
 use hecs::Entity;
 use rain::engine::{component::Position2D, core::RainHandle};
 
-use crate::{State, game::{core::collision::Collider, entity::enemy::{Enemy, EnemyType}, player::item::{Item, ItemType, spawn_item_drop}}};
+use crate::{State, game::{core::collision::Collider, entity::enemy::{Enemy, EnemyType}, player::item::{Item, ItemType, spawn_item_drop}, utility::timer::Timer}};
 
 pub struct HurtBox(pub Collider);
 #[derive(Clone)]
@@ -10,6 +10,12 @@ pub struct HitBox {
     pub collider: Collider,
     pub safe: Vec<Entity>,
     pub uses: i32,
+}
+
+impl HitBox {
+    pub fn new(damage: f32, collider: Collider, safe: Vec<Entity>, uses: i32) -> Self {
+        Self { damage, collider, safe, uses }
+    }
 }
 
 pub struct Health {
@@ -23,10 +29,13 @@ impl Health {
     }
 }
 
+pub struct HealthBar(Entity, Timer, f32);
+
 pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle, state: &mut State) {
     let mut hitboxes: Vec<(Entity, HitBox)> = Vec::new();
     let mut to_kill: Vec<Entity> = Vec::new();
-    let mut to_remove: Vec<Entity> = Vec::new();
+    let mut to_despawn: Vec<Entity> = Vec::new();
+    let mut to_remove_hitbox: Vec<Entity> = Vec::new();
     let mut to_spawn: Vec<(Position2D, Item, i32)> = Vec::new();
     for (e, hitbox) in handle.world.query::<&HitBox>().iter() {
         hitboxes.push((e, hitbox.clone()));
@@ -39,7 +48,7 @@ pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle, state: &mut Stat
             if hitbox.uses > 0 && hitbox.collider.aabb_collision(&hurtbox.0) {
                 hitbox.uses -= 1;
                 if hitbox.uses <= 0 {
-                    to_remove.push(*other_e);
+                    to_remove_hitbox.push(*other_e);
                 }
                 health.current -= hitbox.damage;
                 if health.current <= 0.0 {
@@ -59,15 +68,22 @@ pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle, state: &mut Stat
             }
             state.enemy_count -= 1;
         }
-        to_remove.push(e);
+        to_despawn.push(e);
     }
     for (position, item, quantity) in to_spawn {
         spawn_item_drop(handle, position, item, quantity);
     }
-    for e in to_remove {
-        if handle.world.get::<&Enemy>(e).is_ok() {
-            state.enemy_count -= 1;
-        }
+    for e in to_despawn {
+        state.enemy_count -= 1;
         handle.world.despawn(e).unwrap();
+    }
+    for e in to_remove_hitbox {
+        handle.world.remove_one::<HitBox>(e).unwrap();
+    }
+}
+
+pub fn system_health_bar(handle: &mut RainHandle) {
+    for (_, health_bar) in handle.world.query::<&HealthBar>().iter() {
+
     }
 }

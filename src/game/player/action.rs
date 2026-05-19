@@ -4,7 +4,7 @@ use glam::Vec2;
 use hecs::Entity;
 use rain::engine::{component::*, core::RainHandle, input::MouseButton, texture::Texture};
 
-use crate::{DEPTH_PROJECTILE, State, game::{core::collision::*, entity::{damage::HitBox, despawn::TimerDespawn}, player::{inventory::Inventory, item::*, movement::Player}, utility::timer::Timer, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
+use crate::{DEPTH_PROJECTILE, State, game::{core::collision::*, entity::{damage::HitBox, despawn::TimerDespawn, projectile::Projectile}, player::{inventory::Inventory, item::*, movement::Player}, utility::timer::Timer, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
 
 struct SlingHold(f32, usize);
 
@@ -140,17 +140,17 @@ fn system_player_sling(handle: &mut RainHandle, state: &mut State) {
         let mouse_position = handle.screen_position_to_world_position(handle.mouse_position());
         let direction = (mouse_position - position).normalize();
         let velocity = Velocity2D(direction * sling_hold.0.min(1.5) * 28.0);
-        let hitbox = HitBox {
-            damage: 10.0,
-            collider: Collider::from_center(position.x, position.y, 0.4, 0.4),
-            safe: vec![player_entity.unwrap()],
-            uses: 1,
-        };
+        let hitbox = HitBox::new(
+            10.0,
+            Collider::from_center(position.x, position.y, 0.4, 0.4),
+            vec![player_entity.unwrap()],
+            1,
+        );
 
         let texture = handle.fetch_texture("object_stone").unwrap();
         handle.world.spawn((
             Sprite, Visible, Position2D(position), velocity, Acceleration2D(Vec2::ZERO), TimerDespawn(Timer::new(5.0)),
-            texture, Scale2D(Vec2::new(0.4, 0.4)), DepthZ(DEPTH_PROJECTILE), Priority(1),
+            texture, Scale2D(Vec2::new(0.4, 0.4)), DepthZ(DEPTH_PROJECTILE), Priority(1), Projectile,
             hitbox,
         ));
     }

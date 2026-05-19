@@ -5,7 +5,7 @@ use hecs::Entity;
 use rain::engine::{component::{Friction, Position2D, Velocity2D}, core::RainHandle};
 use rand::RngExt;
 
-use crate::{State, game::{core::{collision::Collider, physics::ADJACENT_I32}, entity::{enemy::Enemy, path::Path}, player::movement::Player, utility::timer::Timer, world::chunk::{ChunkPosition, position_to_chunk_position}}};
+use crate::{State, game::{core::{collision::Collider, physics::ADJACENT_I32}, entity::{damage::HitBox, enemy::Enemy, path::Path}, player::movement::Player, utility::timer::Timer, world::chunk::{ChunkPosition, position_to_chunk_position}}};
 
 const ADJACENT: [Vec2; 8] = [
     Vec2::new(0.5, 0.0), Vec2::new(-0.5, 0.0),
@@ -124,6 +124,7 @@ pub fn system_enemy_tracking(handle: &mut RainHandle, state: &mut State) {
 pub fn system_enemy_attacking(handle: &mut RainHandle) {
     let mut to_idle: Vec<Entity> = Vec::new();
     let mut to_add_friction: Vec<(Entity, Friction)> = Vec::new();
+    let mut to_add_hitbox: Vec<(Entity, HitBox)> = Vec::new();
 
     let mut target: Option<Vec2> = None;
     for (_, attacking) in handle.world.query::<&Attacking>().iter() {
@@ -141,6 +142,13 @@ pub fn system_enemy_attacking(handle: &mut RainHandle) {
                     let direction = (target_position - position.0).normalize();
                     velocity.0 = direction * enemy.attack_speed;
                     to_add_friction.push((e, Friction(5.0)));
+
+                    let hitbox_offset = direction + position.0;
+                    let hitbox = HitBox::new(
+                        enemy.damage, Collider::from_center(hitbox_offset.x, hitbox_offset.y, 0.4, 0.4), vec![e], 1,
+                    );
+                    to_add_hitbox.push((e, hitbox));
+
                     attacking.2 = true;
                 }
             }
@@ -150,10 +158,13 @@ pub fn system_enemy_attacking(handle: &mut RainHandle) {
     for e in to_idle {
         handle.world.insert_one(e, Idle).unwrap();
         handle.world.remove_one::<Attacking>(e).unwrap();
-        let _ = handle.world.remove_one::<Friction>(e).is_ok();
+        let _ = handle.world.remove::<(Friction, HitBox)>(e).is_ok();
     }
     for (e, friction) in to_add_friction {
         handle.world.insert_one(e, friction).unwrap();
+    }
+    for (e, hitbox) in to_add_hitbox {
+        handle.world.insert_one(e, hitbox).unwrap();
     }
 }
 

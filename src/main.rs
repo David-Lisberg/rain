@@ -17,15 +17,17 @@ use crate::game::entity::ai::system_enemy_attacking;
 use crate::game::entity::ai::system_enemy_idle;
 use crate::game::entity::ai::system_enemy_tracking;
 use crate::game::entity::damage::Health;
+use crate::game::entity::damage::HurtBox;
 // use crate::game::entity::ai::system_timer_lose_target;
 use crate::game::entity::damage::system_hitbox_hurtbox_collision;
 use crate::game::entity::enemy::Enemy;
 use crate::game::entity::enemy::EnemyType;
 use crate::game::entity::enemy::spawn_enemy;
-use crate::game::entity::enemy::system_enemy_management;
+use crate::game::entity::enemy::system_manage_enemies;
 use crate::game::entity::despawn::system_timer_despawn;
 use crate::game::entity::enemy::system_update_enemy_facing;
 use crate::game::entity::path::system_path_walk;
+use crate::game::entity::projectile::system_manage_projectiles;
 use crate::game::player::action::system_player_action;
 use crate::game::player::action::system_update_player_texture;
 use crate::game::player::input::*;
@@ -84,6 +86,7 @@ pub mod game {
         pub mod damage;
         pub mod ai;
         pub mod path;
+        pub mod projectile;
     }
 }
 
@@ -105,12 +108,10 @@ impl RainState for State {
 
         system_manage_chunks(handle, self);
         system_world_generation(handle, self);
-        system_enemy_management(handle, self);
+        system_manage_enemies(handle, self);
         system_enemy_idle(handle, self);
         system_enemy_tracking(handle, self);
         system_enemy_attacking(handle);
-        // system_enemy_line_of_sight(handle, self);
-        // system_enemy_pathfinding(handle, self);
         system_path_walk(handle);
         
         system_player_walk(handle);
@@ -121,10 +122,10 @@ impl RainState for State {
         system_physics_movement_2d(handle, self);
 
         system_hitbox_hurtbox_collision(handle, self);
+        system_manage_projectiles(handle);
         system_item_drop_pickup(handle);
         system_timer_despawn(handle);
         system_timer_pickup(handle);
-        // system_timer_lose_target(handle);
 
         system_update_player_texture(handle);
         system_update_enemy_facing(handle);
@@ -169,17 +170,19 @@ impl RainState for State {
         handle.load_texture("item_coati_pelt", "res/texture/item_coati_pelt.png").expect("Error loading texture.");
 
         let player_texture = handle.fetch_texture("player_front").unwrap();
+        let player_collider = Collider::from_center(0.0, 0.0, 0.8, 0.8);
         let player_entity = handle.world.spawn((
             Player, Sprite, Visible, 
             Position2D(Vec2::ZERO), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), Friction(25.0),
             Scale2D(Vec2::new(0.8, 0.8)), Direction(Vec2::new(0.0, -1.0)), player_texture, Priority(1), DepthZ(DEPTH_PLAYER), Flip(false, false), 
-            Collider::from_center(0.0, 0.0, 0.8, 0.8),
+            player_collider,
             Inventory::new(36),
         ));
-        handle.world.insert_one(player_entity, Health::new(100.0)).unwrap();
+        handle.world.insert(player_entity, (Health::new(100.0), HurtBox(Collider::from_center(0.0, 0.0, 0.8, 0.8)))).unwrap();
 
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
-
+            // inventory.add_item(Item::new(ItemType::Sling), 1);
+            // inventory.add_item(Item::new(ItemType::Stone), 10);
         }
 
         spawn_enemy(handle, self, Vec2::new(20.0, 1.0), Enemy::new(EnemyType::Coati));
