@@ -74,12 +74,13 @@ pub fn system_enemy_tracking(handle: &mut RainHandle, state: &mut State) {
     let mut to_attack: Vec<(Entity, Entity)> = Vec::new();
     let mut to_add_path: Vec<(Entity, Path)> = Vec::new();
 
-    let mut target: Option<Vec2> = None;
-    for (_, tracking) in handle.world.query::<&Tracking>().iter() {
-        target = Some(handle.world.get::<&Position2D>(tracking.0).unwrap().0);
+    let mut targets: Vec<(Entity, Vec2)> = Vec::new();
+    for (e, tracking) in handle.world.query::<&Tracking>().iter() {
+        let position = handle.world.get::<&Position2D>(tracking.0).unwrap().0;
+        targets.push((e, position));
     }
-    if let Some(target_position) = target {
-        for (e, (tracking, enemy, position, collider)) in handle.world.query_mut::<(&mut Tracking, &Enemy, &Position2D, &Collider)>() {
+    for (e, target_position) in targets {
+        if let Ok((tracking, enemy, position, collider)) = handle.world.query_one_mut::<(&mut Tracking, &Enemy, &Position2D, &Collider)>(e) {
             if check_line_of_sight(state, position.0, target_position, collider, enemy.tracking_range) {
                 tracking.1.reset();
             } else {
@@ -126,12 +127,13 @@ pub fn system_enemy_attacking(handle: &mut RainHandle) {
     let mut to_add_friction: Vec<(Entity, Friction)> = Vec::new();
     let mut to_add_hitbox: Vec<(Entity, HitBox)> = Vec::new();
 
-    let mut target: Option<Vec2> = None;
-    for (_, attacking) in handle.world.query::<&Attacking>().iter() {
-        target = Some(handle.world.get::<&Position2D>(attacking.0).unwrap().0);
+    let mut targets: Vec<(Entity, Vec2)> = Vec::new();
+    for (e, attacking) in handle.world.query::<&Attacking>().iter() {
+        let position = handle.world.get::<&Position2D>(attacking.0).unwrap().0;
+        targets.push((e, position));
     }
-    if let Some(target_position) = target {
-        for (e, (attacking, enemy, position, velocity)) in handle.world.query_mut::<(&mut Attacking, &Enemy, &Position2D, &mut Velocity2D)>() {
+    for (e, target_position) in targets {
+        if let Ok((attacking, enemy, position, velocity)) = handle.world.query_one_mut::<(&mut Attacking, &Enemy, &Position2D, &mut Velocity2D)>(e) {
             if !attacking.1.step(handle.delta_time) {
                 continue;
             }

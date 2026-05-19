@@ -84,6 +84,6 @@ pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle, state: &mut Stat
 
 pub fn system_health_bar(handle: &mut RainHandle) {
     for (_, health_bar) in handle.world.query::<&HealthBar>().iter() {
-
+        
     }
 }
