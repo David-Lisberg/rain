@@ -1,7 +1,7 @@
-use rain::engine::{component::Position2D, core::RainHandle};
+use rain::engine::{color::Color, component::Position2D, core::RainHandle};
 use lgui::element::*;
 
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, State, game::player::{inventory::*, movement::Player}};
+use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, State, game::{entity::damage::Health, player::{inventory::*, movement::Player}}};
 
 
 pub const INVENTORY_SLOT_SIZE: f32 = 54.0;
@@ -9,6 +9,9 @@ pub const INVENTORY_SLOT_HEIGHT: f32 = SCREEN_HEIGHT - (INVENTORY_SLOT_SIZE + IN
 pub const INVENTORY_SLOT_GAP: f32 = 10.0;
 pub const INVENTORY_GAP: f32 = 250.0;
 pub const INVENTORY_SLOT_FONT_SIZE: u32 = 15;
+const HEALTH_BAR_GAP: f32 = 40.0;
+const HEALTH_BAR_HEIGHT: f32 = INVENTORY_SLOT_HEIGHT - HEALTH_BAR_GAP;
+const HEALTH_BAR_WIDTH: f32 = INVENTORY_SLOT_SIZE * 7.5;
 
 pub fn render_ui(handle: &mut RainHandle, state: &mut State) {
     let current_width = handle.renderer.config.width as f32;
@@ -35,7 +38,7 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
         .scale(Scale::NormalShift)
         .visible(false);
 
-    for (_, (_, inventory)) in handle.world.query::<(&Player, &Inventory)>().iter() {
+    for (_, (_, inventory, health)) in handle.world.query::<(&Player, &Inventory, &Health)>().iter() {
 
         for i in INVENTORY_SLOTS_HOTBAR {
             let x = start + i as f32 * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP);
@@ -133,6 +136,25 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
                     .build()    
             );
         }
+
+        element.sub_element_ex(||
+            EBuilder::new((SCREEN_WIDTH - HEALTH_BAR_WIDTH) / 2.0, HEALTH_BAR_HEIGHT)
+                .rect(HEALTH_BAR_WIDTH, HEALTH_BAR_WIDTH / 24.0)
+                .texture(handle.fetch_texture("health_bar_background").unwrap())
+                .build()
+        );
+        element.sub_element_ex(||
+            EBuilder::new((SCREEN_WIDTH - HEALTH_BAR_WIDTH * 188.0 / 192.0) / 2.0, HEALTH_BAR_HEIGHT + HEALTH_BAR_WIDTH / 96.0)
+                .rect(HEALTH_BAR_WIDTH * 188.0 / 192.0 * health.current / health.max, HEALTH_BAR_WIDTH / 48.0)
+                .color(Color::RED.into())
+                .build()
+        );
+        element.sub_element_ex(||
+            EBuilder::new((SCREEN_WIDTH - HEALTH_BAR_WIDTH) / 2.0, HEALTH_BAR_HEIGHT)
+                .rect(HEALTH_BAR_WIDTH, HEALTH_BAR_WIDTH / 24.0)
+                .texture(handle.fetch_texture("health_bar_frame").unwrap())
+                .build()
+        );
     }
     state.gui.element(element.build());
 }

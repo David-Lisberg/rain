@@ -16,6 +16,7 @@ use crate::game::core::ui::render_ui;
 use crate::game::entity::ai::system_enemy_attacking;
 use crate::game::entity::ai::system_enemy_idle;
 use crate::game::entity::ai::system_enemy_tracking;
+use crate::game::entity::damage::Health;
 // use crate::game::entity::ai::system_timer_lose_target;
 use crate::game::entity::damage::system_hitbox_hurtbox_collision;
 use crate::game::entity::enemy::Enemy;
@@ -157,6 +158,8 @@ impl RainState for State {
         handle.load_texture("item_sling", "res/texture/item_sling.png").expect("Error loading texture.");
         handle.load_texture("item_wood", "res/texture/item_wood.png").expect("Error loading texture.");
         handle.load_texture("flint_hatchet", "res/texture/flint_hatchet.png").expect("Error loading texture.");
+        handle.load_texture("health_bar_frame", "res/texture/health_bar_frame.png").expect("Error loading texture.");
+        handle.load_texture("health_bar_background", "res/texture/health_bar_background.png").expect("Error loading texture.");
         handle.load_texture("inventory_slot", "res/texture/inventory_slot.png").expect("Error loading texture.");
         handle.load_texture("inventory_slot_selected", "res/texture/inventory_slot_selected.png").expect("Error loading texture.");
         handle.load_texture("player_front", "res/texture/player_front.png").expect("Error loading texture.");
@@ -166,13 +169,14 @@ impl RainState for State {
         handle.load_texture("item_coati_pelt", "res/texture/item_coati_pelt.png").expect("Error loading texture.");
 
         let player_texture = handle.fetch_texture("player_front").unwrap();
-        handle.world.spawn((
+        let player_entity = handle.world.spawn((
             Player, Sprite, Visible, 
             Position2D(Vec2::ZERO), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), Friction(25.0),
             Scale2D(Vec2::new(0.8, 0.8)), Direction(Vec2::new(0.0, -1.0)), player_texture, Priority(1), DepthZ(DEPTH_PLAYER), Flip(false, false), 
             Collider::from_center(0.0, 0.0, 0.8, 0.8),
             Inventory::new(36),
         ));
+        handle.world.insert_one(player_entity, Health::new(100.0)).unwrap();
 
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
 

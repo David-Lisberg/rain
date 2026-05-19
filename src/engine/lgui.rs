@@ -10,6 +10,12 @@ impl From<lgui::platform::Color> for Color {
     }
 }
 
+impl From<Color> for lgui::platform::Color {
+    fn from(value: Color) -> Self {
+        Self { r: value.r, g: value.g, b: value.b, a: value.a }
+    }
+}
+
 impl lgui::platform::Texture for Texture {
     fn as_any_arc(self: Arc<Self>) -> Arc<dyn Any + Send + Sync> {
         self

@@ -12,7 +12,16 @@ pub struct HitBox {
     pub uses: i32,
 }
 
-pub struct Health(pub f32);
+pub struct Health {
+    pub max: f32,
+    pub current: f32,
+}
+
+impl Health {
+    pub fn new(max: f32) -> Self {
+        Self { max, current: max }
+    }
+}
 
 pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle, state: &mut State) {
     let mut hitboxes: Vec<(Entity, HitBox)> = Vec::new();
@@ -32,8 +41,8 @@ pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle, state: &mut Stat
                 if hitbox.uses <= 0 {
                     to_remove.push(*other_e);
                 }
-                health.0 -= hitbox.damage;
-                if health.0 <= 0.0 {
+                health.current -= hitbox.damage;
+                if health.current <= 0.0 {
                     to_kill.push(e);
                     break;
                 }

@@ -61,12 +61,10 @@ pub fn system_enemy_idle(handle: &mut RainHandle, state: &mut State) {
     }
 
     for e in to_track {
-        println!("idle -> track");
         handle.world.insert_one(e, Tracking(player_e, Timer::new(5.0))).unwrap();
         handle.world.remove_one::<Idle>(e).unwrap();
     }
     for (e, path) in to_add_path {
-        println!("idle path walking");
         handle.world.insert_one(e, path).unwrap();
     }
 }
@@ -105,16 +103,13 @@ pub fn system_enemy_tracking(handle: &mut RainHandle, state: &mut State) {
     }
 
     for e in to_idle {
-        println!("track -> idle");
         handle.world.insert_one(e, Idle).unwrap();
         handle.world.remove_one::<Tracking>(e).unwrap();
     }
     for (e, path) in to_add_path {
-        println!("track path wakling");
         handle.world.insert_one(e, path).unwrap();
     }
     for (e, target_entity) in to_attack {
-        println!("track -> attack");
         handle.world.insert_one(e, Attacking(target_entity, Timer::new(1.0), false)).unwrap();
         handle.world.remove_one::<Tracking>(e).unwrap();
         let removed = handle.world.remove_one::<Path>(e).is_ok();
@@ -153,7 +148,6 @@ pub fn system_enemy_attacking(handle: &mut RainHandle) {
     }
 
     for e in to_idle {
-        println!("attack -> idle");
         handle.world.insert_one(e, Idle).unwrap();
         handle.world.remove_one::<Attacking>(e).unwrap();
         let _ = handle.world.remove_one::<Friction>(e).is_ok();
@@ -293,23 +287,3 @@ fn line_of_sight_raycast(start: Vec2, finish: Vec2, collider: Option<&Collider>,
         !other_colliders.iter().any(|other| other.aabb_collision_ray(&start, &finish))
     }
 }
-
-// pub fn system_timer_lose_target(handle: &mut RainHandle) {
-//     let mut to_lose_target: Vec<Entity> = Vec::new();
-
-//     for (e, timer_lose_target) in handle.world.query_mut::<&mut TimerLoseTracking>() {
-//         if timer_lose_target.0.step(handle.delta_time) {
-//             to_lose_target.push(e);
-//         }
-//     }
-
-//     for e in to_lose_target {
-//         handle.world.remove::<(Tracking, TimerLoseTracking)>(e).unwrap();
-//         let removed = handle.world.remove_one::<Path>(e).is_ok();
-//         if removed {
-//             if let Ok(mut velocity) = handle.world.get::<&mut Velocity2D>(e) {
-//                 velocity.0 = Vec2::ZERO;
-//             }
-//         }
-//     }
-// }

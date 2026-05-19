@@ -92,7 +92,7 @@ pub fn spawn_enemy(handle: &mut RainHandle, state: &mut State, position: Vec2, e
     state.enemy_count += 1;
 
     handle.world.spawn((Sprite, Visible, enemy, Idle, Position2D(position), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), 
-        texture, Scale2D(Vec2::new(1.0, 1.0)), DepthZ(DEPTH_PLAYER), Priority(1), Flip(false, false), Health(5.0), collider, HurtBox(collider)));
+        texture, Scale2D(Vec2::new(1.0, 1.0)), DepthZ(DEPTH_PLAYER), Priority(1), Flip(false, false), Health::new(5.0), collider, HurtBox(collider)));
 }
 
 pub fn system_update_enemy_facing(handle: &mut RainHandle) {
