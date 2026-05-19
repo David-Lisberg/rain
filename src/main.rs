@@ -19,7 +19,6 @@ use crate::game::entity::ai::system_enemy_tracking;
 use crate::game::entity::damage::Health;
 use crate::game::entity::damage::HurtBox;
 use crate::game::entity::damage::system_health_bar;
-// use crate::game::entity::ai::system_timer_lose_target;
 use crate::game::entity::damage::system_hitbox_hurtbox_collision;
 use crate::game::entity::enemy::Enemy;
 use crate::game::entity::enemy::EnemyType;
@@ -46,6 +45,8 @@ use crate::game::world::chunk::ChunkPosition;
 use crate::game::world::chunk::system_manage_chunks;
 use crate::game::world::config::WorldGenConfig;
 use crate::game::world::generation::system_world_generation;
+use crate::game::world::reset::Persistent;
+use crate::game::world::reset::system_reset_world;
 
 pub const SCREEN_WIDTH: f32 = 850.0;
 pub const SCREEN_HEIGHT: f32 = 600.0;
@@ -62,6 +63,7 @@ pub mod game {
         pub mod tile;
         pub mod object;
         pub mod config;
+        pub mod reset;
     }
     pub mod core {
         pub mod physics;
@@ -100,6 +102,7 @@ pub struct State {
     zoom: f32,
     counter: i32,
     enemy_count: i32,
+    to_reset: bool,
 }
 
 impl RainState for State {
@@ -134,6 +137,8 @@ impl RainState for State {
         system_camera_controller(handle, self);
         system_camera_tracker(handle);
         system_camera_zoom(handle, self);
+
+        system_reset_world(handle, self);
 
         self.counter += 1;
     }
@@ -180,7 +185,9 @@ impl RainState for State {
             player_collider,
             Inventory::new(36),
         ));
-        handle.world.insert(player_entity, (Health::new(100.0), HurtBox(Collider::from_center(0.0, 0.0, 0.8, 0.8)))).unwrap();
+        handle.world.insert(player_entity, (
+            Health::new(100.0), HurtBox(Collider::from_center(0.0, 0.0, 0.8, 0.8)), Persistent
+        )).unwrap();
 
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
             // inventory.add_item(Item::new(ItemType::Sling), 1);
@@ -206,6 +213,7 @@ fn main() -> anyhow::Result<()> {
         zoom: 1.0,
         counter: 0,
         enemy_count: 0,
+        to_reset: false,
     };
     let _ = RainApp::new(state)
         .size(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32)

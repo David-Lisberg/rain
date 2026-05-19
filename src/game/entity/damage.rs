@@ -1,7 +1,7 @@
 use hecs::Entity;
 use rain::engine::{component::Position2D, core::RainHandle};
 
-use crate::{State, game::{core::collision::Collider, entity::enemy::{Enemy, EnemyType}, player::item::{Item, ItemType, spawn_item_drop}, utility::timer::Timer}};
+use crate::{State, game::{core::collision::Collider, entity::enemy::{Enemy, EnemyType}, player::{item::{Item, ItemType, spawn_item_drop}, movement::Player}, utility::timer::Timer}};
 
 pub struct HurtBox(pub Collider);
 #[derive(Clone)]
@@ -74,7 +74,13 @@ pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle, state: &mut Stat
         spawn_item_drop(handle, position, item, quantity);
     }
     for e in to_despawn {
-        state.enemy_count -= 1;
+        if handle.world.get::<&Enemy>(e).is_ok() {
+            state.enemy_count -= 1;
+        }
+        if handle.world.get::<&Player>(e).is_ok() {
+            state.to_reset = true;
+            break;
+        }
         handle.world.despawn(e).unwrap();
     }
     for e in to_remove_hitbox {
