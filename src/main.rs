@@ -157,6 +157,8 @@ impl RainState for State {
         handle.load_texture("tile_cobblestone", "res/texture/cobblestone.png").expect("Error loading texture.");
         handle.load_texture("tile_water", "res/texture/water.png").expect("Error loading texture.");
         handle.load_texture("tile_sand", "res/texture/sand.png").expect("Error loading texture.");
+        handle.load_texture("tile_clay", "res/texture/tile_clay.png").expect("Error loading texture.");
+        handle.load_texture("tile_mud", "res/texture/tile_mud.png").expect("Error loading texture.");
         handle.load_texture("object_tree1", "res/texture/tree1.png").expect("Error loading texture.");
         handle.load_texture("object_twig", "res/texture/twig.png").expect("Error loading texture.");
         handle.load_texture("object_grass", "res/texture/object_grass.png").expect("Error loading texture.");
@@ -165,7 +167,7 @@ impl RainState for State {
         handle.load_texture("item_twine", "res/texture/item_twine.png").expect("Error loading texture.");
         handle.load_texture("item_sling", "res/texture/item_sling.png").expect("Error loading texture.");
         handle.load_texture("item_wood", "res/texture/item_wood.png").expect("Error loading texture.");
-        handle.load_texture("item_wood_planks", "res/texture/item_wood.png").expect("Error loading texture.");
+        handle.load_texture("item_wood_planks", "res/texture/item_wood_planks.png").expect("Error loading texture.");
         handle.load_texture("flint_hatchet", "res/texture/flint_hatchet.png").expect("Error loading texture.");
         handle.load_texture("health_bar_frame", "res/texture/health_bar_frame.png").expect("Error loading texture.");
         handle.load_texture("health_bar_background", "res/texture/health_bar_background.png").expect("Error loading texture.");
@@ -192,8 +194,7 @@ impl RainState for State {
         )).unwrap();
 
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
-            // inventory.add_item(Item::new(ItemType::Sling), 1);
-            // inventory.add_item(Item::new(ItemType::Stone), 10);
+            inventory.add_item(Item::new(ItemType::FlintHatchet), 1);
         }
 
         spawn_enemy(handle, self, Vec2::new(20.0, 1.0), Enemy::new(EnemyType::Coati));

@@ -1,10 +1,12 @@
-use glam::Vec2;
+use std::collections::{HashMap, VecDeque};
+
+use glam::{IVec2, Vec2};
 use hecs::Entity;
 use rain::engine::{component::{Position2D, Visible}, core::RainHandle, mesh::ModelMesh, resource::ARRAY_256X256_ID, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
 use rand::RngExt;
 use wgpu::util::DeviceExt;
 
-use crate::{State, game::{utility::noise::{noise_normalize, octave_noise_2d}, world::{generation::CHUNK_GENERATION_DISTANCE, object::{Object, ObjectType, construct_object_default, reload_object_mesh}, tile::{Tile, TileType}}}};
+use crate::{State, game::{utility::noise::{noise_normalize, octave_noise_2d}, world::{generation::CHUNK_GENERATION_DISTANCE, object::{Object, construct_object_default, reload_object_mesh}, tile::{Tile, TileType}}}};
 use crate::game::player::movement::Player;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
@@ -42,63 +44,108 @@ pub struct ChunkData {
 pub const CHUNK_DIM: usize = 32; /* indices should be u32s if CHUNK_DIM > 64 */
 const NOISE_TILE_SCALE_FACTOR: f64 = 0.0123;
 const NOISE_OBJECT_SCALE_FACTOR: f64 = 0.017;
+const NOISE_DENSITY_SCALE_FACTOR: f64 = 0.0243;
+const NOISE_WATER_BANK_SCALE_FACTOR: f64 = 0.035;
+const ADJACENT_TILE: [IVec2; 4] = [IVec2::new(-1, 0), IVec2::new(1, 0), IVec2::new(0, -1), IVec2::new(0, 1)];
 
 pub fn generate_chunk(chunk_position: ChunkPosition, state: &mut State) -> ChunkData {
     let mut objects: Vec<Object> = Vec::new();
 
-    let tiles = std::array::from_fn(|i| {
+    let mut tiles = std::array::from_fn(|i| {
         let x = (chunk_position.x * CHUNK_DIM as i32) as f64 + (i % CHUNK_DIM) as f64;
         let y = (chunk_position.y * CHUNK_DIM as i32) as f64 + (i / CHUNK_DIM) as f64;
         let mut noise_value = octave_noise_2d(x * NOISE_TILE_SCALE_FACTOR, y * NOISE_TILE_SCALE_FACTOR, 6, 0.5, &state.perlin);
         noise_value = noise_normalize(noise_value);
 
-        let _type = {
-            let mut _type: Option<TileType> = None;
-            for ((low, high), tile) in state.world_gen_config.tile_noise {
+        let tile_type = {
+            let mut tile_type: Option<TileType> = None;
+            for ((low, high), tile) in state.world_gen_config.tile_rule {
                 if noise_value >= *low && noise_value < *high {
-                    _type = Some(tile.clone());
+                    tile_type = Some(tile.clone());
                 }
             }
-            _type.unwrap_or(state.world_gen_config.default_tile.clone())
+            tile_type.unwrap_or(state.world_gen_config.default_tile.clone())
         };
-        // let _type = match noise_value {
-        //     v if v >= 0.85 => TileType::Cobblestone,
-        //     v if v >= 0.65 && v < 0.85 => TileType::Stone,
-        //     v if v >= 0.6 && v < 0.65 => TileType::Dirt,
-        //     v if v >= 0.48 && v < 0.6 => TileType::Grass2,
-        //     v if v >= 0.35 && v < 0.48 => TileType::Grass,
-        //     v if v >= 0.3 && v < 0.35 => TileType::Sand,
-        //     v if v < 0.3 => TileType::Water,
-        //     _ => TileType::Dirt
-        // };
 
-        if _type == TileType::Grass || _type == TileType::Grass2 {
-            let mut noise_value = octave_noise_2d(x * NOISE_OBJECT_SCALE_FACTOR, y * NOISE_OBJECT_SCALE_FACTOR, 2, 0.5, &state.perlin);
-            noise_value = noise_normalize(noise_value);
-            noise_value -= state.rng.random::<f64>();
-            let position = Vec2::new(x as f32 + (state.rng.random::<f32>() - 0.5) / 7.0, y as f32 + (state.rng.random::<f32>() - 0.5) / 7.0);
-            if noise_value > 0.48 {
-                objects.push(construct_object_default(ObjectType::Tree1, position));
-            } else if noise_value <= 0.3 && noise_value > 0.2 {
-                objects.push(construct_object_default(ObjectType::Twig, position));
-            } else if noise_value <= 0.1 && noise_value > 0.03 {
-                objects.push(construct_object_default(ObjectType::Grass, position));
-            }
-        }
-        if _type == TileType::Stone {
-            let mut noise_value = octave_noise_2d(x * NOISE_OBJECT_SCALE_FACTOR, y * NOISE_OBJECT_SCALE_FACTOR, 2, 0.5, &state.perlin);
-            noise_value = noise_normalize(noise_value);
-            noise_value -= state.rng.random::<f64>();
-            let position = Vec2::new(x as f32 + (state.rng.random::<f32>() - 0.5) / 7.0, y as f32 + (state.rng.random::<f32>() - 0.5) / 7.0);
-            if noise_value <= 0.3 && noise_value > 0.2 {
-                objects.push(construct_object_default(ObjectType::Stone, position));
-            } else if noise_value <= 0.1 && noise_value > 0.05 {
-                objects.push(construct_object_default(ObjectType::Flint, position));
-            }
-        }
-
-        Tile { _type }
+        Tile { _type: tile_type }
     });
+
+
+    let mut water_bank_queue: VecDeque<usize> = VecDeque::new();
+    let mut water_distance: HashMap<usize, f32> = HashMap::new();
+
+    for (i, tile) in tiles.iter_mut().enumerate() {
+        if tile._type == TileType::Water {
+            water_bank_queue.push_back(i);
+            water_distance.insert(i, 0.0);
+        }
+    }
+
+    while let Some(index) = water_bank_queue.pop_front() {
+        let tile_position = IVec2::new((index % CHUNK_DIM) as i32, (index / CHUNK_DIM) as i32);
+
+        for adjacent in ADJACENT_TILE {
+            let neighbor_position = tile_position + adjacent;
+
+            if neighbor_position.x < 0 || neighbor_position.x >= CHUNK_DIM as i32 ||
+               neighbor_position.y < 0 || neighbor_position.y >= CHUNK_DIM as i32 {
+                continue;
+            }
+
+            let neighbor = neighbor_position.y as usize * CHUNK_DIM + neighbor_position.x as usize;
+            if !water_distance.contains_key(&neighbor) {
+                water_distance.insert(neighbor, water_distance[&index] + 1.0);
+                water_bank_queue.push_back(neighbor);
+            }
+        }
+    }
+
+    for (index, distance) in std::mem::take(&mut water_distance) {
+        if distance <= 5.0 && distance > 0.0 {
+            let x = (chunk_position.x * CHUNK_DIM as i32) as f64 + (index % CHUNK_DIM) as f64;
+            let y = (chunk_position.y * CHUNK_DIM as i32) as f64 + (index / CHUNK_DIM) as f64;
+            let mut noise_value = octave_noise_2d(x * NOISE_WATER_BANK_SCALE_FACTOR, y * NOISE_WATER_BANK_SCALE_FACTOR, 2, 0.5, &state.perlin);
+            noise_value = noise_normalize(noise_value) + (5.0 - distance as f64) / 11.0;
+            
+            match noise_value {
+                v if v >= 0.85 => tiles[index] = Tile { _type: TileType::Clay },
+                v if v >= 0.5 && v < 0.85 && tiles[index]._type == TileType::Grass => tiles[index] = Tile { _type: TileType::Mud },
+                _ => {}
+            }
+        }
+    }
+
+    for (i, tile) in tiles.iter().enumerate() {
+        let x = (chunk_position.x * CHUNK_DIM as i32) as f64 + (i % CHUNK_DIM) as f64;
+        let y = (chunk_position.y * CHUNK_DIM as i32) as f64 + (i / CHUNK_DIM) as f64;
+
+        let mut object: Option<Object> = None;
+
+        let mut noise_value = octave_noise_2d(x * NOISE_OBJECT_SCALE_FACTOR, y * NOISE_OBJECT_SCALE_FACTOR, 2, 0.5, &state.perlin);
+        let mut noise_density = octave_noise_2d(x * NOISE_DENSITY_SCALE_FACTOR, y * NOISE_DENSITY_SCALE_FACTOR, 2, 0.5, &state.perlin);
+        noise_value = noise_normalize(noise_value);
+        noise_density = noise_density * 0.25 + 0.6;
+
+        let position = Vec2::new(x as f32 + (state.rng.random::<f32>() - 0.5) / 7.0, y as f32 + (state.rng.random::<f32>() - 0.5) / 7.0);
+
+        for ((low, high), chance, tile_types, object_type) in state.world_gen_config.object_rule {
+            let random_value = state.rng.random::<f64>() * noise_density;
+            if noise_value >= *low && noise_value < *high && random_value <= *chance {
+                for tile_type in tile_types.iter() {
+                    if tile._type == *tile_type {
+                        object = Some(construct_object_default(*object_type, position));
+                        break;
+                    }
+                }
+            }
+            if object.is_some() {
+                break;
+            }
+        }
+        if let Some(o) = object {
+            objects.push(o);
+        }
+    }
 
     ChunkData {
         position: chunk_position,

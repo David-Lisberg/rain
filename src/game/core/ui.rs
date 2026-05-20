@@ -158,7 +158,7 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
                 if recipe.output.1 > 1 {
                     recipe_element.sub_element_ex(||
                         EBuilder::new(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE - INVENTORY_SLOT_FONT_SIZE as f32)
-                            .shape(Shape::Text(format!("{}", inventory.slots[i].quantity), INVENTORY_SLOT_FONT_SIZE, Allignment::Right))
+                            .shape(Shape::Text(format!("{}", recipe.output.1), INVENTORY_SLOT_FONT_SIZE, Allignment::Right))
                             .build()
                     );
                 }

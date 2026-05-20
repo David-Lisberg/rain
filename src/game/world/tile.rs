@@ -23,6 +23,8 @@ pub enum TileType {
     Cobblestone,
     Water,
     Sand,
+    Clay,
+    Mud
 }
 
 #[derive(Serialize, Deserialize)]
@@ -47,6 +49,8 @@ impl TileType {
             TileType::Cobblestone => resource_manager.fetch_texture("tile_cobblestone").unwrap(),
             TileType::Water => resource_manager.fetch_texture("tile_water").unwrap(),
             TileType::Sand => resource_manager.fetch_texture("tile_sand").unwrap(),
+            TileType::Clay => resource_manager.fetch_texture("tile_clay").unwrap(),
+            TileType::Mud => resource_manager.fetch_texture("tile_mud").unwrap(),
         }
     }
 }
