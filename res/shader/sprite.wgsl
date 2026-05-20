@@ -9,7 +9,9 @@ struct InstanceData {
     @location(4) model_transform_2: vec4<f32>,
     @location(5) model_transform_3: vec4<f32>,
     @location(6) color: vec4<f32>,
-    @location(7) layer: u32,
+    @location(7) uv_offset: vec2<f32>,
+    @location(8) uv_scale: vec2<f32>,
+    @location(9) layer: u32,
 }
 
 struct CameraUniform {
@@ -38,7 +40,7 @@ fn vs_main(
         instance.model_transform_3,
     );
     
-    out.uv = model.uv;
+    out.uv = instance.uv_offset + model.uv * instance.uv_scale;
     out.layer = instance.layer;
     out.color = instance.color;
     out.clip_position = camera.view_proj * model_transform * vec4<f32>(model.position, 0.0, 1.0);

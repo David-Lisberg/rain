@@ -78,10 +78,10 @@ impl RainHandle {
         self.renderer.draw_pass.draw_calls.push(DrawCall::Mesh(
             UIMesh {
                 vertices: vec![
-                    UIVertex { position: [ndc1.x, ndc2.y], uv: [0.0, texture.uv[1]], layer: texture.index, color: color_array },
-                    UIVertex { position: [ndc2.x, ndc2.y], uv: [texture.uv[0], texture.uv[1]], layer: texture.index, color: color_array },
+                    UIVertex { position: [ndc1.x, ndc2.y], uv: [0.0, texture.uv_scale[1]], layer: texture.index, color: color_array },
+                    UIVertex { position: [ndc2.x, ndc2.y], uv: [texture.uv_scale[0], texture.uv_scale[1]], layer: texture.index, color: color_array },
                     UIVertex { position: [ndc1.x, ndc1.y], uv: [0.0, 0.0], layer: texture.index, color: color_array },
-                    UIVertex { position: [ndc2.x, ndc1.y], uv: [texture.uv[0], 0.0], layer: texture.index, color: color_array },
+                    UIVertex { position: [ndc2.x, ndc1.y], uv: [texture.uv_scale[0], 0.0], layer: texture.index, color: color_array },
                 ],
                 indices: INDICES_RECTANGLE.to_vec(),
                 material: texture,
@@ -107,10 +107,10 @@ impl RainHandle {
         self.renderer.draw_pass.draw_calls.push(DrawCall::Mesh(
             UIMesh {
                 vertices: vec![
-                    UIVertex { position: p1_ndc.into(), uv: [0.0, texture.uv[1]], layer: texture.index, color: color_array },
-                    UIVertex { position: p2_ndc.into(), uv: [texture.uv[0], texture.uv[1]], layer: texture.index, color: color_array },
+                    UIVertex { position: p1_ndc.into(), uv: [0.0, texture.uv_scale[1]], layer: texture.index, color: color_array },
+                    UIVertex { position: p2_ndc.into(), uv: [texture.uv_scale[0], texture.uv_scale[1]], layer: texture.index, color: color_array },
                     UIVertex { position: p3_ndc.into(), uv: [0.0, 0.0], layer: texture.index, color: color_array },
-                    UIVertex { position: p4_ndc.into(), uv: [texture.uv[0], 0.0], layer: texture.index, color: color_array },
+                    UIVertex { position: p4_ndc.into(), uv: [texture.uv_scale[0], 0.0], layer: texture.index, color: color_array },
                 ],
                 indices: INDICES_RECTANGLE.to_vec(),
                 material: texture,

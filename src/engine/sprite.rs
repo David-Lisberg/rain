@@ -14,9 +14,9 @@ impl SpriteRender {
         color: Option<&Color>, texture: Option<&Arc<Texture>>
     ) -> Self {
         let (instance, array_id) = if let Some(t) = texture {
-            (SpriteInstance::new(pos, depth, scale, rotation, flip, color, t.index), t.array_id)
+            (SpriteInstance::new(pos, depth, scale, rotation, flip, color, t.uv_offset, t.uv_scale, t.index), t.array_id)
         } else {
-            (SpriteInstance::new(pos, depth, scale, rotation, flip, color, 0), 0)
+            (SpriteInstance::new(pos, depth, scale, rotation, flip, color, [0.0, 0.0], [1.0, 1.0], 0), 0)
         };
         Self {
             instance,

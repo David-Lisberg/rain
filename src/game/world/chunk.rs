@@ -166,9 +166,9 @@ pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData) -> Model
         let y = (chunk.position.y * CHUNK_DIM as i32) as f32 + (i / CHUNK_DIM) as f32;
         
         let vertices = vec![
-            ModelVertex { position: [x, y, 0.0], uv: [0.0, tile_texture.uv[1]], color, layer: tile_texture.index },
-            ModelVertex { position: [x + 1.0, y, 0.0], uv: [tile_texture.uv[0], tile_texture.uv[1]], color, layer: tile_texture.index },
-            ModelVertex { position: [x + 1.0, y + 1.0, 0.0], uv: [tile_texture.uv[0], 0.0], color, layer: tile_texture.index },
+            ModelVertex { position: [x, y, 0.0], uv: [0.0, tile_texture.uv_scale[1]], color, layer: tile_texture.index },
+            ModelVertex { position: [x + 1.0, y, 0.0], uv: [tile_texture.uv_scale[0], tile_texture.uv_scale[1]], color, layer: tile_texture.index },
+            ModelVertex { position: [x + 1.0, y + 1.0, 0.0], uv: [tile_texture.uv_scale[0], 0.0], color, layer: tile_texture.index },
             ModelVertex { position: [x, y + 1.0, 0.0], uv: [0.0, 0.0], color, layer: tile_texture.index },
         ];
         let indices: Vec<u16> = SPRITE_QUAD_INDICES.iter().map(|x| x + i as u16 * 4).collect();
