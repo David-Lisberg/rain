@@ -185,7 +185,7 @@ fn check_line_of_sight(state: &mut State, start: Vec2, finish: Vec2, collider: &
     false
 }
 
-fn fetch_object_colliders(state: &mut State, position: Vec2) -> Vec<Collider> {
+pub fn fetch_object_colliders(state: &mut State, position: Vec2) -> Vec<Collider> {
     let mut object_colliders: Vec<Collider> = Vec::new();
     let chunk_position = position_to_chunk_position(position.x, position.y);
     for adjacent in ADJACENT_I32 {

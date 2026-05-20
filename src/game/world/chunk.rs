@@ -2,7 +2,7 @@ use std::collections::{HashMap, VecDeque};
 
 use glam::{IVec2, Vec2};
 use hecs::Entity;
-use rain::engine::{component::{Position2D, Visible}, core::RainHandle, mesh::ModelMesh, resource::ARRAY_256X256_ID, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
+use rain::engine::{color::Color, component::{Position2D, Visible}, core::RainHandle, mesh::ModelMesh, resource::ARRAY_256X256_ID, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
 use rand::RngExt;
 use wgpu::util::DeviceExt;
 
@@ -43,7 +43,7 @@ pub struct ChunkData {
 
 pub const CHUNK_DIM: usize = 32; /* indices should be u32s if CHUNK_DIM > 64 */
 const NOISE_TILE_SCALE_FACTOR: f64 = 0.0123;
-const NOISE_OBJECT_SCALE_FACTOR: f64 = 0.017;
+const NOISE_OBJECT_SCALE_FACTOR: f64 = 0.037;
 const NOISE_DENSITY_SCALE_FACTOR: f64 = 0.0243;
 const NOISE_WATER_BANK_SCALE_FACTOR: f64 = 0.035;
 const ADJACENT_TILE: [IVec2; 4] = [IVec2::new(-1, 0), IVec2::new(1, 0), IVec2::new(0, -1), IVec2::new(0, 1)];
@@ -158,16 +158,18 @@ pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData) -> Model
     let mut model_vertices: Vec<ModelVertex> = Vec::new();
     let mut model_indices: Vec<u16> = Vec::new();
 
+    let color = Color::rain_color_to_array(&Color::WHITE);
+
     for (i, tile) in chunk.tiles.iter().enumerate() {
         let tile_texture = tile._type.fetch_texture(&handle.resource_manager);
         let x = (chunk.position.x * CHUNK_DIM as i32) as f32 + (i % CHUNK_DIM) as f32;
         let y = (chunk.position.y * CHUNK_DIM as i32) as f32 + (i / CHUNK_DIM) as f32;
         
         let vertices = vec![
-            ModelVertex { position: [x, y, 0.0], uv: [0.0, tile_texture.uv[1]], layer: tile_texture.index },
-            ModelVertex { position: [x + 1.0, y, 0.0], uv: [tile_texture.uv[0], tile_texture.uv[1]], layer: tile_texture.index },
-            ModelVertex { position: [x + 1.0, y + 1.0, 0.0], uv: [tile_texture.uv[0], 0.0], layer: tile_texture.index },
-            ModelVertex { position: [x, y + 1.0, 0.0], uv: [0.0, 0.0], layer: tile_texture.index },
+            ModelVertex { position: [x, y, 0.0], uv: [0.0, tile_texture.uv[1]], color, layer: tile_texture.index },
+            ModelVertex { position: [x + 1.0, y, 0.0], uv: [tile_texture.uv[0], tile_texture.uv[1]], color, layer: tile_texture.index },
+            ModelVertex { position: [x + 1.0, y + 1.0, 0.0], uv: [tile_texture.uv[0], 0.0], color, layer: tile_texture.index },
+            ModelVertex { position: [x, y + 1.0, 0.0], uv: [0.0, 0.0], color, layer: tile_texture.index },
         ];
         let indices: Vec<u16> = SPRITE_QUAD_INDICES.iter().map(|x| x + i as u16 * 4).collect();
         model_vertices.extend(vertices);

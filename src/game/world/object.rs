@@ -1,11 +1,11 @@
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use glam::Vec2;
 use hecs::Entity;
-use rain::engine::{component::{Priority, Visible}, core::RainHandle, mesh::ModelMesh, resource::{ARRAY_256X256_ID, ResourceManager}, texture::Texture, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
+use rain::engine::{color::Color, component::{Position2D, Priority, Visible}, core::RainHandle, mesh::ModelMesh, resource::{ARRAY_256X256_ID, ResourceManager}, texture::Texture, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
 use wgpu::util::DeviceExt;
 
-use crate::{DEPTH_PLAYER, DEPTH_SMALL_OBJECT, DEPTH_TREES, State, game::{core::collision::Collider, world::chunk::{ChunkPosition, position_to_chunk_position}}};
+use crate::{DEPTH_PLAYER, DEPTH_SMALL_OBJECT, DEPTH_TREES, State, game::{core::{collision::Collider, physics::ADJACENT_I32}, player::movement::Player, world::chunk::{ChunkPosition, position_to_chunk_position}}};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Object {
@@ -17,6 +17,7 @@ pub struct Object {
     pub size: Vec2,
     pub collider: Collider,
     pub collidable: bool,
+    pub transparent: bool,
 }
 
 impl Object {
@@ -59,6 +60,7 @@ pub fn construct_object_default(_type: ObjectType, position: Vec2) -> Object {
             size: Vec2::new(1.0, 3.0), 
             collider: Collider::new(position.x + 0.2, position.y, 0.8, 1.0),
             collidable: true,
+            transparent: false,
         },
         ObjectType::Twig => object_small_default(_type, position),
         ObjectType::Grass => object_small_default(_type, position),
@@ -77,6 +79,7 @@ fn object_small_default(_type: ObjectType, position: Vec2) -> Object {
         size: Vec2::new(0.6, 0.6), 
         collider: Collider::new(position.x + 0.2, position.y + 0.2, 0.6, 0.6),
         collidable: false,
+        transparent: false,
     }
 }
 
@@ -99,16 +102,20 @@ pub fn construct_object_mesh(handle: &mut RainHandle, state: &mut State) -> Vec<
     objects.sort_by(|a, b| a.position.y.partial_cmp(&b.position.y).unwrap());
     for object in objects.iter() {
         let object_texture = object._type.fetch_texture(&handle.resource_manager);
+        let color = match object.transparent {
+            true => Color::rain_color_to_array(&Color::from_f32(1.0, 1.0, 1.0, 0.5)),
+            false => Color::rain_color_to_array(&Color::WHITE),
+        };
 
         let vertices = vec![
             ModelVertex { position: [object.position.x, object.position.y, object.depth_z], 
-                uv: [0.0, object_texture.uv[1]], layer: object_texture.index },
+                uv: [0.0, object_texture.uv[1]], color, layer: object_texture.index },
             ModelVertex { position: [object.position.x + object.size.x, object.position.y, object.depth_z], 
-                uv: [object_texture.uv[0], object_texture.uv[1]], layer: object_texture.index },
+                uv: [object_texture.uv[0], object_texture.uv[1]], color, layer: object_texture.index },
             ModelVertex { position: [object.position.x + object.size.x, object.position.y + object.size.y, object.depth_z], 
-                uv: [object_texture.uv[0], 0.0], layer: object_texture.index },
+                uv: [object_texture.uv[0], 0.0], color, layer: object_texture.index },
             ModelVertex { position: [object.position.x, object.position.y + object.size.y, object.depth_z], 
-                uv: [0.0, 0.0], layer: object_texture.index },
+                uv: [0.0, 0.0], color, layer: object_texture.index },
         ];
         let index = if object.depth_z < DEPTH_PLAYER {
             0
@@ -173,4 +180,61 @@ pub fn destroy_object(state: &mut State, object: &Object, hit_ticks: i32) -> boo
         }
     }
     false
+}
+
+pub fn system_object_transparency(handle: &mut RainHandle, state: &mut State) {
+    let mut to_add_transparent: Vec<ChunkPosition> = Vec::new();
+    let mut updated: bool = false;
+
+    for (_, (_, position, collider)) in handle.world.query::<(&Player, &Position2D, &Collider)>().iter() {
+        for chunk_position in std::mem::take(&mut state.transparent_object_chunks) {
+            if let Some(chunk) = state.chunks.get_mut(&chunk_position) {
+                for object in &mut chunk.objects {
+                    if object.transparent {
+                        if !under_object(collider, object) {
+                            object.transparent = false;
+                            updated = true;
+                        } else {
+                            to_add_transparent.push(chunk_position);
+                        }
+                    }
+                }
+            }
+        }
+        let chunk_position = position_to_chunk_position(position.0.x, position.0.y);
+        for adjacent in ADJACENT_I32 {
+            let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
+            if let Some(chunk) = state.chunks.get_mut(&adjacent_position) {
+                for object in &mut chunk.objects {
+                    if under_object(collider, object) {
+                        if !object.transparent {
+                            updated = true;
+                        }
+                        object.transparent = true;
+                        to_add_transparent.push(chunk_position);
+                    }
+                }
+            }
+        }
+    }
+
+    let mut remove_duplicates = HashSet::new();
+    to_add_transparent.retain(|x| remove_duplicates.insert(x.clone()));
+
+    for position in to_add_transparent {
+        state.transparent_object_chunks.push(position);
+    }
+    if updated {
+        reload_object_mesh(handle, state);
+    }
+}
+
+fn under_object(collider: &Collider, object: &Object) -> bool {
+    let object_collider = match object._type {
+        ObjectType::Tree1 => Collider::new(
+            object.collider.x + 0.2, object.collider.y + 0.2, object.collider.width - 0.4, object.size.y - object.collider.y + object.position.y - 0.6
+        ),
+        _ => return false,
+    };
+    collider.aabb_collision(&object_collider)
 }

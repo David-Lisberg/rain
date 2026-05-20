@@ -19,6 +19,7 @@ pub struct SpriteVertex {
 pub struct ModelVertex {
     pub position: [f32; 3],
     pub uv: [f32; 2],
+    pub color: [f32; 4],
     pub layer: u32,
 }
 
@@ -105,6 +106,11 @@ impl ModelVertex {
                 wgpu::VertexAttribute {
                     offset: std::mem::size_of::<[f32; 5]>() as wgpu::BufferAddress,
                     shader_location: 2,
+                    format: wgpu::VertexFormat::Float32x4,
+                },
+                wgpu::VertexAttribute {
+                    offset: std::mem::size_of::<[f32; 9]>() as wgpu::BufferAddress,
+                    shader_location: 3,
                     format: wgpu::VertexFormat::Uint32,
                 },
             ]

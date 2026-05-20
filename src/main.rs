@@ -45,6 +45,7 @@ use crate::game::world::chunk::ChunkPosition;
 use crate::game::world::chunk::system_manage_chunks;
 use crate::game::world::config::WorldGenConfig;
 use crate::game::world::generation::system_world_generation;
+use crate::game::world::object::system_object_transparency;
 use crate::game::world::reset::Persistent;
 use crate::game::world::reset::system_reset_world;
 
@@ -96,6 +97,7 @@ pub mod game {
 pub struct State {
     chunks: HashMap<ChunkPosition, ChunkData>,
     world_gen_config: WorldGenConfig,
+    transparent_object_chunks: Vec<ChunkPosition>,
     gui: GUI,
     rng: ThreadRng,
     perlin: Perlin,
@@ -134,6 +136,7 @@ impl RainState for State {
 
         system_update_player_texture(handle);
         system_update_enemy_facing(handle);
+        system_object_transparency(handle, self);
         system_camera_controller(handle, self);
         system_camera_tracker(handle);
         system_camera_zoom(handle, self);
@@ -210,6 +213,7 @@ fn main() -> anyhow::Result<()> {
     let state = State {
         chunks: HashMap::new(),
         world_gen_config: WorldGenConfig::default(),
+        transparent_object_chunks: Vec::new(),
         gui: GUI::new(SCREEN_WIDTH, SCREEN_HEIGHT),
         rng,
         perlin,
