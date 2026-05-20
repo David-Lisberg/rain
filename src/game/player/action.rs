@@ -4,7 +4,7 @@ use glam::Vec2;
 use hecs::Entity;
 use rain::engine::{component::*, core::RainHandle, input::MouseButton, texture::Texture};
 
-use crate::{DEPTH_PROJECTILE, State, game::{core::collision::*, entity::{damage::HitBox, despawn::TimerDespawn, projectile::Projectile}, player::{inventory::Inventory, item::*, movement::Player}, utility::timer::Timer, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
+use crate::{DEPTH_PROJECTILE, State, game::{core::{animation::Animation, collision::*}, entity::{damage::HitBox, despawn::TimerDespawn, projectile::Projectile}, player::{inventory::Inventory, item::*, movement::Player}, utility::timer::Timer, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
 
 struct SlingHold(f32, usize);
 
@@ -86,19 +86,26 @@ pub fn system_update_player_texture(handle: &mut RainHandle) {
     let player_front = handle.fetch_texture("player_front").unwrap();
     let player_back = handle.fetch_texture("player_back").unwrap();
     let player_side = handle.fetch_texture("player_side").unwrap();
-    for (_, (_, direction, texture, flip)) in handle.world.query_mut::<(&Player, &Direction, &mut Arc<Texture>, &mut Flip)>() {
+    for (_, (_, direction, animation, texture, flip)) in handle.world.query_mut::<(&Player, &Direction, Option<&Animation>, &mut Arc<Texture>, &mut Flip)>() {
         if direction.0.y > 0.8 {
-            *texture = player_back.clone();
             *flip = Flip(false, false);
         } else if direction.0.y < -0.8 {
-            *texture = player_front.clone();
             *flip = Flip(false, false);
         } else if direction.0.x.is_sign_positive() {
-            *texture = player_side.clone();
             *flip = Flip(false, false);
         } else if direction.0.x.is_sign_negative() {
-            *texture = player_side.clone();
             *flip = Flip(true, false);
+        }
+        if animation.is_none() {
+            if direction.0.y > 0.8 {
+                *texture = player_back.clone();
+            } else if direction.0.y < -0.8 {
+                *texture = player_front.clone();
+            } else if direction.0.x.is_sign_positive() {
+                *texture = player_side.clone();
+            } else if direction.0.x.is_sign_negative() {
+                *texture = player_side.clone();
+            }
         }
     }
 }

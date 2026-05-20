@@ -7,8 +7,7 @@ use crate::engine::utility::image::resize_and_pad;
 pub struct Texture {
     pub array_id: u32,
     pub index: u32,
-    pub uv_offset: [f32; 2],
-    pub uv_scale: [f32; 2],
+    pub uv: [f32; 2],
 }
 
 impl Texture {
@@ -64,8 +63,7 @@ impl Texture {
         Arc::new(Texture {
             index,
             array_id: array.id,
-            uv_offset: [0.0, 0.0],
-            uv_scale: [(width as f32 / array.width as f32), (height as f32 / array.height as f32)]
+            uv: [(width as f32 / array.width as f32), (height as f32 / array.height as f32)]
         })
     }
 }

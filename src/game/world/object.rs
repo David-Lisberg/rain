@@ -109,11 +109,11 @@ pub fn construct_object_mesh(handle: &mut RainHandle, state: &mut State) -> Vec<
 
         let vertices = vec![
             ModelVertex { position: [object.position.x, object.position.y, object.depth_z], 
-                uv: [0.0, object_texture.uv_scale[1]], color, layer: object_texture.index },
+                uv: [0.0, object_texture.uv[1]], color, layer: object_texture.index },
             ModelVertex { position: [object.position.x + object.size.x, object.position.y, object.depth_z], 
-                uv: [object_texture.uv_scale[0], object_texture.uv_scale[1]], color, layer: object_texture.index },
+                uv: [object_texture.uv[0], object_texture.uv[1]], color, layer: object_texture.index },
             ModelVertex { position: [object.position.x + object.size.x, object.position.y + object.size.y, object.depth_z], 
-                uv: [object_texture.uv_scale[0], 0.0], color, layer: object_texture.index },
+                uv: [object_texture.uv[0], 0.0], color, layer: object_texture.index },
             ModelVertex { position: [object.position.x, object.position.y + object.size.y, object.depth_z], 
                 uv: [0.0, 0.0], color, layer: object_texture.index },
         ];

@@ -1,7 +1,9 @@
-use hecs::Entity;
-use rain::engine::{component::*, core::RainHandle};
+use std::sync::Arc;
 
-use crate::{game::core::physics::set_velocity_clamped};
+use hecs::Entity;
+use rain::engine::{component::*, core::RainHandle, texture::Texture};
+
+use crate::game::core::{animation::{Animation, AnimationFrame}, physics::set_velocity_clamped};
 
 pub struct Player;
 
@@ -20,9 +22,38 @@ pub fn system_player_dash(handle: &mut RainHandle) {
 }
 
 pub fn system_player_walk(handle: &mut RainHandle) {
-    for (_, (_, _, velocity, direction)) in handle.world.query::<(
-        &Player, &Walk, &mut Velocity2D, &Direction
+    let mut to_add_animation: Vec<(Entity, Animation, Arc<Texture>)> = Vec::new();
+    let mut to_remove_animation: Vec<Entity> = Vec::new();
+    for (e, (_, walk, velocity, direction, animation)) in handle.world.query::<(
+        &Player, Option<&Walk>, &mut Velocity2D, &Direction, Option<&Animation>
     )>().iter() {
-        set_velocity_clamped(velocity, 5.0, direction);
+        if walk.is_some() {
+            if animation.is_none() {
+                if direction.0.y > 0.8 || direction.0.y < -0.8 {
+                    
+                } else if direction.0.x.is_sign_positive() || direction.0.x.is_sign_negative() {
+                    to_add_animation.push((
+                        e,
+                        Animation::new(vec![
+                            AnimationFrame::new(UVRect::new(0.0, 0.0, 0.5, 0.5), 8),
+                            AnimationFrame::new(UVRect::new(0.5, 0.0, 0.5, 0.5), 8),
+                            AnimationFrame::new(UVRect::new(0.0, 0.5, 0.5, 0.5), 8),
+                            AnimationFrame::new(UVRect::new(0.5, 0.5, 0.5, 0.5), 8),
+                        ], true),
+                        handle.fetch_texture("animation_player_walking_side").unwrap(),
+                    ));
+                }
+            }
+            set_velocity_clamped(velocity, 5.0, direction);
+        } else if animation.is_some() {
+            to_remove_animation.push(e);
+        }
+    }
+
+    for (e, animation, texture) in to_add_animation {
+        handle.world.insert(e, (animation, UVRect::default(), texture)).unwrap();
+    }
+    for e in to_remove_animation {
+        handle.world.remove::<(Animation, UVRect)>(e).unwrap();
     }
 }
