@@ -9,7 +9,6 @@ use glam::*;
 use rand::Rng;
 use rand::rngs::ThreadRng;
 
-use crate::game::core::animation::system_manage_animations;
 use crate::game::core::camera::*;
 use crate::game::core::collision::Collider;
 use crate::game::core::physics::*;
@@ -72,7 +71,6 @@ pub mod game {
         pub mod camera;
         pub mod collision;
         pub mod ui;
-        pub mod animation;
     }
     pub mod player {
         pub mod action;
@@ -142,7 +140,6 @@ impl RainState for State {
         system_camera_controller(handle, self);
         system_camera_tracker(handle);
         system_camera_zoom(handle, self);
-        system_manage_animations(handle);
 
         system_reset_world(handle, self);
 
@@ -185,7 +182,7 @@ impl RainState for State {
         handle.load_texture("enemy_coati", "res/texture/enemy_coati.png").expect("Error loading texture.");
         handle.load_texture("item_coati_pelt", "res/texture/item_coati_pelt.png").expect("Error loading texture.");
         handle.load_texture("item_coati_bone", "res/texture/item_coati_bone.png").expect("Error loading texture.");
-        handle.load_texture("animation_player_walking_side", "res/texture/animation_player_walking_side.png").expect("Error loading texture.");
+        handle.load_animation("animation_player_walking_side", "res/animations/animation.json").expect("Error loading animation");
 
         let player_texture = handle.fetch_texture("player_front").unwrap();
         let player_collider = Collider::from_center(0.0, 0.0, 0.8, 0.8);

@@ -10,6 +10,7 @@ use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::Window;
 
+use crate::engine::animation::system_manage_animations;
 use crate::engine::renderer::Renderer;
 use crate::engine::resource::ResourceManager;
 use crate::engine::texture::Texture;
@@ -69,6 +70,7 @@ impl RainHandle {
             button.released = false;
         }
         self.renderer.update_render_state();
+        system_manage_animations(self);
     }
 
     fn handle_input_keyboard(&mut self, code: KeyCode, is_pressed: bool) {

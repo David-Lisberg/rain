@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use glam::Vec2;
 use hecs::Entity;
-use rain::engine::{component::*, core::RainHandle, input::MouseButton, texture::Texture};
+use rain::engine::{animation::Animation, component::*, core::RainHandle, input::MouseButton, texture::Texture};
 
-use crate::{DEPTH_PROJECTILE, State, game::{core::{animation::Animation, collision::*}, entity::{damage::HitBox, despawn::TimerDespawn, projectile::Projectile}, player::{inventory::Inventory, item::*, movement::Player}, utility::timer::Timer, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
+use crate::{DEPTH_PROJECTILE, State, game::{core::collision::*, entity::{damage::HitBox, despawn::TimerDespawn, projectile::Projectile}, player::{inventory::Inventory, item::*, movement::Player}, utility::timer::Timer, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
 
 struct SlingHold(f32, usize);
 

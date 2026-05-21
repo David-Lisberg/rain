@@ -4,7 +4,7 @@ use std::{collections::HashMap, sync::Arc};
 use anyhow::Error;
 use image::GenericImageView;
 
-use crate::engine::{core::RainHandle, texture::{Texture, TextureArray}};
+use crate::engine::{animation::AnimationData, core::RainHandle, texture::{Texture, TextureArray}};
 
 pub const ARRAY_256X256_ID: u32 = 0;
 pub const ARRAY_4096X4096_ID: u32 = 1;
@@ -13,6 +13,7 @@ pub struct ResourceManager {
     pub current_id: u32,
     pub texture_arrays: HashMap<u32, (TextureArray, wgpu::BindGroup)>,
     pub textures: HashMap<String, Arc<Texture>>,
+    pub animations: HashMap<String, Arc<AnimationData>>,
 }
 
 impl ResourceManager {
@@ -60,6 +61,7 @@ impl ResourceManager {
             current_id: 0,
             texture_arrays,
             textures: HashMap::new(),
+            animations: HashMap::new(),
         }
     }
 
@@ -109,6 +111,10 @@ impl ResourceManager {
     pub fn fetch_texture(&self, name: &str) -> Option<Arc<Texture>> {
         self.textures.get(name).cloned()
     }
+
+    pub fn fetch_animation(&self, name: &str) -> Option<Arc<AnimationData>> {
+        self.animations.get(name).cloned()
+    }
 }
 
 impl RainHandle {
@@ -119,5 +125,19 @@ impl RainHandle {
 
     pub fn fetch_texture(&self, name: &str) -> Option<Arc<Texture>> {
         self.resource_manager.textures.get(name).cloned()
+    }
+
+    pub fn load_animation(&mut self, name: &str, path: &str) -> Result<Arc<AnimationData>, Error> {
+        let json = std::fs::read_to_string(path)?;
+        let animation_data: AnimationData = serde_json::from_str(&json)?;
+        let animation_data = Arc::new(animation_data);
+        self.load_texture(name, &animation_data.source)?;
+
+        self.resource_manager.animations.insert(name.to_string(), Arc::clone(&animation_data));
+        Ok(animation_data)
+    }
+
+    pub fn fetch_animation(&self, name: &str) -> Option<Arc<AnimationData>> {
+        self.resource_manager.animations.get(name).cloned()
     }
 }

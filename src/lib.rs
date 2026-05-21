@@ -16,6 +16,7 @@ pub mod engine {
     pub mod model;
     pub mod text;
     pub mod lgui;
+    pub mod animation;
     pub mod utility {
         pub mod rectangle;
         pub mod math;

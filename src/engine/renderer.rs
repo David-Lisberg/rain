@@ -4,6 +4,7 @@ use hecs::World;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
+use crate::engine::animation::Animation;
 use crate::engine::camera::{Camera2d, Camera2dUniform};
 use crate::engine::color::{self, Color};
 use crate::engine::draw::{DrawCall, DrawPass};
@@ -503,12 +504,20 @@ impl Renderer {
         let mut priority_buffer_value: Vec<i32> = Vec::new();
     
         let mut query = world.query::<(
-            &Visible, Option<&Priority>, Option<&ModelMesh>, Option<&Sprite>, Option<&UVRect>,
+            &Visible, Option<&Priority>, Option<&ModelMesh>, Option<&Sprite>, Option<&Animation>,
             Option<&Position2D>, Option<&DepthZ>, Option<&Scale2D>, Option<&RotationZ>, Option<&Flip>, Option<&Color>, Option<&Arc<Texture>>
         )>();
         for (_, (
-            _, priority, mesh, sprite, uv_rect, pos, depth, scale, rotation, flip, color, texture
+            _, priority, mesh, sprite, animation, pos, depth, scale, rotation, flip, color, texture
         )) in query.iter() {
+            let fetched_texture;
+            let texture = match animation {
+                Some(a) => {
+                    fetched_texture = resource_manager.fetch_texture(&a.name);
+                    fetched_texture.as_ref()
+                }
+                None => texture,
+            };
             match priority {
                 Some(p) => {
                     if let Some(i) = priority_buffer_value.iter().position(|&x| x == p.0) {
@@ -516,7 +525,7 @@ impl Renderer {
                             priority_buffer[i].0.push(m);
                         }
                         if sprite.is_some() {
-                            let sprite_render = SpriteRender::new(pos, depth, scale, rotation, flip, color, texture, uv_rect);
+                            let sprite_render = SpriteRender::new(pos, depth, scale, rotation, flip, color, texture, animation);
                             priority_buffer[i].1.push(sprite_render);
                         }
                     } else {
@@ -527,7 +536,7 @@ impl Renderer {
                             priority_buffer[i].0.push(m);
                         }
                         if sprite.is_some() {
-                            let sprite_render = SpriteRender::new(pos, depth, scale, rotation, flip, color, texture, uv_rect);
+                            let sprite_render = SpriteRender::new(pos, depth, scale, rotation, flip, color, texture, animation);
                             priority_buffer[i].1.push(sprite_render);
                         }
                     }
@@ -537,7 +546,7 @@ impl Renderer {
                         no_priority.0.push(m);
                     }
                     if sprite.is_some() {
-                        let sprite_render = SpriteRender::new(pos, depth, scale, rotation, flip, color, texture, uv_rect);
+                        let sprite_render = SpriteRender::new(pos, depth, scale, rotation, flip, color, texture, animation);
                         no_priority.1.push(sprite_render);
                     }
                 }
