@@ -6,7 +6,7 @@ use rain::engine::{color::Color, component::{Position2D, Visible}, core::RainHan
 use rand::RngExt;
 use wgpu::util::DeviceExt;
 
-use crate::{State, game::{utility::noise::{noise_normalize, octave_noise_2d}, world::{generation::CHUNK_GENERATION_DISTANCE, object::{Object, construct_object_default, reload_object_mesh}, tile::{Tile, TileType}}}};
+use crate::{State, game::{core::collision::Collider, utility::noise::{noise_normalize, octave_noise_2d}, world::{generation::CHUNK_GENERATION_DISTANCE, object::{Object, construct_object_default, reload_object_mesh}, tile::{Tile, TileType}}}};
 use crate::game::player::movement::Player;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
@@ -39,6 +39,7 @@ pub struct ChunkData {
     pub position: ChunkPosition,
     pub tiles: [Tile; CHUNK_DIM * CHUNK_DIM],
     pub objects: Vec<Object>,
+    pub water_colliders: Vec<Collider>,
 }
 
 pub const CHUNK_DIM: usize = 32; /* indices should be u32s if CHUNK_DIM > 64 */
@@ -74,7 +75,7 @@ pub fn generate_chunk(chunk_position: ChunkPosition, state: &mut State) -> Chunk
     let mut water_bank_queue: VecDeque<usize> = VecDeque::new();
     let mut water_distance: HashMap<usize, f32> = HashMap::new();
 
-    for (i, tile) in tiles.iter_mut().enumerate() {
+    for (i, tile) in tiles.iter().enumerate() {
         if tile._type == TileType::Water {
             water_bank_queue.push_back(i);
             water_distance.insert(i, 0.0);
@@ -147,10 +148,61 @@ pub fn generate_chunk(chunk_position: ChunkPosition, state: &mut State) -> Chunk
         }
     }
 
+    let mut processed: [bool; CHUNK_DIM * CHUNK_DIM] = std::array::from_fn(|_| false);
+    let mut index: usize = 0;
+    let mut water_colliders: Vec<Collider> = Vec::new();
+
+    loop {
+        while index < tiles.len() && (tiles[index]._type != TileType::Water || processed[index]) {
+            index += 1;
+        }
+
+        let start = index;
+        if index >= tiles.len() {
+            break;
+        }
+
+        index += 1;
+        while index < tiles.len() && index % CHUNK_DIM > start % CHUNK_DIM && tiles[index]._type == TileType::Water && !processed[index] {
+            index += 1;
+        }
+        let width = index - start;
+        let mut height = 1;
+
+        loop {
+            let mut valid = true;
+            for offset in 0..width {
+                let i = start + height * CHUNK_DIM + offset;
+                if i >= tiles.len() || tiles[i]._type != TileType::Water || processed[i] {
+                    valid = false;
+                    break;
+                }
+            }
+
+            if !valid {
+                break;
+            }
+            height += 1;
+        }
+
+        for x in 0..width {
+            for y in 0..height {
+                let i = start + y * CHUNK_DIM + x;
+                processed[i] = true;
+            }
+        }
+
+        let x = (chunk_position.x * CHUNK_DIM as i32) as f32 + (start % CHUNK_DIM) as f32;
+        let y = (chunk_position.y * CHUNK_DIM as i32) as f32 + (start / CHUNK_DIM) as f32;
+        let collider = Collider::new(x, y, width as f32, height as f32);
+        water_colliders.push(collider);
+    }
+    
     ChunkData {
         position: chunk_position,
         tiles,
         objects,
+        water_colliders,
     }
 }
 

@@ -1,7 +1,7 @@
 use hecs::Entity;
 use rain::engine::{animation::Animation, component::*, core::RainHandle};
 
-use crate::game::core::physics::set_velocity_clamped;
+use crate::game::{core::physics::set_velocity_clamped, world::water::Swimming};
 
 pub struct Player;
 
@@ -22,8 +22,8 @@ pub fn system_player_dash(handle: &mut RainHandle) {
 pub fn system_player_walk(handle: &mut RainHandle) {
     let mut to_add_animation: Vec<(Entity, Animation)> = Vec::new();
     let mut to_remove_animation: Vec<Entity> = Vec::new();
-    for (e, (_, walk, velocity, direction, animation)) in handle.world.query::<(
-        &Player, Option<&Walk>, &mut Velocity2D, &Direction, Option<&Animation>
+    for (e, (_, walk, velocity, direction, animation, swimming)) in handle.world.query::<(
+        &Player, Option<&Walk>, &mut Velocity2D, &Direction, Option<&Animation>, Option<&Swimming>,
     )>().iter() {
         if walk.is_some() {
             if animation.is_none() {
@@ -31,19 +31,13 @@ pub fn system_player_walk(handle: &mut RainHandle) {
                     
                 } else if direction.0.x.is_sign_positive() || direction.0.x.is_sign_negative() {
                     to_add_animation.push((e, Animation::new("animation_player_walking_side")));
-                    // to_add_animation.push((
-                    //     e,
-                    //     Animation::new(vec![
-                    //         AnimationFrame::new(UVRect::new(0.0, 0.0, 0.5, 0.5), 8),
-                    //         AnimationFrame::new(UVRect::new(0.5, 0.0, 0.5, 0.5), 8),
-                    //         AnimationFrame::new(UVRect::new(0.0, 0.5, 0.5, 0.5), 8),
-                    //         AnimationFrame::new(UVRect::new(0.5, 0.5, 0.5, 0.5), 8),
-                    //     ], true),
-                    //     handle.fetch_texture("animation_player_walking_side").unwrap(),
-                    // ));
                 }
             }
-            set_velocity_clamped(velocity, 5.0, direction);
+            let speed = match swimming.is_some() {
+                true => 3.5,
+                false => 5.0,
+            };
+            set_velocity_clamped(velocity, speed, direction);
         } else if animation.is_some() {
             to_remove_animation.push(e);
         }

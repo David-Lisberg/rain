@@ -48,6 +48,8 @@ use crate::game::world::generation::system_world_generation;
 use crate::game::world::object::system_object_transparency;
 use crate::game::world::reset::Persistent;
 use crate::game::world::reset::system_reset_world;
+use crate::game::world::water::Swimmable;
+use crate::game::world::water::system_swimming;
 
 pub const SCREEN_WIDTH: f32 = 850.0;
 pub const SCREEN_HEIGHT: f32 = 600.0;
@@ -65,6 +67,7 @@ pub mod game {
         pub mod object;
         pub mod config;
         pub mod reset;
+        pub mod water;
     }
     pub mod core {
         pub mod physics;
@@ -115,6 +118,7 @@ impl RainState for State {
         system_manage_chunks(handle, self);
         system_world_generation(handle, self);
         system_manage_enemies(handle, self);
+        system_swimming(handle, self);
         system_enemy_idle(handle, self);
         system_enemy_tracking(handle, self);
         system_enemy_attacking(handle);
@@ -182,6 +186,7 @@ impl RainState for State {
         handle.load_texture("enemy_coati", "res/texture/enemy_coati.png").expect("Error loading texture.");
         handle.load_texture("item_coati_pelt", "res/texture/item_coati_pelt.png").expect("Error loading texture.");
         handle.load_texture("item_coati_bone", "res/texture/item_coati_bone.png").expect("Error loading texture.");
+
         handle.load_animation("animation_player_walking_side", "res/animations/animation.json").expect("Error loading animation");
 
         let player_texture = handle.fetch_texture("player_front").unwrap();
@@ -194,7 +199,7 @@ impl RainState for State {
             Inventory::new(36),
         ));
         handle.world.insert(player_entity, (
-            Health::new(100.0), HurtBox(Collider::from_center(0.0, 0.0, 0.8, 0.8)), Persistent,
+            Health::new(100.0), HurtBox(Collider::from_center(0.0, 0.0, 0.8, 0.8)), Persistent, Swimmable,
         )).unwrap();
 
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
