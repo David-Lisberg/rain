@@ -1,0 +1,59 @@
+{
+  "frames": [
+    {
+      "uv_rect": {
+        "offset": [
+          0.0,
+          0.0
+        ],
+        "scale": [
+          0.5,
+          0.5
+        ]
+      },
+      "scale": [2.0, 2.0],
+      "duration": 8
+    },
+    {
+      "uv_rect": {
+        "offset": [
+          0.5,
+          0.0
+        ],
+        "scale": [
+          0.5,
+          0.5
+        ]
+      },
+      "duration": 8
+    },
+    {
+      "uv_rect": {
+        "offset": [
+          0.0,
+          0.5
+        ],
+        "scale": [
+          0.5,
+          0.5
+        ]
+      },
+      "duration": 8
+    },
+    {
+      "uv_rect": {
+        "offset": [
+          0.5,
+          0.5
+        ],
+        "scale": [
+          0.5,
+          0.5
+        ]
+      },
+      "duration": 8
+    }
+  ],
+  "repeat": true,
+  "source": "res/texture/animation_player_walking_back.png"
+}

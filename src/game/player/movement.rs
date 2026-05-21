@@ -26,11 +26,22 @@ pub fn system_player_walk(handle: &mut RainHandle) {
         &Player, Option<&Walk>, &mut Velocity2D, &Direction, Option<&Animation>, Option<&Swimming>,
     )>().iter() {
         if walk.is_some() {
-            if animation.is_none() {
-                if direction.0.y > 0.8 || direction.0.y < -0.8 {
-                    
-                } else if direction.0.x.is_sign_positive() || direction.0.x.is_sign_negative() {
-                    to_add_animation.push((e, Animation::new("animation_player_walking_side")));
+            let next_animation: Option<Animation> = if direction.0.y > 0.8 {
+                Some(Animation::new("animation_player_walking_back"))
+            } else if direction.0.y < -0.8 {
+                Some(Animation::new("animation_player_walking_front"))
+            } else if direction.0.x.is_sign_positive() || direction.0.x.is_sign_negative() {
+                Some(Animation::new("animation_player_walking_side"))
+            } else {
+                None
+            };
+            if let Some(next) = next_animation {
+                if let Some(current) = animation {
+                    if current.name != next.name {
+                        to_add_animation.push((e, next));
+                    }
+                } else {
+                    to_add_animation.push((e, next));
                 }
             }
             let speed = match swimming.is_some() {

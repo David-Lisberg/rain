@@ -190,8 +190,11 @@ impl RainState for State {
         handle.load_texture("item_coati_bone", "res/texture/item_coati_bone.png").expect("Error loading texture.");
         handle.load_texture("item_coati_bone_plate", "res/texture/item_coati_bone_plate.png").expect("Error loading texture.");
         handle.load_texture("item_bone_shovel", "res/texture/item_bone_shovel.png").expect("Error loading texture.");
+        handle.load_texture("item_wood_shovel", "res/texture/item_wood_shovel.png").expect("Error loading texture.");
 
-        handle.load_animation("animation_player_walking_side", "res/animations/animation.json").expect("Error loading animation");
+        handle.load_animation("animation_player_walking_side", "res/animations/player_walking_side.json").expect("Error loading animation");
+        handle.load_animation("animation_player_walking_front", "res/animations/player_walking_front.json").expect("Error loading animation");
+        handle.load_animation("animation_player_walking_back", "res/animations/player_walking_back.json").expect("Error loading animation");
 
         let player_texture = handle.fetch_texture("player_front").unwrap();
         let player_collider = Collider::from_center(0.0, 0.0, 0.8, 0.8);

@@ -21,6 +21,8 @@ impl Item {
         let category = match item_type {
             ItemType::FlintHatchet => ItemCategory::Tool(ToolType::Axe, 1, 1, 3.0),
             ItemType::StonePickaxe => ItemCategory::Tool(ToolType::Pickaxe, 1, 1, 5.0),
+            ItemType::BoneShovel => ItemCategory::Tool(ToolType::Shovel, 1, 1, 3.0),
+            ItemType::WoodShovel => ItemCategory::Tool(ToolType::Shovel, 2, 1, 2.0),
             _ => ItemCategory::Other,
         };
 
@@ -44,6 +46,7 @@ pub enum ItemType {
     CoatiBone,
     CoatiBonePlate,
     BoneShovel,
+    WoodShovel,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -87,6 +90,7 @@ impl ItemType {
             ItemType::CoatiBone => resource_manager.fetch_texture("item_coati_bone").unwrap(),
             ItemType::CoatiBonePlate => resource_manager.fetch_texture("item_coati_bone_plate").unwrap(),
             ItemType::BoneShovel => resource_manager.fetch_texture("item_bone_shovel").unwrap(),
+            ItemType::WoodShovel => resource_manager.fetch_texture("item_wood_shovel").unwrap(),
         }
     }
 
@@ -95,6 +99,8 @@ impl ItemType {
             ItemType::Sling => 1,
             ItemType::FlintHatchet => 1,
             ItemType::StonePickaxe => 1,
+            ItemType::BoneShovel => 1,
+            ItemType::WoodShovel => 1,
             _ => 100,
         }
     }

@@ -1,3 +1,4 @@
+use glam::{FloatExt, Vec2};
 use hecs::Entity;
 use serde::{Deserialize, Serialize};
 
@@ -14,11 +15,14 @@ pub struct AnimationData {
 pub struct AnimationFrame {
     pub uv_rect: UVRect,
     pub duration: usize,
+    pub position: Option<Vec2>,
+    pub scale: Option<Vec2>,
+    pub rotation: Option<f32>,
 }
 
 impl AnimationFrame {
     pub fn new(uv_rect: UVRect, duration: usize) -> Self {
-        Self { uv_rect, duration }
+        Self { uv_rect, duration, position: None, scale: None, rotation: None }
     }
 }
 
@@ -32,6 +36,9 @@ pub struct Animation {
     pub current_frame: usize,
     pub frame_progress: usize,
     pub uv_rect: UVRect,
+    pub position: Vec2,
+    pub scale: Vec2,
+    pub rotation: f32,
 }
 
 impl Animation {
@@ -41,6 +48,9 @@ impl Animation {
             current_frame: 0,
             frame_progress: 0,
             uv_rect: UVRect::default(),
+            position: Vec2::ZERO,
+            scale: Vec2::new(1.0, 1.0),
+            rotation: 0.0,
         }
     }
 }
@@ -67,6 +77,16 @@ pub fn system_manage_animations(handle: &mut RainHandle) {
             let current_frame = &animation_data.frames[animation.current_frame];
             animation.uv_rect = current_frame.uv_rect;
 
+            let s =  1.0 / (current_frame.duration - animation.frame_progress) as f32;
+            if let Some(current_position) = current_frame.position {
+                animation.position = animation.position.lerp(current_position, s);
+            }
+            if let Some(current_scale) = current_frame.scale {
+                animation.scale = animation.scale.lerp(current_scale, s);
+            }
+            if let Some(current_rotation) = current_frame.rotation {
+                animation.rotation = animation.rotation.lerp(current_rotation, s);
+            }
             animation.frame_progress += 1;
 
             if animation.frame_progress >= current_frame.duration {
