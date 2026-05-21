@@ -5,7 +5,7 @@ use hecs::Entity;
 use rain::engine::{component::*, core::RainHandle, resource::ResourceManager, texture::Texture};
 use rand::RngExt;
 
-use crate::{DEPTH_PLAYER, State, game::{core::collision::{Collider, check_collision_with_object}, entity::{ai::Idle, damage::{Health, HealthBar, HurtBox}}, player::movement::Player, utility::timer::Timer}};
+use crate::{DEPTH_PLAYER, State, game::{core::collision::{Collider, check_collision_with_object}, entity::{ai::Idle, damage::{Health, HealthBar, HurtBox}}, player::movement::Player, utility::timer::Timer, world::water::Swimmable}};
 
 const SPAWN_RADIUS_MIN: f32 = 20.0;
 const SPAWN_RADIUS_MAX: f32 = 40.0;
@@ -15,6 +15,7 @@ const SPAWN_CAP: i32 = 10;
 pub struct Enemy {
     pub _type: EnemyType,
     pub walk_speed: f32,
+    pub swim_speed: f32,
     pub attack_speed: f32,
     pub damage: f32,
     pub sight_range: f32,
@@ -24,12 +25,13 @@ pub struct Enemy {
 
 impl Enemy {
     pub fn new(_type: EnemyType) -> Self {
-        let (walk_speed, attack_speed, damage, sight_range, tracking_range, tracking_distance) = match _type {
-            EnemyType::Coati => (2.0, 10.0, 10.0, 10.0, 25.0, 3.0)
+        let (walk_speed, swim_speed, attack_speed, damage, sight_range, tracking_range, tracking_distance) = match _type {
+            EnemyType::Coati => (2.0, 1.5, 10.0, 10.0, 10.0, 25.0, 3.0)
         };
         Self {
             _type,
             walk_speed,
+            swim_speed,
             attack_speed,
             damage,
             sight_range,
@@ -95,6 +97,7 @@ pub fn spawn_enemy(handle: &mut RainHandle, state: &mut State, position: Vec2, e
 
     let e = handle.world.spawn((Sprite, Visible, enemy, Idle, Position2D(position), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), 
         texture, Scale2D(Vec2::new(1.0, 1.0)), DepthZ(DEPTH_PLAYER), Priority(1), Flip(false, false), Health::new(5.0), collider, HurtBox(collider)));
+    handle.world.insert_one(e, Swimmable).unwrap();
     handle.world.spawn((HealthBar(e, Timer::new(2.0), 1.0),));
 }
 
