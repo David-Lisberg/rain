@@ -94,6 +94,7 @@ pub mod game {
         pub mod ai;
         pub mod path;
         pub mod projectile;
+        pub mod loot;
     }
 }
 
@@ -187,6 +188,8 @@ impl RainState for State {
         handle.load_texture("enemy_coati", "res/texture/enemy_coati.png").expect("Error loading texture.");
         handle.load_texture("item_coati_pelt", "res/texture/item_coati_pelt.png").expect("Error loading texture.");
         handle.load_texture("item_coati_bone", "res/texture/item_coati_bone.png").expect("Error loading texture.");
+        handle.load_texture("item_coati_bone_plate", "res/texture/item_coati_bone_plate.png").expect("Error loading texture.");
+        handle.load_texture("item_bone_shovel", "res/texture/item_bone_shovel.png").expect("Error loading texture.");
 
         handle.load_animation("animation_player_walking_side", "res/animations/animation.json").expect("Error loading animation");
 

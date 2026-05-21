@@ -42,12 +42,15 @@ pub enum ItemType {
     WoodPlanks,
     CoatiPelt,
     CoatiBone,
+    CoatiBonePlate,
+    BoneShovel,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ToolType {
     Axe,
     Pickaxe,
+    Shovel,
     None,
 }
 
@@ -82,6 +85,8 @@ impl ItemType {
             ItemType::Sling => resource_manager.fetch_texture("item_sling").unwrap(),
             ItemType::CoatiPelt => resource_manager.fetch_texture("item_coati_pelt").unwrap(),
             ItemType::CoatiBone => resource_manager.fetch_texture("item_coati_bone").unwrap(),
+            ItemType::CoatiBonePlate => resource_manager.fetch_texture("item_coati_bone_plate").unwrap(),
+            ItemType::BoneShovel => resource_manager.fetch_texture("item_bone_shovel").unwrap(),
         }
     }
 

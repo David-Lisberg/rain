@@ -1,7 +1,7 @@
 use hecs::Entity;
 use rain::engine::{component::Position2D, core::RainHandle};
 
-use crate::{State, game::{core::collision::Collider, entity::enemy::{Enemy, EnemyType}, player::{item::{Item, ItemType, spawn_item_drop}, movement::Player}, utility::timer::Timer}};
+use crate::{State, game::{core::collision::Collider, entity::{enemy::Enemy, loot::{LootTable, roll_loot}}, player::{item::{Item, spawn_item_drop}, movement::Player}, utility::timer::Timer}};
 
 pub struct HurtBox(pub Collider);
 #[derive(Clone)]
@@ -60,11 +60,13 @@ pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle, state: &mut Stat
         }
     }
     for e in to_kill {
-        if let Some((enemy, position)) = handle.world.query_one::<(&Enemy, &Position2D)>(e).unwrap().get() {
-            match enemy._type {
-                EnemyType::Coati => {
-                    to_spawn.push((position.clone(), Item::new(ItemType::CoatiPelt), 2));
-                    to_spawn.push((position.clone(), Item::new(ItemType::CoatiBone), 3));
+        if let Some((_, position, loot_table)) = handle.world.query_one::<(
+            &Enemy, &Position2D, Option<&LootTable>
+        )>(e).unwrap().get() {
+            if let Some(l) = loot_table {
+                let drops = roll_loot(state, l);
+                for (item, quantity) in drops {
+                    to_spawn.push((position.clone(), item, quantity));
                 }
             }
             state.enemy_count -= 1;
