@@ -5,7 +5,7 @@ use hecs::Entity;
 use rain::engine::{color::Color, component::{Position2D, Priority, Visible}, core::RainHandle, mesh::ModelMesh, resource::{ARRAY_256X256_ID, ResourceManager}, texture::Texture, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
 use wgpu::util::DeviceExt;
 
-use crate::{DEPTH_PLAYER, DEPTH_SMALL_OBJECT, DEPTH_TREES, State, game::{core::{collision::Collider, physics::ADJACENT_I32}, player::movement::Player, world::chunk::{ChunkPosition, position_to_chunk_position}}};
+use crate::{DEPTH_PLAYER, DEPTH_SMALL_OBJECT, DEPTH_TREES, State, game::{core::{collision::Collider, physics::ADJACENT_I32}, player::{item::ToolType, movement::Player}, world::chunk::{ChunkPosition, position_to_chunk_position}}};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Object {
@@ -13,6 +13,7 @@ pub struct Object {
     pub position: Vec2,
     pub hit_ticks: i32,
     pub break_level: i32,
+    pub required_tool: ToolType,
     pub depth_z: f32,
     pub size: Vec2,
     pub collider: Collider,
@@ -56,6 +57,7 @@ pub fn construct_object_default(_type: ObjectType, position: Vec2) -> Object {
             position, 
             hit_ticks: 3,
             break_level: 1,
+            required_tool: ToolType::Axe,
             depth_z: DEPTH_TREES,
             size: Vec2::new(1.0, 3.0), 
             collider: Collider::new(position.x + 0.2, position.y, 0.8, 1.0),
@@ -75,6 +77,7 @@ fn object_small_default(_type: ObjectType, position: Vec2) -> Object {
         position: Vec2::new(position.x + 0.2, position.y + 0.2), 
         hit_ticks: 1,
         break_level: 0,
+        required_tool: ToolType::None,
         depth_z: DEPTH_SMALL_OBJECT,
         size: Vec2::new(0.6, 0.6), 
         collider: Collider::new(position.x + 0.2, position.y + 0.2, 0.6, 0.6),

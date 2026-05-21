@@ -19,7 +19,8 @@ pub struct Item {
 impl Item {
     pub fn new(item_type: ItemType) -> Self {
         let category = match item_type {
-            ItemType::FlintHatchet => ItemCategory::Tool(1, 1, 5.0),
+            ItemType::FlintHatchet => ItemCategory::Tool(ToolType::Axe, 1, 1, 3.0),
+            ItemType::StonePickaxe => ItemCategory::Tool(ToolType::Pickaxe, 1, 1, 5.0),
             _ => ItemCategory::Other,
         };
 
@@ -36,15 +37,33 @@ pub enum ItemType {
     Sling,
     Flint,
     FlintHatchet,
+    StonePickaxe,
     Wood,
     WoodPlanks,
     CoatiPelt,
     CoatiBone,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ToolType {
+    Axe,
+    Pickaxe,
+    None,
+}
+
+impl ToolType {
+    pub fn can_break(&self, other: ToolType) -> bool {
+        if other == ToolType::None {
+            true
+        } else {
+            *self == other
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub enum ItemCategory {
-    Tool(i32, i32, f32), /* break level, hit ticks, damage */
+    Tool(ToolType, i32, i32, f32), /* type, break level, hit ticks, damage */
     Other,
 }
 
@@ -54,6 +73,7 @@ impl ItemType {
             ItemType::Twig => resource_manager.fetch_texture("object_twig").unwrap(),
             ItemType::Grass => resource_manager.fetch_texture("object_grass").unwrap(),
             ItemType::Stone => resource_manager.fetch_texture("object_stone").unwrap(),
+            ItemType::StonePickaxe => resource_manager.fetch_texture("item_stone_pickaxe").unwrap(),
             ItemType::Flint => resource_manager.fetch_texture("object_flint").unwrap(),
             ItemType::FlintHatchet => resource_manager.fetch_texture("flint_hatchet").unwrap(),
             ItemType::Wood => resource_manager.fetch_texture("item_wood").unwrap(),
@@ -69,6 +89,7 @@ impl ItemType {
         match self {
             ItemType::Sling => 1,
             ItemType::FlintHatchet => 1,
+            ItemType::StonePickaxe => 1,
             _ => 100,
         }
     }

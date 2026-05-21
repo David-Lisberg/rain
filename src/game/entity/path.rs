@@ -4,8 +4,6 @@ use rain::engine::{component::{Position2D, Velocity2D}, core::RainHandle};
 
 use crate::game::{entity::enemy::Enemy, world::water::Swimming};
 
-const BASE_VELOCITY: f32 = 2.0;
-
 pub struct Path {
     positions: Vec<Vec2>,
     current: usize,

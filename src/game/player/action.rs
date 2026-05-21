@@ -16,13 +16,13 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
     for (e, (_, position, inventory)) in query {
         let collider_position = position.0 + direction;
         let collider = Collider::from_center(collider_position.x, collider_position.y, 1.0, 1.0);
-        let (break_level, hit_ticks, damage) = if let Some(item) = &inventory.slots[inventory.selected_hotbar].item {
+        let (tool_type, break_level, hit_ticks, damage) = if let Some(item) = &inventory.slots[inventory.selected_hotbar].item {
             match item.category {
-                ItemCategory::Tool(b, h, d) => (b, h, d),
-                _ => (0, 1, 1.0),
+                ItemCategory::Tool(t, b, h, d) => (t, b, h, d),
+                _ => (ToolType::None, 0, 1, 1.0),
             }
         } else {
-            (0, 1, 1.0)
+            (ToolType::None, 0, 1, 1.0)
         };
         let hitbox = HitBox {
             damage,
@@ -32,7 +32,7 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
         };
         to_spawn_hitbox.push(hitbox);
         if let Some(object) = check_collision_with_object(state, &collider) {
-            if break_level >= object.break_level {
+            if break_level >= object.break_level && tool_type.can_break(object.required_tool) {
                 if destroy_object(state, &object, hit_ticks) {
                     let (item, quantity) = match object._type {
                         ObjectType::Twig => (Item::new(ItemType::Twig), 1),

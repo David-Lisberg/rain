@@ -47,15 +47,15 @@ pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle, state: &mut Stat
             }
             if hitbox.uses > 0 && hitbox.collider.aabb_collision(&hurtbox.0) {
                 hitbox.uses -= 1;
-                if hitbox.uses <= 0 {
-                    to_remove_hitbox.push(*other_e);
-                }
                 health.current -= hitbox.damage;
                 if health.current <= 0.0 {
                     to_kill.push(e);
                     break;
                 }
-                
+                if hitbox.uses <= 0 {
+                    to_remove_hitbox.push(*other_e);
+                    break;
+                }
             }
         }
     }
