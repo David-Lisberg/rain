@@ -7,6 +7,7 @@ use crate::engine::core::RainHandle;
 #[derive(Serialize, Deserialize)]
 pub struct AnimationData {
     pub frames: Vec<AnimationFrame>,
+    pub start: Option<AnimationFrame>,
     pub repeat: bool,
     pub source: String,
 }
@@ -17,12 +18,17 @@ pub struct AnimationFrame {
     pub duration: usize,
     pub position: Option<Vec2>,
     pub scale: Option<Vec2>,
+    pub pivot: Option<Vec2>,
     pub rotation: Option<f32>,
+}
+
+pub struct AnimationPool {
+    pub animations: Vec<Animation>,
 }
 
 impl AnimationFrame {
     pub fn new(uv_rect: UVRect, duration: usize) -> Self {
-        Self { uv_rect, duration, position: None, scale: None, rotation: None }
+        Self { uv_rect, duration, position: None, scale: None, pivot: None, rotation: None }
     }
 }
 
@@ -38,6 +44,7 @@ pub struct Animation {
     pub uv_rect: UVRect,
     pub position: Vec2,
     pub scale: Vec2,
+    pub pivot: Vec2,
     pub rotation: f32,
 }
 
@@ -50,6 +57,7 @@ impl Animation {
             uv_rect: UVRect::default(),
             position: Vec2::ZERO,
             scale: Vec2::new(1.0, 1.0),
+            pivot: Vec2::ZERO,
             rotation: 0.0,
         }
     }
@@ -66,7 +74,7 @@ impl UVRect {
 }
 
 pub fn system_manage_animations(handle: &mut RainHandle) {
-    let mut to_despawn: Vec<Entity> = Vec::new();
+    let mut to_remove: Vec<Entity> = Vec::new();
     let mut animation_ids: Vec<(Entity, String)> = Vec::new();
     for (e, animation) in handle.world.query::<&Animation>().iter() {
         animation_ids.push((e, animation.name.clone()));
@@ -74,19 +82,49 @@ pub fn system_manage_animations(handle: &mut RainHandle) {
     for (e, id) in animation_ids {
         let animation_data = handle.fetch_animation(&id).unwrap();
         if let Ok(animation) = handle.world.query_one_mut::<&mut Animation>(e) {
+            if animation.current_frame == 0 && animation.frame_progress == 0 {
+                if let Some(start_frame) = &animation_data.start {
+                    if let Some(current_position) = start_frame.position {
+                        animation.position = current_position;
+                    }
+                    if let Some(current_scale) = start_frame.scale {
+                        animation.scale = current_scale;
+                    }
+                    if let Some(current_pivot) = start_frame.pivot {
+                        animation.pivot = current_pivot;
+                    }
+                    if let Some(current_rotation) = start_frame.rotation {
+                        animation.rotation = current_rotation;
+                    }
+                }
+            }
+
             let current_frame = &animation_data.frames[animation.current_frame];
+            let previous_frame = if animation.current_frame <= 0 {
+                if let Some(start_frame) = &animation_data.start {
+                    start_frame
+                } else {
+                    &animation_data.frames[animation.current_frame]
+                }
+            } else {
+                &animation_data.frames[animation.current_frame - 1]
+            };
             animation.uv_rect = current_frame.uv_rect;
 
-            let s =  1.0 / (current_frame.duration - animation.frame_progress) as f32;
-            if let Some(current_position) = current_frame.position {
-                animation.position = animation.position.lerp(current_position, s);
+            let s =  animation.frame_progress as f32 / current_frame.duration as f32;
+            if let (Some(current_position), Some(previous_position)) = (current_frame.position, previous_frame.position) {
+                animation.position = previous_position.lerp(current_position, s);
             }
-            if let Some(current_scale) = current_frame.scale {
-                animation.scale = animation.scale.lerp(current_scale, s);
+            if let (Some(current_scale), Some(previous_scale)) = (current_frame.scale, previous_frame.scale) {
+                animation.scale = previous_scale.lerp(current_scale, s);
             }
-            if let Some(current_rotation) = current_frame.rotation {
-                animation.rotation = animation.rotation.lerp(current_rotation, s);
+            if let (Some(current_pivot), Some(previous_pivot)) = (current_frame.pivot, previous_frame.pivot) {
+                animation.pivot = previous_pivot.lerp(current_pivot, s);
             }
+            if let (Some(current_rotation), Some(previous_rotation)) = (current_frame.rotation, previous_frame.rotation) {
+                animation.rotation = previous_rotation.lerp(current_rotation, s);
+            }
+            
             animation.frame_progress += 1;
 
             if animation.frame_progress >= current_frame.duration {
@@ -98,13 +136,13 @@ pub fn system_manage_animations(handle: &mut RainHandle) {
                 if animation_data.repeat {
                     animation.current_frame = 0;
                 } else {
-                    to_despawn.push(e);
+                    to_remove.push(e);
                 }
             }
         }
     }
 
-    for e in to_despawn {
-        handle.world.despawn(e).unwrap();
+    for e in to_remove {
+        handle.world.remove_one::<Animation>(e).unwrap();
     }
 }

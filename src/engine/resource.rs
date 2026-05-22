@@ -119,6 +119,10 @@ impl ResourceManager {
 
 impl RainHandle {
     pub fn load_texture(&mut self, name: &str, path: &str) -> Result<Arc<Texture>, Error> {
+        if let Some(texture) = self.fetch_texture(name) {
+            return Ok(texture);
+        }
+
         let image = image::open(path)?;
         self.resource_manager.load_texture(&self.renderer.queue, name.to_string(), &image)
     }

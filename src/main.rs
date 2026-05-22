@@ -195,6 +195,7 @@ impl RainState for State {
         handle.load_animation("animation_player_walking_side", "res/animations/player_walking_side.json").expect("Error loading animation");
         handle.load_animation("animation_player_walking_front", "res/animations/player_walking_front.json").expect("Error loading animation");
         handle.load_animation("animation_player_walking_back", "res/animations/player_walking_back.json").expect("Error loading animation");
+        handle.load_animation("animation_axe_swing", "res/animations/axe_swing.json").expect("Error loading animation");
 
         let player_texture = handle.fetch_texture("player_front").unwrap();
         let player_collider = Collider::from_center(0.0, 0.0, 0.8, 0.8);
@@ -206,7 +207,7 @@ impl RainState for State {
             Inventory::new(36),
         ));
         handle.world.insert(player_entity, (
-            Health::new(100.0), HurtBox(Collider::from_center(0.0, 0.0, 0.8, 0.8)), Persistent, Swimmable,
+            Health::new(100.0), HurtBox(Collider::from_center(0.0, 0.0, 0.8, 0.8)), Persistent, Swimmable, 
         )).unwrap();
 
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {

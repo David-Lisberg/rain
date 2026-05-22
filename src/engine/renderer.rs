@@ -505,10 +505,10 @@ impl Renderer {
     
         let mut query = world.query::<(
             &Visible, Option<&Priority>, Option<&ModelMesh>, Option<&Sprite>, Option<&Animation>,
-            Option<&Position2D>, Option<&DepthZ>, Option<&Scale2D>, Option<&RotationZ>, Option<&Flip>, Option<&Color>, Option<&Arc<Texture>>
+            Option<&Position2D>, Option<&DepthZ>, Option<&Scale2D>, Option<&Pivot2D>, Option<&RotationZ>, Option<&Flip>, Option<&Color>, Option<&Arc<Texture>>
         )>();
         for (_, (
-            _, priority, mesh, sprite, animation, pos, depth, scale, rotation, flip, color, texture
+            _, priority, mesh, sprite, animation, pos, depth, scale, pivot, rotation, flip, color, texture
         )) in query.iter() {
             let fetched_texture;
             let texture = match animation {
@@ -525,7 +525,7 @@ impl Renderer {
                             priority_buffer[i].0.push(m);
                         }
                         if sprite.is_some() {
-                            let sprite_render = SpriteRender::new(pos, depth, scale, rotation, flip, color, texture, animation);
+                            let sprite_render = SpriteRender::new(pos, depth, scale, pivot, rotation, flip, color, texture, animation);
                             priority_buffer[i].1.push(sprite_render);
                         }
                     } else {
@@ -536,7 +536,7 @@ impl Renderer {
                             priority_buffer[i].0.push(m);
                         }
                         if sprite.is_some() {
-                            let sprite_render = SpriteRender::new(pos, depth, scale, rotation, flip, color, texture, animation);
+                            let sprite_render = SpriteRender::new(pos, depth, scale, pivot, rotation, flip, color, texture, animation);
                             priority_buffer[i].1.push(sprite_render);
                         }
                     }
@@ -546,7 +546,7 @@ impl Renderer {
                         no_priority.0.push(m);
                     }
                     if sprite.is_some() {
-                        let sprite_render = SpriteRender::new(pos, depth, scale, rotation, flip, color, texture, animation);
+                        let sprite_render = SpriteRender::new(pos, depth, scale, pivot, rotation, flip, color, texture, animation);
                         no_priority.1.push(sprite_render);
                     }
                 }

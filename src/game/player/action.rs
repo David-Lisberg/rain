@@ -4,13 +4,14 @@ use glam::Vec2;
 use hecs::Entity;
 use rain::engine::{animation::Animation, component::*, core::RainHandle, input::MouseButton, texture::Texture};
 
-use crate::{DEPTH_PROJECTILE, State, game::{core::collision::*, entity::{damage::HitBox, despawn::TimerDespawn, projectile::Projectile}, player::{inventory::Inventory, item::*, movement::Player}, utility::timer::Timer, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
+use crate::{DEPTH_PLAYER, DEPTH_PROJECTILE, State, game::{core::collision::*, entity::{damage::HitBox, despawn::TimerDespawn, projectile::Projectile}, player::{inventory::Inventory, item::*, movement::Player}, utility::timer::Timer, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
 
 struct SlingHold(f32, usize);
 
 pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) {
     let mut object_changed = false;
     let mut to_spawn_hitbox: Vec<HitBox> = Vec::new();
+    let mut to_spawn_animation: Vec<Position2D> = Vec::new();
     let mut to_spawn_item_drop: Vec<(Position2D, Item, i32)> = Vec::new();
     let query = handle.world.query_mut::<(&Player, &Position2D, &mut Inventory)>();
     for (e, (_, position, inventory)) in query {
@@ -24,6 +25,7 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
         } else {
             (ToolType::None, 0, 1, 1.0)
         };
+        to_spawn_animation.push(position.clone());
         let hitbox = HitBox {
             damage,
             collider,
@@ -58,6 +60,10 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
     }
     if object_changed {
         reload_object_mesh(handle, state);
+    }
+    for position in to_spawn_animation {
+        println!("spawned");
+        handle.world.spawn((Animation::new("animation_axe_swing"), position, Sprite, Visible, Priority(1), DepthZ(DEPTH_PLAYER)));
     }
 }
 

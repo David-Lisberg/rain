@@ -15,7 +15,7 @@ pub struct SpriteInstance {
 
 impl SpriteInstance {
     pub fn new(
-        pos: Option<&Position2D>, depth: Option<&DepthZ>, scale: Option<&Scale2D>, rotation: Option<&RotationZ>, 
+        pos: Option<&Position2D>, depth: Option<&DepthZ>, scale: Option<&Scale2D>, pivot: Option<&Pivot2D>, rotation: Option<&RotationZ>, 
         flip: Option<&Flip>, color: Option<&Color>, uv_offset: [f32; 2], uv_scale: [f32; 2], layer: u32,
     ) -> Self {
         let pos = match pos {
@@ -44,9 +44,15 @@ impl SpriteInstance {
                 scale.y *= -1.0;
             }
         }
+        let transform = if let Some(p) = pivot {
+            let rotation = Mat4::from_rotation_translation(Quat::from_rotation_z(rotation), pos + p.0.extend(0.0));
+            rotation * Mat4::from_scale_rotation_translation(scale.extend(1.0), Quat::IDENTITY, -p.0.extend(0.0))
+        } else {
+            Mat4::from_scale_rotation_translation(scale.extend(1.0), Quat::from_rotation_z(rotation), pos)
+        };
         
         Self {
-            transform: Mat4::from_scale_rotation_translation(scale.extend(1.0), Quat::from_rotation_z(rotation), pos).to_cols_array_2d(),
+            transform: transform.to_cols_array_2d(),
             color: Color::rain_color_to_array(color.unwrap_or(&Color::WHITE)),
             uv_offset,
             uv_scale,
