@@ -1,3 +1,5 @@
+use std::{collections::HashMap, sync::Arc};
+
 use glam::{FloatExt, Vec2};
 use hecs::Entity;
 use serde::{Deserialize, Serialize};
@@ -23,7 +25,13 @@ pub struct AnimationFrame {
 }
 
 pub struct AnimationPool {
-    pub animations: Vec<Animation>,
+    pub animations: HashMap<usize, Animation>,
+}
+
+impl AnimationPool {
+    pub fn new() -> Self {
+        Self { animations: HashMap::new() }
+    }
 }
 
 impl AnimationFrame {
@@ -74,75 +82,101 @@ impl UVRect {
 }
 
 pub fn system_manage_animations(handle: &mut RainHandle) {
-    let mut to_remove: Vec<Entity> = Vec::new();
-    let mut animation_ids: Vec<(Entity, String)> = Vec::new();
+    let mut to_remove: Vec<(Entity, Option<usize>)> = Vec::new();
+    let mut animation_ids: Vec<(Entity, String, Option<usize>)> = Vec::new();
     for (e, animation) in handle.world.query::<&Animation>().iter() {
-        animation_ids.push((e, animation.name.clone()));
+        animation_ids.push((e, animation.name.clone(), None));
     }
-    for (e, id) in animation_ids {
+    for (e, animation_pool) in handle.world.query::<&AnimationPool>().iter() {
+        for (i, animation) in animation_pool.animations.iter() {
+            animation_ids.push((e, animation.name.clone(), Some(*i)));
+        }
+    }
+    for (e, id, index) in animation_ids {
         let animation_data = handle.fetch_animation(&id).unwrap();
-        if let Ok(animation) = handle.world.query_one_mut::<&mut Animation>(e) {
-            if animation.current_frame == 0 && animation.frame_progress == 0 {
-                if let Some(start_frame) = &animation_data.start {
-                    if let Some(current_position) = start_frame.position {
-                        animation.position = current_position;
-                    }
-                    if let Some(current_scale) = start_frame.scale {
-                        animation.scale = current_scale;
-                    }
-                    if let Some(current_pivot) = start_frame.pivot {
-                        animation.pivot = current_pivot;
-                    }
-                    if let Some(current_rotation) = start_frame.rotation {
-                        animation.rotation = current_rotation;
-                    }
-                }
+        if let Some(i) = index {
+            if let Ok(animation_pool) = handle.world.query_one_mut::<&mut AnimationPool>(e) {
+                process_animation(animation_pool.animations.get_mut(&i).unwrap(), Arc::clone(&animation_data), e, index, &mut to_remove);
             }
-
-            let current_frame = &animation_data.frames[animation.current_frame];
-            let previous_frame = if animation.current_frame <= 0 {
-                if let Some(start_frame) = &animation_data.start {
-                    start_frame
-                } else {
-                    &animation_data.frames[animation.current_frame]
-                }
-            } else {
-                &animation_data.frames[animation.current_frame - 1]
-            };
-            animation.uv_rect = current_frame.uv_rect;
-
-            let s =  animation.frame_progress as f32 / current_frame.duration as f32;
-            if let (Some(current_position), Some(previous_position)) = (current_frame.position, previous_frame.position) {
-                animation.position = previous_position.lerp(current_position, s);
-            }
-            if let (Some(current_scale), Some(previous_scale)) = (current_frame.scale, previous_frame.scale) {
-                animation.scale = previous_scale.lerp(current_scale, s);
-            }
-            if let (Some(current_pivot), Some(previous_pivot)) = (current_frame.pivot, previous_frame.pivot) {
-                animation.pivot = previous_pivot.lerp(current_pivot, s);
-            }
-            if let (Some(current_rotation), Some(previous_rotation)) = (current_frame.rotation, previous_frame.rotation) {
-                animation.rotation = previous_rotation.lerp(current_rotation, s);
-            }
-            
-            animation.frame_progress += 1;
-
-            if animation.frame_progress >= current_frame.duration {
-                animation.frame_progress = 0;
-                animation.current_frame += 1;
-            }
-
-            if animation.current_frame >= animation_data.frames.len() {
-                if animation_data.repeat {
-                    animation.current_frame = 0;
-                } else {
-                    to_remove.push(e);
-                }
+        } else {
+            if let Ok(animation) = handle.world.query_one_mut::<&mut Animation>(e) {
+                process_animation(animation, Arc::clone(&animation_data), e, index, &mut to_remove);
             }
         }
     }
 
-    for e in to_remove {
-        handle.world.remove_one::<Animation>(e).unwrap();
+    let mut to_remove_pool: Vec<(Entity, usize)> = to_remove.iter()
+        .filter_map(|(e, i)| i.map(|i| (*e, i)))
+        .collect();
+    to_remove_pool.sort_by_key(|(_, i)| std::cmp::Reverse(*i));
+    for (e, i) in to_remove_pool {
+        if let Ok(animation_pool) = handle.world.query_one_mut::<&mut AnimationPool>(e) {
+            animation_pool.animations.remove(&i);
+        }
+    }
+    for (e, i) in to_remove {
+        if i.is_none() {
+            handle.world.remove_one::<Animation>(e).unwrap();
+        }
+    }
+}
+
+fn process_animation(animation: &mut Animation, animation_data: Arc<AnimationData>, e: Entity, index: Option<usize>, to_remove: &mut Vec<(Entity, Option<usize>)>) {
+    if animation.current_frame == 0 && animation.frame_progress == 0 {
+        if let Some(start_frame) = &animation_data.start {
+            if let Some(current_position) = start_frame.position {
+                animation.position = current_position;
+            }
+            if let Some(current_scale) = start_frame.scale {
+                animation.scale = current_scale;
+            }
+            if let Some(current_pivot) = start_frame.pivot {
+                animation.pivot = current_pivot;
+            }
+            if let Some(current_rotation) = start_frame.rotation {
+                animation.rotation = current_rotation;
+            }
+        }
+    }
+
+    let current_frame = &animation_data.frames[animation.current_frame];
+    let previous_frame = if animation.current_frame <= 0 {
+        if let Some(start_frame) = &animation_data.start {
+            start_frame
+        } else {
+            &animation_data.frames[animation.current_frame]
+        }
+    } else {
+        &animation_data.frames[animation.current_frame - 1]
+    };
+    animation.uv_rect = current_frame.uv_rect;
+
+    let s =  animation.frame_progress as f32 / current_frame.duration as f32;
+    if let (Some(current_position), Some(previous_position)) = (current_frame.position, previous_frame.position) {
+        animation.position = previous_position.lerp(current_position, s);
+    }
+    if let (Some(current_scale), Some(previous_scale)) = (current_frame.scale, previous_frame.scale) {
+        animation.scale = previous_scale.lerp(current_scale, s);
+    }
+    if let (Some(current_pivot), Some(previous_pivot)) = (current_frame.pivot, previous_frame.pivot) {
+        animation.pivot = previous_pivot.lerp(current_pivot, s);
+    }
+    if let (Some(current_rotation), Some(previous_rotation)) = (current_frame.rotation, previous_frame.rotation) {
+        animation.rotation = previous_rotation.lerp(current_rotation, s);
+    }
+
+    animation.frame_progress += 1;
+
+    if animation.frame_progress >= current_frame.duration {
+        animation.frame_progress = 0;
+        animation.current_frame += 1;
+    }
+
+    if animation.current_frame >= animation_data.frames.len() {
+        if animation_data.repeat {
+            animation.current_frame = 0;
+        } else {
+            to_remove.push((e, index));
+        }
     }
 }

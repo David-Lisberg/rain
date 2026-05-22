@@ -4,7 +4,7 @@ use hecs::World;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
-use crate::engine::animation::Animation;
+use crate::engine::animation::{Animation, AnimationPool};
 use crate::engine::camera::{Camera2d, Camera2dUniform};
 use crate::engine::color::{self, Color};
 use crate::engine::draw::{DrawCall, DrawPass};
@@ -56,6 +56,18 @@ struct BufferSegment {
     indices: Vec<u16>,
     indices_offset: u32,
     indices_length: u32,
+}
+
+#[derive(Clone)]
+struct PriorityBuffer<'a> {
+    meshes: Vec<&'a ModelMesh>,
+    sprites: Vec<SpriteRender>,
+}
+
+impl PriorityBuffer<'_> {
+    fn new() -> Self {
+        Self { meshes: Vec::new(), sprites: Vec::new() }
+    }
 }
 
 impl BufferSegment {
@@ -481,7 +493,7 @@ impl Renderer {
             resolve_target: None,
             ops: clear_background_op,
         });
-        let color_attachment = Some(wgpu::RenderPassColorAttachment {
+        let default_color_attachment = Some(wgpu::RenderPassColorAttachment {
             view: &view,
             resolve_target: None,
             ops: wgpu::Operations {
@@ -494,97 +506,71 @@ impl Renderer {
             load: wgpu::LoadOp::Clear(1.0),
             store: wgpu::StoreOp::Store,
         });
-        let depth_ops = Some(wgpu::Operations {
+        let default_depth_ops = Some(wgpu::Operations {
             load: wgpu::LoadOp::Load,
             store: wgpu::StoreOp::Store,
         });
 
-        let mut no_priority: (Vec<&ModelMesh>, Vec<SpriteRender>) = (Vec::new(), Vec::new());
-        let mut priority_buffer: Vec<(Vec<&ModelMesh>, Vec<SpriteRender>)> = Vec::new();
+        let mut no_priority: PriorityBuffer = PriorityBuffer::new();
+        let mut priority_buffer: Vec<PriorityBuffer> = Vec::new();
         let mut priority_buffer_value: Vec<i32> = Vec::new();
     
         let mut query = world.query::<(
-            &Visible, Option<&Priority>, Option<&ModelMesh>, Option<&Sprite>, Option<&Animation>,
+            &Visible, Option<&Priority>, Option<&ModelMesh>, Option<&Sprite>, Option<&Animation>, Option<&AnimationPool>,
             Option<&Position2D>, Option<&DepthZ>, Option<&Scale2D>, Option<&Pivot2D>, Option<&RotationZ>, Option<&Flip>, Option<&Color>, Option<&Arc<Texture>>
         )>();
         for (_, (
-            _, priority, mesh, sprite, animation, pos, depth, scale, pivot, rotation, flip, color, texture
+            _, priority, mesh, sprite, animation, pool, position, depth, scale, pivot, rotation, flip, color, texture
         )) in query.iter() {
-            let fetched_texture;
-            let texture = match animation {
-                Some(a) => {
-                    fetched_texture = resource_manager.fetch_texture(&a.name);
-                    fetched_texture.as_ref()
-                }
-                None => texture,
-            };
-            match priority {
+            let buffer = match priority {
                 Some(p) => {
-                    if let Some(i) = priority_buffer_value.iter().position(|&x| x == p.0) {
-                        if let Some(m) = mesh {
-                            priority_buffer[i].0.push(m);
-                        }
-                        if sprite.is_some() {
-                            let sprite_render = SpriteRender::new(pos, depth, scale, pivot, rotation, flip, color, texture, animation);
-                            priority_buffer[i].1.push(sprite_render);
-                        }
+                    let i = if let Some(i) = priority_buffer_value.iter().position(|&x| x == p.0) {
+                        i
                     } else {
                         let i = priority_buffer_value.len();
                         priority_buffer_value.push(p.0);
-                        priority_buffer.push((Vec::new(), Vec::new()));
-                        if let Some(m) = mesh {
-                            priority_buffer[i].0.push(m);
-                        }
-                        if sprite.is_some() {
-                            let sprite_render = SpriteRender::new(pos, depth, scale, pivot, rotation, flip, color, texture, animation);
-                            priority_buffer[i].1.push(sprite_render);
-                        }
-                    }
+                        priority_buffer.push(PriorityBuffer::new());
+                        i
+                    };
+                    &mut priority_buffer[i]
                 }
-                None => {
-                    if let Some(m) = mesh {
-                        no_priority.0.push(m);
-                    }
-                    if sprite.is_some() {
-                        let sprite_render = SpriteRender::new(pos, depth, scale, pivot, rotation, flip, color, texture, animation);
-                        no_priority.1.push(sprite_render);
-                    }
+                None => &mut no_priority,
+            };
+            if let Some(p) = pool {
+                for (_, a) in p.animations.iter() {
+                    let animation = Some(a);
+                    push_to_buffer(resource_manager, buffer, sprite, animation, texture, mesh, position, depth, scale, pivot, rotation, flip, color);
                 }
             }
+            push_to_buffer(resource_manager, buffer, sprite, animation, texture, mesh, position, depth, scale, pivot, rotation, flip, color);
         }
 
         let mut indices: Vec<usize> = (0..priority_buffer_value.len()).collect();
         indices.sort_by_key(|&i| priority_buffer_value[i]);
 
-        let priority_buffer_sorted: Vec<(Vec<&ModelMesh>, Vec<SpriteRender>)> = indices.iter().map(|&i| priority_buffer[i].clone()).collect();
+        let priority_buffer_sorted: Vec<PriorityBuffer> = indices.iter().map(|&i| priority_buffer[i].clone()).collect();
         let mut to_render = vec![no_priority];
         to_render.extend(priority_buffer_sorted);
 
         let mut first_pass_color = true;
         let mut first_pass_depth = true;
-        for (models, sprites) in to_render {
-            if !models.is_empty() {
-                if first_pass_color && first_pass_depth {
-                    self.render_models(resource_manager, &mut encoder, models, base_color_attachment.clone(), base_depth_ops.clone());
-                    first_pass_color = false;
-                    first_pass_depth = false;
-                } else if first_pass_color {
-                    self.render_models(resource_manager, &mut encoder, models, base_color_attachment.clone(), depth_ops.clone());
-                    first_pass_color = false;
-                } else if first_pass_depth {
-                    self.render_models(resource_manager, &mut encoder, models, color_attachment.clone(), base_depth_ops.clone());
-                    first_pass_depth = false;
-                } else {
-                    self.render_models(resource_manager, &mut encoder, models, color_attachment.clone(), depth_ops.clone());
-                }
+        for buffer in to_render {
+            let color_attachment = match first_pass_color {
+                true => base_color_attachment.clone(),
+                false => default_color_attachment.clone(),
+            };
+            let depth_ops = match first_pass_depth {
+                true => base_depth_ops,
+                false => default_depth_ops,
+            };
+            if !buffer.meshes.is_empty() {
+                self.render_models(resource_manager, &mut encoder, buffer.meshes, color_attachment.clone(), depth_ops);
+                first_pass_color = false;
+                first_pass_depth = false;
             }
-            if !sprites.is_empty() {
-                if first_pass_color {
-                    self.render_sprites(resource_manager, &mut encoder, sprites, base_color_attachment.clone());
-                    first_pass_color = false;
-                } else {
-                    self.render_sprites(resource_manager, &mut encoder, sprites, color_attachment.clone());
-                }
+            if !buffer.sprites.is_empty() {
+                self.render_sprites(resource_manager, &mut encoder, buffer.sprites, color_attachment);
+                first_pass_color = false;
             }
         }
 
@@ -824,5 +810,27 @@ impl Renderer {
             self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform]));
             self.camera.updated = false;
         }
+    }
+}
+
+fn push_to_buffer<'a>(
+    resource_manager: &ResourceManager, buffer: &mut PriorityBuffer<'a>, sprite: Option<&Sprite>, animation: Option<&Animation>, texture: Option<&Arc<Texture>>, 
+    mesh: Option<&'a ModelMesh>, position: Option<&Position2D>, depth: Option<&DepthZ>, scale: Option<&Scale2D>, pivot: Option<&Pivot2D>, rotation: Option<&RotationZ>,
+    flip: Option<&Flip>, color: Option<&Color>
+) {
+    let fetched_texture;
+    let texture: Option<&Arc<Texture>> = match animation {
+        Some(a) => {
+            fetched_texture = resource_manager.fetch_texture(&a.name);
+            fetched_texture.as_ref()
+        }
+        None => texture,
+    };
+    if let Some(m) = mesh {
+        buffer.meshes.push(m);
+    }
+    if sprite.is_some() {
+        let sprite_render = SpriteRender::new(position, depth, scale, pivot, rotation, flip, color, texture, animation);
+        buffer.sprites.push(sprite_render);
     }
 }

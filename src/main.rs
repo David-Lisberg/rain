@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use lgui::manager::GUI;
 use noise::Perlin;
+use rain::engine::animation::AnimationPool;
 use rain::engine::color::Color;
 use rain::engine::core::*;
 use rain::engine::component::*;
@@ -207,7 +208,7 @@ impl RainState for State {
             Inventory::new(36),
         ));
         handle.world.insert(player_entity, (
-            Health::new(100.0), HurtBox(Collider::from_center(0.0, 0.0, 0.8, 0.8)), Persistent, Swimmable, 
+            Health::new(100.0), HurtBox(Collider::from_center(0.0, 0.0, 0.8, 0.8)), Persistent, Swimmable, AnimationPool::new(),
         )).unwrap();
 
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
