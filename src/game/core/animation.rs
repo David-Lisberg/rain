@@ -31,6 +31,7 @@ pub fn system_manage_animation_events(handle: &mut RainHandle) {
         }
     }
     for (e, id, index) in animation_ids {
+        println!("{}", id);
         let animation_data = handle.fetch_animation(&id).unwrap();
         let animation = if let Some(i) = index {
             if let Ok(mut q) = handle.world.query_one::<&AnimationPool>(e) {
@@ -58,12 +59,11 @@ pub fn system_manage_animation_events(handle: &mut RainHandle) {
                     };
                     to_add_event.push(active_event);
     
-                    for (i, event) in animation_events.iter().enumerate() {
+                    for event in animation_events {
                         match event {
                             AnimationEvent::HitBox(collider) => {
                                 let hitbox_collider = Collider::from_center(collider[0], collider[1], collider[2], collider[3]);
                                 let hitbox = HitBox::new(1.0, hitbox_collider, vec![e], 1);
-                                println!("{} {} {}", a.frame_progress, a.current_frame, i);
                                 to_add_hitbox.push((e, hitbox));
                             }
                             AnimationEvent::LockInput => to_add_lock.push(e),

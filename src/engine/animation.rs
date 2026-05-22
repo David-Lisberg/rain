@@ -22,6 +22,7 @@ pub struct AnimationFrame {
     pub scale: Option<Vec2>,
     pub pivot: Option<Vec2>,
     pub rotation: Option<f32>,
+    pub depth: Option<f32>,
     pub events: Option<Vec<AnimationEvent>>,
 }
 
@@ -43,7 +44,7 @@ impl AnimationPool {
 
 impl AnimationFrame {
     pub fn new(uv_rect: UVRect, duration: usize) -> Self {
-        Self { uv_rect, duration, position: None, scale: None, pivot: None, rotation: None, events: None }
+        Self { uv_rect, duration, position: None, scale: None, pivot: None, rotation: None, depth: None, events: None }
     }
 }
 
@@ -63,6 +64,7 @@ pub struct Animation {
     pub scale: Vec2,
     pub pivot: Vec2,
     pub rotation: f32,
+    pub depth: f32,
     pub frame_start: bool,
 }
 
@@ -77,6 +79,7 @@ impl Animation {
             scale: Vec2::new(1.0, 1.0),
             pivot: Vec2::ZERO,
             rotation: 0.0,
+            depth: 0.0,
             frame_start: true,
         }
     }
@@ -168,6 +171,9 @@ fn process_animation(animation: &mut Animation, animation_data: Arc<AnimationDat
             if let Some(current_rotation) = start_frame.rotation {
                 animation.rotation = current_rotation;
             }
+            if let Some(current_depth) = start_frame.depth {
+                animation.depth = current_depth;
+            }
         }
     }
 
@@ -194,5 +200,8 @@ fn process_animation(animation: &mut Animation, animation_data: Arc<AnimationDat
     }
     if let (Some(current_rotation), Some(previous_rotation)) = (current_frame.rotation, previous_frame.rotation) {
         animation.rotation = previous_rotation.lerp(current_rotation, s);
+    }
+    if let (Some(current_depth), Some(previous_depth)) = (current_frame.depth, previous_frame.depth) {
+        animation.depth = previous_depth.lerp(current_depth, s);
     }
 }

@@ -373,7 +373,13 @@ impl Renderer {
                 unclipped_depth: false,
                 conservative: false,
             },
-            depth_stencil: None,
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: TextureWGPU::DEPTH_FORMAT,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Less,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
             multisample: wgpu::MultisampleState {
                 count: 1,
                 mask: !0,
@@ -564,13 +570,14 @@ impl Renderer {
                 false => default_depth_ops,
             };
             if !buffer.meshes.is_empty() {
-                self.render_models(resource_manager, &mut encoder, buffer.meshes, color_attachment.clone(), depth_ops);
+                self.render_models(resource_manager, &mut encoder, buffer.meshes, color_attachment.clone(), depth_ops.clone());
                 first_pass_color = false;
                 first_pass_depth = false;
             }
             if !buffer.sprites.is_empty() {
-                self.render_sprites(resource_manager, &mut encoder, buffer.sprites, color_attachment);
+                self.render_sprites(resource_manager, &mut encoder, buffer.sprites, color_attachment, depth_ops);
                 first_pass_color = false;
+                first_pass_depth = false;
             }
         }
 
@@ -707,6 +714,7 @@ impl Renderer {
         encoder: &mut wgpu::CommandEncoder, 
         to_render: Vec<SpriteRender>,
         color_attachment: Option<wgpu::RenderPassColorAttachment<'_>>,
+        depth_ops: Option<wgpu::Operations<f32>>
     ) {
         let mut buffer_segments: [BufferSegmentSpriteInstance; 2] = [
             BufferSegmentSpriteInstance::new(ARRAY_256X256_ID),
@@ -737,7 +745,11 @@ impl Renderer {
                 color_attachments: &[
                     color_attachment
                 ],
-                depth_stencil_attachment: None,
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &self.depth_texture.view,
+                    depth_ops,
+                    stencil_ops: None,
+                }),
                 occlusion_query_set: None,
                 timestamp_writes: None,
             });

@@ -61,6 +61,7 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
         if let Ok(pool) = handle.world.query_one_mut::<&mut AnimationPool>(e) {
             pool.animations.insert(0, animation);
         }
+        handle.world.insert_one(e, Animation::new("animation_player_swinging_side")).unwrap();
     }
 }
 

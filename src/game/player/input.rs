@@ -21,75 +21,69 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
     let mut pickup_item: Option<Vec2> = None;
     let mut drop_item: Option<bool> = None;
     let mut inventory_hotbar_select: Option<usize> = None;
+
+
     for (e, (_, direction, position, lock)) in handle.world.query::<(&Player, &mut Direction, &Position2D, Option<&Lock>)>().iter() {
-        if lock.is_some() {
-            continue;
+        let mut movement = Vec2::ZERO;
+        if handle.is_key_pressed(KeyboardKey::A) {
+            movement.x -= 1.0;
         }
-        
-        if handle.is_key_pressed(KeyboardKey::A) && handle.is_key_pressed(KeyboardKey::W) {
-            *direction = Direction(Vec2::new(-1.0, 1.0).normalize());
-            to_walk.push(e);
-        } else if handle.is_key_pressed(KeyboardKey::W) && handle.is_key_pressed(KeyboardKey::D) {
-            *direction = Direction(Vec2::new(1.0, 1.0).normalize());
-            to_walk.push(e);
-        } else if handle.is_key_pressed(KeyboardKey::D) && handle.is_key_pressed(KeyboardKey::S) {
-            *direction = Direction(Vec2::new(1.0, -1.0).normalize());
-            to_walk.push(e);
-        } else if handle.is_key_pressed(KeyboardKey::S) && handle.is_key_pressed(KeyboardKey::A) {
-            *direction = Direction(Vec2::new(-1.0, -1.0).normalize());
-            to_walk.push(e);
-        } else if handle.is_key_pressed(KeyboardKey::A) {
-            *direction = Direction(Vec2::new(-1.0, 0.0));
-            to_walk.push(e);
-        } else if handle.is_key_pressed(KeyboardKey::D) {
-            *direction = Direction(Vec2::new(1.0, 0.0));
-            to_walk.push(e);
-        } else if handle.is_key_pressed(KeyboardKey::S) {
-            *direction = Direction(Vec2::new(0.0, -1.0));
-            to_walk.push(e);
-        } else if handle.is_key_pressed(KeyboardKey::W) {
-            *direction = Direction(Vec2::new(0.0, 1.0));
+        if handle.is_key_pressed(KeyboardKey::D) {
+            movement.x += 1.0;
+        }
+        if handle.is_key_pressed(KeyboardKey::W) {
+            movement.y += 1.0;
+        }
+        if handle.is_key_pressed(KeyboardKey::S) {
+            movement.y -= 1.0;
+        }
+
+        if lock.is_none() && movement != Vec2::ZERO {
+            *direction = Direction(movement.normalize());
             to_walk.push(e);
         } else {
             to_remove_walk.push(e);
         }
-        if handle.is_key_released(KeyboardKey::Space) {
-            to_dash.push(e);
-        }
-        if handle.is_key_released(KeyboardKey::E) {
-            open_inventory = true;
-        }
-        if handle.is_key_released(KeyboardKey::Q) {
-            if handle.is_key_pressed(KeyboardKey::ControlLeft) {
-                drop_item = Some(true);
-            } else {
-                drop_item = Some(false);
+
+        if lock.is_none() {
+            if handle.is_key_released(KeyboardKey::Space) {
+                to_dash.push(e);
             }
-        }
-        if handle.is_button_released(MouseButton::Left) {
-            pickup_item = Some(position.0.clone());
-        }
-        if handle.is_button_just_pressed(MouseButton::Right) {
-            use_item = true;
-        }
-        if handle.is_key_released(KeyboardKey::Digit1) {
-            inventory_hotbar_select = Some(0);
-        } else if handle.is_key_released(KeyboardKey::Digit2) {
-            inventory_hotbar_select = Some(1);
-        } else if handle.is_key_released(KeyboardKey::Digit3) {
-            inventory_hotbar_select = Some(2);
-        } else if handle.is_key_released(KeyboardKey::Digit4) {
-            inventory_hotbar_select = Some(3);
-        } else if handle.is_key_released(KeyboardKey::Digit5) {
-            inventory_hotbar_select = Some(4);
-        } else if handle.is_key_released(KeyboardKey::Digit6) {
-            inventory_hotbar_select = Some(5);
-        } else if handle.is_key_released(KeyboardKey::Digit7) {
-            inventory_hotbar_select = Some(6);
-        } else if handle.is_key_released(KeyboardKey::Digit8) {
-            inventory_hotbar_select = Some(7);
-        } else if handle.is_key_released(KeyboardKey::Digit9) {
-            inventory_hotbar_select = Some(8);
+            if handle.is_key_released(KeyboardKey::E) {
+                open_inventory = true;
+            }
+            if handle.is_key_released(KeyboardKey::Q) {
+                if handle.is_key_pressed(KeyboardKey::ControlLeft) {
+                    drop_item = Some(true);
+                } else {
+                    drop_item = Some(false);
+                }
+            }
+            if handle.is_button_released(MouseButton::Left) {
+                pickup_item = Some(position.0.clone());
+            }
+            if handle.is_button_just_pressed(MouseButton::Right) {
+                use_item = true;
+            }
+            if handle.is_key_released(KeyboardKey::Digit1) {
+                inventory_hotbar_select = Some(0);
+            } else if handle.is_key_released(KeyboardKey::Digit2) {
+                inventory_hotbar_select = Some(1);
+            } else if handle.is_key_released(KeyboardKey::Digit3) {
+                inventory_hotbar_select = Some(2);
+            } else if handle.is_key_released(KeyboardKey::Digit4) {
+                inventory_hotbar_select = Some(3);
+            } else if handle.is_key_released(KeyboardKey::Digit5) {
+                inventory_hotbar_select = Some(4);
+            } else if handle.is_key_released(KeyboardKey::Digit6) {
+                inventory_hotbar_select = Some(5);
+            } else if handle.is_key_released(KeyboardKey::Digit7) {
+                inventory_hotbar_select = Some(6);
+            } else if handle.is_key_released(KeyboardKey::Digit8) {
+                inventory_hotbar_select = Some(7);
+            } else if handle.is_key_released(KeyboardKey::Digit9) {
+                inventory_hotbar_select = Some(8);
+            }
         }
     }
 
@@ -98,9 +92,6 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
     }
     for e in to_walk {
         handle.world.insert_one(e, Walk).unwrap();
-    }
-    for e in to_remove_walk {
-        let _ = handle.world.remove_one::<Walk>(e);
     }
     if open_inventory {
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
@@ -129,5 +120,9 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
     }
     if let Some(drop_all) = drop_item {
         drop_current_item(handle, drop_all);
+    }
+
+    for e in to_remove_walk {
+        let _ = handle.world.remove_one::<Walk>(e);
     }
 }

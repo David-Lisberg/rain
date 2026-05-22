@@ -49,8 +49,10 @@ pub fn system_player_walk(handle: &mut RainHandle) {
                 false => 5.0,
             };
             set_velocity_clamped(velocity, speed, direction);
-        } else if animation.is_some() {
-            to_remove_animation.push(e);
+        } if let Some(a) = animation {
+            if matches!(a.name.as_str(), "animation_player_walking_back" | "animation_player_walking_front" |"animation_player_walking_side") {
+                to_remove_animation.push(e);
+            }
         }
     }
 

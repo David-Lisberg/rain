@@ -34,6 +34,10 @@ impl SpriteRender {
                     Some(r) => Some(&RotationZ(r.0 + a.rotation)),
                     None => Some(&RotationZ(a.rotation)),
                 };
+                let depth = match depth {
+                    Some(r) => Some(&DepthZ(r.0 + a.depth)),
+                    None => Some(&DepthZ(a.depth)),
+                };
                 (SpriteInstance::new(pos, depth, scale, pivot, rotation, flip, color, a.uv_rect.offset, uv_scale, t.index), t.array_id)
             } else {
                 (SpriteInstance::new(pos, depth, scale, pivot, rotation, flip, color, [0.0, 0.0], t.uv, t.index), t.array_id)

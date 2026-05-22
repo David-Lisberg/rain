@@ -200,6 +200,7 @@ impl RainState for State {
         handle.load_animation("animation_player_walking_side", "res/animations/player_walking_side.json").expect("Error loading animation");
         handle.load_animation("animation_player_walking_front", "res/animations/player_walking_front.json").expect("Error loading animation");
         handle.load_animation("animation_player_walking_back", "res/animations/player_walking_back.json").expect("Error loading animation");
+        handle.load_animation("animation_player_swinging_side", "res/animations/player_swinging_side.json").expect("Error loading animation");
         handle.load_animation("animation_axe_swing", "res/animations/axe_swing.json").expect("Error loading animation");
 
         let player_texture = handle.fetch_texture("player_front").unwrap();

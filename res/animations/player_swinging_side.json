@@ -1,0 +1,18 @@
+{
+  "frames": [
+    {
+      "uv_rect": [[0.0, 0.0], [0.5, 0.5]],
+      "duration": 4
+    },
+    {
+      "uv_rect": [[0.5, 0.0], [0.5, 0.5]],
+      "duration": 4
+    },
+    {
+      "uv_rect": [[0.0, 0.5], [0.5, 0.5]],
+      "duration": 8
+    }
+  ],
+  "repeat": false,
+  "source": "res/texture/animation_player_swinging_side.png"
+}
