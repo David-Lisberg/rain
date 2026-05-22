@@ -10,6 +10,7 @@ use glam::*;
 use rand::Rng;
 use rand::rngs::ThreadRng;
 
+use crate::game::core::animation::system_manage_animation_events;
 use crate::game::core::camera::*;
 use crate::game::core::collision::Collider;
 use crate::game::core::physics::*;
@@ -75,6 +76,7 @@ pub mod game {
         pub mod camera;
         pub mod collision;
         pub mod ui;
+        pub mod animation;
     }
     pub mod player {
         pub mod action;
@@ -114,11 +116,13 @@ pub struct State {
 
 impl RainState for State {
     fn update(&mut self, handle: &mut RainHandle) {
+        system_manage_animation_events(handle);
         system_player_input(handle, self);
         system_inventory_interface(handle, self);
 
         system_manage_chunks(handle, self);
         system_world_generation(handle, self);
+
         system_manage_enemies(handle, self);
         system_swimming(handle, self);
         system_enemy_idle(handle, self);

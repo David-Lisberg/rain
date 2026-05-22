@@ -2,11 +2,28 @@
   "frames": [
     {
       "uv_rect": [[0.0, 0.0], [1.0, 1.0]],
+      "rotation": 0.0,
+      "pivot": [-0.5, -0.5],
+      "scale": [0.5, 0.5],
+      "position": [0.3, 0.3],
+      "duration": 8,
+      "events": [
+        "LockInput"
+      ]
+    },
+    {
+      "uv_rect": [[0.0, 0.0], [1.0, 1.0]],
       "rotation": -0.78,
       "pivot": [-0.5, -0.5],
       "scale": [0.5, 0.5],
       "position": [0.3, 0.3],
-      "duration": 30
+      "duration": 8,
+      "events": [
+        "LockInput",
+        {
+          "HitBox": [1.0, 0.0, 0.8, 0.8]
+        }
+      ]
     }
   ],
   "start": {

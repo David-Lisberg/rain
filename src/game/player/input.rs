@@ -10,6 +10,7 @@ use crate::game::player::inventory::Inventory;
 use crate::game::player::item::drop_current_item;
 use crate::game::player::movement::Player;
 
+pub struct Lock;
 
 pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
     let mut to_dash: Vec<Entity> = Vec::new();
@@ -20,7 +21,11 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
     let mut pickup_item: Option<Vec2> = None;
     let mut drop_item: Option<bool> = None;
     let mut inventory_hotbar_select: Option<usize> = None;
-    for (e, (_, direction, position)) in handle.world.query::<(&Player, &mut Direction, &Position2D)>().iter() {
+    for (e, (_, direction, position, lock)) in handle.world.query::<(&Player, &mut Direction, &Position2D, Option<&Lock>)>().iter() {
+        if lock.is_some() {
+            continue;
+        }
+        
         if handle.is_key_pressed(KeyboardKey::A) && handle.is_key_pressed(KeyboardKey::W) {
             *direction = Direction(Vec2::new(-1.0, 1.0).normalize());
             to_walk.push(e);

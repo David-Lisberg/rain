@@ -4,7 +4,7 @@ use rain::engine::{component::Position2D, core::RainHandle};
 use crate::{State, game::{core::collision::Collider, entity::{enemy::Enemy, loot::{LootTable, roll_loot}}, player::{item::{Item, spawn_item_drop}, movement::Player}, utility::timer::Timer}};
 
 pub struct HurtBox(pub Collider);
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HitBox {
     pub damage: f32,
     pub collider: Collider,

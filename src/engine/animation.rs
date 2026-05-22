@@ -22,6 +22,13 @@ pub struct AnimationFrame {
     pub scale: Option<Vec2>,
     pub pivot: Option<Vec2>,
     pub rotation: Option<f32>,
+    pub events: Option<Vec<AnimationEvent>>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub enum AnimationEvent {
+    HitBox([f32; 4]), /* collider */
+    LockInput,
 }
 
 pub struct AnimationPool {
@@ -36,7 +43,7 @@ impl AnimationPool {
 
 impl AnimationFrame {
     pub fn new(uv_rect: UVRect, duration: usize) -> Self {
-        Self { uv_rect, duration, position: None, scale: None, pivot: None, rotation: None }
+        Self { uv_rect, duration, position: None, scale: None, pivot: None, rotation: None, events: None }
     }
 }
 
@@ -45,6 +52,8 @@ pub struct UVRect {
     pub offset: [f32; 2],
     pub scale: [f32; 2],
 }
+
+#[derive(Clone)]
 pub struct Animation {
     pub name: String,
     pub current_frame: usize,
@@ -54,6 +63,7 @@ pub struct Animation {
     pub scale: Vec2,
     pub pivot: Vec2,
     pub rotation: f32,
+    pub frame_start: bool,
 }
 
 impl Animation {
@@ -67,6 +77,7 @@ impl Animation {
             scale: Vec2::new(1.0, 1.0),
             pivot: Vec2::ZERO,
             rotation: 0.0,
+            frame_start: true,
         }
     }
 }
@@ -122,6 +133,27 @@ pub fn system_manage_animations(handle: &mut RainHandle) {
 }
 
 fn process_animation(animation: &mut Animation, animation_data: Arc<AnimationData>, e: Entity, index: Option<usize>, to_remove: &mut Vec<(Entity, Option<usize>)>) {
+    let current_frame = &animation_data.frames[animation.current_frame];
+    if !animation.frame_start {
+        animation.frame_progress += 1;
+    
+        if animation.frame_progress >= current_frame.duration {
+            animation.frame_progress = 0;
+            animation.current_frame += 1;
+        }
+    
+        if animation.current_frame >= animation_data.frames.len() {
+            if animation_data.repeat {
+                animation.current_frame = 0;
+                animation.frame_start = true;
+            } else {
+                to_remove.push((e, index));
+            }
+        }
+    } else {
+        animation.frame_start = false;
+    }
+
     if animation.current_frame == 0 && animation.frame_progress == 0 {
         if let Some(start_frame) = &animation_data.start {
             if let Some(current_position) = start_frame.position {
@@ -139,7 +171,6 @@ fn process_animation(animation: &mut Animation, animation_data: Arc<AnimationDat
         }
     }
 
-    let current_frame = &animation_data.frames[animation.current_frame];
     let previous_frame = if animation.current_frame <= 0 {
         if let Some(start_frame) = &animation_data.start {
             start_frame
@@ -163,20 +194,5 @@ fn process_animation(animation: &mut Animation, animation_data: Arc<AnimationDat
     }
     if let (Some(current_rotation), Some(previous_rotation)) = (current_frame.rotation, previous_frame.rotation) {
         animation.rotation = previous_rotation.lerp(current_rotation, s);
-    }
-
-    animation.frame_progress += 1;
-
-    if animation.frame_progress >= current_frame.duration {
-        animation.frame_progress = 0;
-        animation.current_frame += 1;
-    }
-
-    if animation.current_frame >= animation_data.frames.len() {
-        if animation_data.repeat {
-            animation.current_frame = 0;
-        } else {
-            to_remove.push((e, index));
-        }
     }
 }
