@@ -10,7 +10,6 @@ use glam::*;
 use rand::Rng;
 use rand::rngs::ThreadRng;
 
-use crate::game::core::animation::AnimationStatePlayer;
 use crate::game::core::animation::system_manage_animation_events;
 use crate::game::core::camera::*;
 use crate::game::core::collision::Collider;
@@ -90,6 +89,7 @@ pub mod game {
     pub mod utility {
         pub mod noise;
         pub mod timer;
+        pub mod direction;
     }
     pub mod entity {
         pub mod enemy;
@@ -202,7 +202,11 @@ impl RainState for State {
         handle.load_animation("animation_player_walking_front", "res/animations/player_walking_front.json").expect("Error loading animation");
         handle.load_animation("animation_player_walking_back", "res/animations/player_walking_back.json").expect("Error loading animation");
         handle.load_animation("animation_player_swinging_side", "res/animations/player_swinging_side.json").expect("Error loading animation");
-        handle.load_animation("animation_axe_swing", "res/animations/axe_swing.json").expect("Error loading animation");
+        handle.load_animation("animation_player_swinging_front", "res/animations/player_swinging_front.json").expect("Error loading animation");
+        handle.load_animation("animation_player_swinging_back", "res/animations/player_swinging_back.json").expect("Error loading animation");
+        handle.load_animation("animation_flint_hatchet_swing_side", "res/animations/flint_hatchet_swing_side.json").expect("Error loading animation");
+        handle.load_animation("animation_flint_hatchet_swing_front", "res/animations/flint_hatchet_swing_front.json").expect("Error loading animation");
+        handle.load_animation("animation_flint_hatchet_swing_back", "res/animations/flint_hatchet_swing_back.json").expect("Error loading animation");
 
         let player_texture = handle.fetch_texture("player_front").unwrap();
         let player_collider = Collider::from_center(0.0, 0.0, 0.8, 0.8);
@@ -215,7 +219,6 @@ impl RainState for State {
         ));
         handle.world.insert(player_entity, (
             Health::new(100.0), HurtBox(Collider::from_center(0.0, 0.0, 0.8, 0.8)), Persistent, Swimmable, AnimationPool::new(),
-            AnimationStatePlayer::Idle,
         )).unwrap();
 
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {

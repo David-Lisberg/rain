@@ -23,12 +23,6 @@ impl ActiveEvents {
     }
 }
 
-pub enum AnimationStatePlayer {
-    Idle,
-    Walking,
-    Attacking,
-}
-
 pub fn system_manage_animation_events(handle: &mut RainHandle) {
     let mut to_add_event: Vec<ActiveEvents> = Vec::new();
     let mut to_add_lock: Vec<Entity> = Vec::new();

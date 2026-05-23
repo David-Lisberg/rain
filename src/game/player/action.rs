@@ -4,27 +4,48 @@ use glam::Vec2;
 use hecs::Entity;
 use rain::engine::{animation::{Animation, AnimationPool}, component::*, core::RainHandle, input::MouseButton, texture::Texture};
 
-use crate::{DEPTH_PROJECTILE, State, game::{core::collision::*, entity::{damage::HitBox, despawn::TimerDespawn, projectile::Projectile}, player::{inventory::Inventory, item::*, movement::Player}, utility::timer::Timer, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
+use crate::{DEPTH_PROJECTILE, State, game::{core::collision::*, entity::{damage::HitBox, despawn::TimerDespawn, projectile::Projectile}, player::{inventory::Inventory, item::*, movement::Player}, utility::{direction::Direction8, timer::Timer}, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
 
 struct SlingHold(f32, usize);
 pub struct PlayerAttacking;
 
 pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) {
     let mut object_changed = false;
+    let mut to_add_animation_pool: Vec<(Entity, Animation)> = Vec::new();
     let mut to_add_animation: Vec<(Entity, Animation)> = Vec::new();
     let mut to_add_attacking: Vec<Entity> = Vec::new();
     let mut to_spawn_item_drop: Vec<(Position2D, Item, i32)> = Vec::new();
     
-    for (e, (_, position, inventory)) in handle.world.query_mut::<(&Player, &Position2D, &mut Inventory)>() {
+    for (e, (_, position, inventory, player_direction)) in handle.world.query_mut::<(
+        &Player, &Position2D, &mut Inventory, &mut Direction
+    )>() {
         let collider_position = position.0 + direction;
         let collider = Collider::from_center(collider_position.x, collider_position.y, 1.0, 1.0);
+        let direction8 = Direction8::from_vec2_8way(direction);
         let (tool_type, break_level, hit_ticks) = if let Some(item) = &inventory.slots[inventory.selected_hotbar].item {
-            match item._type {
-                ItemType::FlintHatchet => {
-                    to_add_animation.push((e, Animation::new("animation_axe_swing")));
+            match direction8 {
+                Direction8::E | Direction8::NE | Direction8::NW | Direction8::SW | Direction8::SE | Direction8::W => {
+                    match item._type {
+                        ItemType::FlintHatchet => to_add_animation_pool.push((e, Animation::new("animation_flint_hatchet_swing_side"))),
+                        _ => {}
+                    }
+                    to_add_animation.push((e, Animation::new("animation_player_swinging_side")));
                 }
-                _ => {}
-            };
+                Direction8::N => {
+                    match item._type {
+                        ItemType::FlintHatchet => to_add_animation_pool.push((e, Animation::new("animation_flint_hatchet_swing_back"))),
+                        _ => {}
+                    }
+                    to_add_animation.push((e, Animation::new("animation_player_swinging_back")));
+                }
+                Direction8::S => {
+                    match item._type {
+                        ItemType::FlintHatchet => to_add_animation_pool.push((e, Animation::new("animation_flint_hatchet_swing_front"))),
+                        _ => {}
+                    }
+                    to_add_animation.push((e, Animation::new("animation_player_swinging_front")));
+                }
+            }
 
             match item.category {
                 ItemCategory::Tool(t, b, h, _) => (t, b, h),
@@ -33,6 +54,7 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
         } else {
             (ToolType::None, 0, 1)
         };
+        *player_direction = Direction(direction);
         
         if let Some(object) = check_collision_with_object(state, &collider) {
             if break_level >= object.break_level && tool_type.can_break(object.required_tool) {
@@ -59,12 +81,14 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
     if object_changed {
         reload_object_mesh(handle, state);
     }
-    for (e, animation) in to_add_animation {
+    for (e, animation) in to_add_animation_pool {
         if let Ok(pool) = handle.world.query_one_mut::<&mut AnimationPool>(e) {
             pool.animations.insert(0, animation);
         }
-        handle.world.insert_one(e, Animation::new("animation_player_swinging_side")).unwrap();
         to_add_attacking.push(e);
+    }
+    for (e, animation) in to_add_animation {
+        handle.world.insert_one(e, animation).unwrap();
     }
     for e in to_add_attacking {
         handle.world.insert_one(e, PlayerAttacking).unwrap();

@@ -58,6 +58,6 @@ pub fn system_player_walk(handle: &mut RainHandle) {
         handle.world.insert_one(e, animation).unwrap();
     }
     for e in to_remove_animation {
-        let a = handle.world.remove_one::<Animation>(e).unwrap();
+        handle.world.remove_one::<Animation>(e).unwrap();
     }
 }
