@@ -7,10 +7,12 @@ use rain::engine::{animation::{Animation, AnimationPool}, component::*, core::Ra
 use crate::{DEPTH_PROJECTILE, State, game::{core::collision::*, entity::{damage::HitBox, despawn::TimerDespawn, projectile::Projectile}, player::{inventory::Inventory, item::*, movement::Player}, utility::timer::Timer, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
 
 struct SlingHold(f32, usize);
+pub struct PlayerAttacking;
 
 pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) {
     let mut object_changed = false;
     let mut to_add_animation: Vec<(Entity, Animation)> = Vec::new();
+    let mut to_add_attacking: Vec<Entity> = Vec::new();
     let mut to_spawn_item_drop: Vec<(Position2D, Item, i32)> = Vec::new();
     
     for (e, (_, position, inventory)) in handle.world.query_mut::<(&Player, &Position2D, &mut Inventory)>() {
@@ -62,6 +64,10 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
             pool.animations.insert(0, animation);
         }
         handle.world.insert_one(e, Animation::new("animation_player_swinging_side")).unwrap();
+        to_add_attacking.push(e);
+    }
+    for e in to_add_attacking {
+        handle.world.insert_one(e, PlayerAttacking).unwrap();
     }
 }
 

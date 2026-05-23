@@ -10,6 +10,7 @@ use crate::engine::core::RainHandle;
 pub struct AnimationData {
     pub frames: Vec<AnimationFrame>,
     pub start: Option<AnimationFrame>,
+    pub finish: Option<Vec<AnimationEvent>>,
     pub repeat: bool,
     pub source: String,
 }
@@ -30,6 +31,8 @@ pub struct AnimationFrame {
 pub enum AnimationEvent {
     HitBox([f32; 4]), /* collider */
     LockInput,
+    RemoveComponent(String),
+    AddComponent(String),
 }
 
 pub struct AnimationPool {

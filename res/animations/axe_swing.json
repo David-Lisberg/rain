@@ -14,11 +14,11 @@
     },
     {
       "uv_rect": [[0.0, 0.0], [1.0, 1.0]],
-      "rotation": -0.78,
+      "rotation": -0.7,
       "depth": 0.0001,
       "pivot": [-0.5, -0.5],
       "scale": [0.5, 0.5],
-      "position": [0.3, 0.3],
+      "position": [0.3, 0.45],
       "duration": 8,
       "events": [
         "LockInput",
@@ -26,11 +26,23 @@
           "HitBox": [1.0, 0.0, 0.8, 0.8]
         }
       ]
+    },
+    {
+      "uv_rect": [[0.0, 0.0], [1.0, 1.0]],
+      "rotation": -0.7,
+      "depth": 0.0001,
+      "pivot": [-0.5, -0.5],
+      "scale": [0.5, 0.5],
+      "position": [0.3, 0.45],
+      "duration": 6,
+      "events": [
+        "LockInput"
+      ]
     }
   ],
   "start": {
     "uv_rect": [[0.0, 0.0], [1.0, 1.0]],
-    "rotation": 0.78,
+    "rotation": 1.1,
     "depth": 0.0001,
     "pivot": [-0.5, -0.5],
     "scale": [0.5, 0.5],

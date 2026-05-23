@@ -10,6 +10,7 @@ use glam::*;
 use rand::Rng;
 use rand::rngs::ThreadRng;
 
+use crate::game::core::animation::AnimationStatePlayer;
 use crate::game::core::animation::system_manage_animation_events;
 use crate::game::core::camera::*;
 use crate::game::core::collision::Collider;
@@ -214,6 +215,7 @@ impl RainState for State {
         ));
         handle.world.insert(player_entity, (
             Health::new(100.0), HurtBox(Collider::from_center(0.0, 0.0, 0.8, 0.8)), Persistent, Swimmable, AnimationPool::new(),
+            AnimationStatePlayer::Idle,
         )).unwrap();
 
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
