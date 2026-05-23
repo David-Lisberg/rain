@@ -5,12 +5,12 @@ use hecs::Entity;
 use rain::engine::{component::*, core::RainHandle, resource::ResourceManager, texture::Texture};
 use rand::RngExt;
 
-use crate::{DEPTH_PLAYER, State, game::{core::collision::{Collider, check_collision_with_object}, entity::{ai::Idle, damage::{Health, HealthBar, HurtBox}, loot::LootTable}, player::{item::{Item, ItemType}, movement::Player}, utility::timer::Timer, world::water::Swimmable}};
+use crate::{DEPTH_PLAYER, State, game::{core::collision::{Collider, check_collision_with_object}, entity::{ai::Idle, damage::{Health, HealthBar, HurtBox}, loot::LootTable}, player::{item::{Item, ItemType}, movement::Player}, utility::{direction::Direction4, timer::Timer}, world::water::Swimmable}};
 
 const SPAWN_RADIUS_MIN: f32 = 20.0;
 const SPAWN_RADIUS_MAX: f32 = 40.0;
 const DESPAWN_RADIUS: f32 = 50.0;
-const SPAWN_CAP: i32 = 10;
+const SPAWN_CAP: i32 = 1;
 
 pub struct Enemy {
     pub _type: EnemyType,
@@ -48,7 +48,7 @@ pub enum EnemyType {
 impl EnemyType {
     pub fn fetch_texture(&self, resource_manager: &ResourceManager) -> Arc<Texture> {
         match self {
-            EnemyType::Coati => resource_manager.fetch_texture("enemy_coati").unwrap(),
+            EnemyType::Coati => resource_manager.fetch_texture("enemy_coati_side").unwrap(),
         }
     }
 }
@@ -110,12 +110,60 @@ pub fn spawn_enemy(handle: &mut RainHandle, state: &mut State, position: Vec2, e
     handle.world.spawn((HealthBar(e, Timer::new(2.0), 1.0),));
 }
 
-pub fn system_update_enemy_facing(handle: &mut RainHandle) {
-    for (_, (_, velocity, flip)) in handle.world.query_mut::<(&Enemy, &Velocity2D, &mut Flip)>() {
-        if velocity.0.x.is_sign_positive() {
-            *flip = Flip(false, false);
-        } else if velocity.0.x.is_sign_negative() {
-            *flip = Flip(true, false);
+pub fn system_update_enemy_direction(handle: &mut RainHandle) {
+    let mut to_add_direction: Vec<(Entity, Direction)> = Vec::new();
+
+    for (e, (_, velocity, direction)) in handle.world.query_mut::<(&Enemy, &Velocity2D, Option<&mut Direction>)>() {
+        let new_direction = velocity.0.normalize();
+        if let Some(d) = direction {
+            if velocity.0 != Vec2::ZERO {
+                *d = Direction(new_direction);
+            }
+        } else {
+            to_add_direction.push((e, Direction(new_direction)));
+        }
+    }
+
+    for (e, direction) in to_add_direction {
+        handle.world.insert_one(e, direction).unwrap();
+    }
+}
+
+pub fn system_update_enemy_texture(handle: &mut RainHandle) {
+    let mut to_add_texture: Vec<(Entity, String)> = Vec::new();
+
+    for (e, (enemy, direction, flip)) in handle.world.query_mut::<(&Enemy, &Direction, &mut Flip)>() {
+        let direction4 = Direction4::from_vec2(direction.0);
+        match direction4 {
+            Direction4::N => {
+                match enemy._type {
+                    EnemyType::Coati => to_add_texture.push((e, "enemy_coati_back".to_string())),
+                }
+            }
+            Direction4::E => {
+                *flip = Flip(false, false);
+                match enemy._type {
+                    EnemyType::Coati => to_add_texture.push((e, "enemy_coati_side".to_string())),
+                }
+            }
+            Direction4::S => {
+                match enemy._type {
+                    EnemyType::Coati => to_add_texture.push((e, "enemy_coati_front".to_string())),
+                }
+            }
+            Direction4::W => {
+                *flip = Flip(true, false);
+                match enemy._type {
+                    EnemyType::Coati => to_add_texture.push((e, "enemy_coati_side".to_string())),
+                }
+            }
+        }
+    }
+
+    for (e, id) in to_add_texture {
+        let new_texture = handle.fetch_texture(&id).unwrap();
+        if let Ok(texture) = handle.world.query_one_mut::<&mut Arc<Texture>>(e) {
+            *texture = new_texture;
         }
     }
 }

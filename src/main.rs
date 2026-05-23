@@ -29,7 +29,8 @@ use crate::game::entity::enemy::EnemyType;
 use crate::game::entity::enemy::spawn_enemy;
 use crate::game::entity::enemy::system_manage_enemies;
 use crate::game::entity::despawn::system_timer_despawn;
-use crate::game::entity::enemy::system_update_enemy_facing;
+use crate::game::entity::enemy::system_update_enemy_direction;
+use crate::game::entity::enemy::system_update_enemy_texture;
 use crate::game::entity::path::system_path_walk;
 use crate::game::entity::projectile::system_manage_projectiles;
 use crate::game::player::action::system_player_action;
@@ -60,7 +61,7 @@ use crate::game::world::water::system_swimming;
 pub const SCREEN_WIDTH: f32 = 850.0;
 pub const SCREEN_HEIGHT: f32 = 600.0;
 
-const DEPTH_DIFFERENCE: f32 = DEPTH_SCALE * 10.5;
+const DEPTH_DIFFERENCE: f32 = DEPTH_SCALE * 10.0;
 
 pub const DEPTH_TREES: f32 = DEPTH_PLAYER + DEPTH_DIFFERENCE * 2.0;
 pub const DEPTH_PROJECTILE: f32 = DEPTH_PLAYER + DEPTH_DIFFERENCE * 1.0;
@@ -138,6 +139,7 @@ impl RainState for State {
         system_enemy_tracking(handle, self);
         system_enemy_attacking(handle);
         system_path_walk(handle);
+        system_update_enemy_direction(handle);
         
         system_player_walk(handle);
         system_player_dash(handle);
@@ -154,7 +156,7 @@ impl RainState for State {
         system_timer_pickup(handle);
 
         system_update_player_texture(handle);
-        system_update_enemy_facing(handle);
+        system_update_enemy_texture(handle);
         system_object_transparency(handle, self);
         system_camera_controller(handle, self);
         system_camera_tracker(handle);
@@ -192,7 +194,7 @@ impl RainState for State {
             inventory.add_item(Item::new(ItemType::FlintHatchet), 1);
         }
 
-        spawn_enemy(handle, self, Vec2::new(20.0, 1.0), Enemy::new(EnemyType::Coati));
+        spawn_enemy(handle, self, Vec2::new(5.0, 1.0), Enemy::new(EnemyType::Coati));
 
         handle.renderer.camera.set_z(8.0);
     }

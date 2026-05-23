@@ -41,7 +41,9 @@ pub fn load_textures(handle: &mut RainHandle) {
     handle.load_texture("player_front", "res/texture/player_front.png").expect("Error loading texture.");
     handle.load_texture("player_back", "res/texture/player_back.png").expect("Error loading texture.");
     handle.load_texture("player_side", "res/texture/player_side.png").expect("Error loading texture.");
-    handle.load_texture("enemy_coati", "res/texture/enemy_coati.png").expect("Error loading texture.");
+    handle.load_texture("enemy_coati_side", "res/texture/enemy_coati_side.png").expect("Error loading texture.");
+    handle.load_texture("enemy_coati_front", "res/texture/enemy_coati_front.png").expect("Error loading texture.");
+    handle.load_texture("enemy_coati_back", "res/texture/enemy_coati_back.png").expect("Error loading texture.");
     handle.load_texture("item_coati_pelt", "res/texture/item_coati_pelt.png").expect("Error loading texture.");
     handle.load_texture("item_coati_bone", "res/texture/item_coati_bone.png").expect("Error loading texture.");
     handle.load_texture("item_coati_bone_plate", "res/texture/item_coati_bone_plate.png").expect("Error loading texture.");

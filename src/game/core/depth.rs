@@ -20,6 +20,7 @@ pub fn system_apply_depth_sort(handle: &mut RainHandle) {
             to_add_depth_default.push((e, depth.0));
             depth.0 += feet_position * DEPTH_SCALE;
         }
+        println!("{}", depth.0);
     }
 
     for (e, depth) in to_add_depth_default {

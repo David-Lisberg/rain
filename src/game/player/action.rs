@@ -21,7 +21,7 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
     )>() {
         let collider_position = position.0 + direction;
         let collider = Collider::from_center(collider_position.x, collider_position.y, 1.0, 1.0);
-        let direction8 = Direction8::from_vec2_8way(direction);
+        let direction8 = Direction8::from_vec2(direction);
         let (tool_type, break_level, hit_ticks) = if let Some(item) = &inventory.slots[inventory.selected_hotbar].item {
             match direction8 {
                 Direction8::E | Direction8::NE | Direction8::NW | Direction8::SW | Direction8::SE | Direction8::W => {
