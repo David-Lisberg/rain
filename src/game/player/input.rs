@@ -9,6 +9,7 @@ use crate::game::player::action::{item_attack, item_use};
 use crate::game::player::inventory::Inventory;
 use crate::game::player::item::drop_current_item;
 use crate::game::player::movement::Player;
+use crate::game::utility::load::{reload_animations, reload_textures};
 
 pub struct Lock;
 
@@ -21,7 +22,8 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
     let mut pickup_item: Option<Vec2> = None;
     let mut drop_item: Option<bool> = None;
     let mut inventory_hotbar_select: Option<usize> = None;
-
+    let mut to_reload_textures = false;
+    let mut to_reload_animations = false;
 
     for (e, (_, direction, position, lock)) in handle.world.query::<(&Player, &mut Direction, &Position2D, Option<&Lock>)>().iter() {
         let mut movement = Vec2::ZERO;
@@ -44,6 +46,17 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
         } else {
             to_remove_walk.push(e);
         }
+
+        if handle.is_key_pressed(KeyboardKey::M) {
+            state.to_reset = true;
+        }
+        if handle.is_key_pressed(KeyboardKey::N) {
+            to_reload_textures = true;
+        }
+        if handle.is_key_pressed(KeyboardKey::B) {
+            to_reload_animations = true;
+        }
+        
 
         if lock.is_none() {
             if handle.is_key_released(KeyboardKey::Space) {
@@ -85,6 +98,13 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
                 inventory_hotbar_select = Some(8);
             }
         }
+    }
+
+    if to_reload_textures {
+        reload_textures(handle);
+    }
+    if to_reload_animations {
+        reload_animations(handle);
     }
 
     for e in to_dash {

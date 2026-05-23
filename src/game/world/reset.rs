@@ -6,7 +6,6 @@ use rain::engine::core::RainHandle;
 use rand::Rng;
 
 use crate::State;
-
 pub struct Persistent;
 
 pub fn system_reset_world(handle: &mut RainHandle, state: &mut State) {
