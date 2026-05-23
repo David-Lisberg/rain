@@ -523,10 +523,10 @@ impl Renderer {
     
         let mut query = world.query::<(
             &Visible, Option<&Priority>, Option<&ModelMesh>, Option<&Sprite>, Option<&Animation>, Option<&AnimationPool>,
-            Option<&Position2D>, Option<&DepthZ>, Option<&Scale2D>, Option<&Pivot2D>, Option<&RotationZ>, Option<&Flip>, Option<&Color>, Option<&Arc<Texture>>
+            Option<&Position2D>, Option<&DepthZ>, Option<&Scale2D>, Option<&Pivot2D>, Option<&RotationZ>, Option<&Rotation>, Option<&Flip>, Option<&Color>, Option<&Arc<Texture>>
         )>();
         for (_, (
-            _, priority, mesh, sprite, animation, pool, position, depth, scale, pivot, rotation, flip, color, texture
+            _, priority, mesh, sprite, animation, pool, position, depth, scale, pivot, rotation_z, rotation, flip, color, texture
         )) in query.iter() {
             let buffer = match priority {
                 Some(p) => {
@@ -545,10 +545,10 @@ impl Renderer {
             if let Some(p) = pool {
                 for (_, a) in p.animations.iter() {
                     let animation = Some(a);
-                    push_to_buffer(resource_manager, buffer, sprite, animation, texture, mesh, position, depth, scale, pivot, rotation, flip, color);
+                    push_to_buffer(resource_manager, buffer, sprite, animation, texture, mesh, position, depth, scale, pivot, rotation_z, rotation, flip, color);
                 }
             }
-            push_to_buffer(resource_manager, buffer, sprite, animation, texture, mesh, position, depth, scale, pivot, rotation, flip, color);
+            push_to_buffer(resource_manager, buffer, sprite, animation, texture, mesh, position, depth, scale, pivot, rotation_z, rotation, flip, color);
         }
 
         let mut indices: Vec<usize> = (0..priority_buffer_value.len()).collect();
@@ -827,8 +827,8 @@ impl Renderer {
 
 fn push_to_buffer<'a>(
     resource_manager: &ResourceManager, buffer: &mut PriorityBuffer<'a>, sprite: Option<&Sprite>, animation: Option<&Animation>, texture: Option<&Arc<Texture>>, 
-    mesh: Option<&'a ModelMesh>, position: Option<&Position2D>, depth: Option<&DepthZ>, scale: Option<&Scale2D>, pivot: Option<&Pivot2D>, rotation: Option<&RotationZ>,
-    flip: Option<&Flip>, color: Option<&Color>
+    mesh: Option<&'a ModelMesh>, position: Option<&Position2D>, depth: Option<&DepthZ>, scale: Option<&Scale2D>, pivot: Option<&Pivot2D>, rotation_z: Option<&RotationZ>,
+    rotation: Option<&Rotation>, flip: Option<&Flip>, color: Option<&Color>
 ) {
     let fetched_texture;
     let texture: Option<&Arc<Texture>> = match animation {
@@ -842,7 +842,7 @@ fn push_to_buffer<'a>(
         buffer.meshes.push(m);
     }
     if sprite.is_some() {
-        let sprite_render = SpriteRender::new(position, depth, scale, pivot, rotation, flip, color, texture, animation);
+        let sprite_render = SpriteRender::new(position, depth, scale, pivot, rotation_z, rotation, flip, color, texture, animation);
         buffer.sprites.push(sprite_render);
     }
 }

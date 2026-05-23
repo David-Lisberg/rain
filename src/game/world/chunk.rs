@@ -6,7 +6,7 @@ use rain::engine::{color::Color, component::{Position2D, Visible}, core::RainHan
 use rand::RngExt;
 use wgpu::util::DeviceExt;
 
-use crate::{State, game::{core::collision::Collider, utility::noise::{noise_normalize, octave_noise_2d}, world::{generation::CHUNK_GENERATION_DISTANCE, object::{Object, construct_object_default, reload_object_mesh}, tile::{Tile, TileType}}}};
+use crate::{State, game::{core::{collision::Collider, depth::DEPTH_SCALE}, utility::noise::{noise_normalize, octave_noise_2d}, world::{generation::CHUNK_GENERATION_DISTANCE, object::{Object, construct_object_default, reload_object_mesh}, tile::{Tile, TileType}}}};
 use crate::game::player::movement::Player;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
@@ -218,15 +218,16 @@ pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData) -> Model
         let y = (chunk.position.y * CHUNK_DIM as i32) as f32 + (i / CHUNK_DIM) as f32;
         
         let vertices = vec![
-            ModelVertex { position: [x, y, 0.0], uv: [0.0, tile_texture.uv[1]], color, layer: tile_texture.index },
-            ModelVertex { position: [x + 1.0, y, 0.0], uv: [tile_texture.uv[0], tile_texture.uv[1]], color, layer: tile_texture.index },
-            ModelVertex { position: [x + 1.0, y + 1.0, 0.0], uv: [tile_texture.uv[0], 0.0], color, layer: tile_texture.index },
-            ModelVertex { position: [x, y + 1.0, 0.0], uv: [0.0, 0.0], color, layer: tile_texture.index },
+            ModelVertex { position: [x, y, y * DEPTH_SCALE], uv: [0.0, tile_texture.uv[1]], color, layer: tile_texture.index },
+            ModelVertex { position: [x + 1.0, y, y * DEPTH_SCALE], uv: [tile_texture.uv[0], tile_texture.uv[1]], color, layer: tile_texture.index },
+            ModelVertex { position: [x + 1.0, y + 1.0, y * DEPTH_SCALE], uv: [tile_texture.uv[0], 0.0], color, layer: tile_texture.index },
+            ModelVertex { position: [x, y + 1.0, y * DEPTH_SCALE], uv: [0.0, 0.0], color, layer: tile_texture.index },
         ];
         let indices: Vec<u16> = SPRITE_QUAD_INDICES.iter().map(|x| x + i as u16 * 4).collect();
         model_vertices.extend(vertices);
         model_indices.extend(indices);
     }
+
     
     ModelMesh {
         vertices: handle.renderer.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {

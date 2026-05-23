@@ -12,8 +12,8 @@ pub struct SpriteRender {
 
 impl SpriteRender {
     pub fn new(
-        pos: Option<&Position2D>, depth: Option<&DepthZ>, scale: Option<&Scale2D>, pivot: Option<&Pivot2D>, rotation: Option<&RotationZ>, flip: Option<&Flip>, 
-        color: Option<&Color>, texture: Option<&Arc<Texture>>, animation: Option<&Animation>,
+        pos: Option<&Position2D>, depth: Option<&DepthZ>, scale: Option<&Scale2D>, pivot: Option<&Pivot2D>, rotation_z: Option<&RotationZ>, rotation: Option<&Rotation>,
+        flip: Option<&Flip>, color: Option<&Color>, texture: Option<&Arc<Texture>>, animation: Option<&Animation>,
     ) -> Self {
         let (instance, array_id) = if let Some(t) = texture {
             if let Some(a) = animation {
@@ -40,7 +40,7 @@ impl SpriteRender {
                     Some(p) => Some(&Pivot2D(p.0 + a.pivot * flip_vec)),
                     None => Some(&Pivot2D(a.pivot * flip_vec)),
                 };
-                let rotation = match rotation {
+                let rotation_z = match rotation_z {
                     Some(r) => Some(&RotationZ(r.0 + a.rotation * flip_vec.x)),
                     None => Some(&RotationZ(a.rotation * flip_vec.x)),
                 };
@@ -48,12 +48,12 @@ impl SpriteRender {
                     Some(r) => Some(&DepthZ(r.0 + a.depth)),
                     None => Some(&DepthZ(a.depth)),
                 };
-                (SpriteInstance::new(pos, depth, scale, pivot, rotation, flip, color, a.uv_rect.offset, uv_scale, t.index), t.array_id)
+                (SpriteInstance::new(pos, depth, scale, pivot, rotation_z, rotation, flip, color, a.uv_rect.offset, uv_scale, t.index), t.array_id)
             } else {
-                (SpriteInstance::new(pos, depth, scale, pivot, rotation, flip, color, [0.0, 0.0], t.uv, t.index), t.array_id)
+                (SpriteInstance::new(pos, depth, scale, pivot, rotation_z, rotation, flip, color, [0.0, 0.0], t.uv, t.index), t.array_id)
             }
         } else {
-            (SpriteInstance::new(pos, depth, scale, pivot, rotation, flip, color, [0.0, 0.0], [1.0, 1.0], 0), 0)
+            (SpriteInstance::new(pos, depth, scale, pivot, rotation_z, rotation, flip, color, [0.0, 0.0], [1.0, 1.0], 0), 0)
         };
         Self {
             instance,

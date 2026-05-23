@@ -13,6 +13,8 @@ use rand::rngs::ThreadRng;
 use crate::game::core::animation::system_manage_animation_events;
 use crate::game::core::camera::*;
 use crate::game::core::collision::Collider;
+use crate::game::core::depth::DEPTH_SCALE;
+use crate::game::core::depth::system_apply_depth_sort;
 use crate::game::core::physics::*;
 use crate::game::core::ui::render_ui;
 use crate::game::entity::ai::system_enemy_attacking;
@@ -42,8 +44,8 @@ use crate::game::player::item::system_timer_pickup;
 use crate::game::player::movement::Player;
 use crate::game::player::movement::system_player_dash;
 use crate::game::player::movement::system_player_walk;
-use crate::game::utility::load::load_animations;
-use crate::game::utility::load::load_textures;
+use crate::game::core::load::load_animations;
+use crate::game::core::load::load_textures;
 use crate::game::world::chunk::ChunkData;
 use crate::game::world::chunk::ChunkPosition;
 use crate::game::world::chunk::system_manage_chunks;
@@ -58,10 +60,12 @@ use crate::game::world::water::system_swimming;
 pub const SCREEN_WIDTH: f32 = 850.0;
 pub const SCREEN_HEIGHT: f32 = 600.0;
 
-pub const DEPTH_TREES: f32 = 0.02;
-pub const DEPTH_PROJECTILE: f32 = 0.015;
+const DEPTH_DIFFERENCE: f32 = DEPTH_SCALE * 10.5;
+
+pub const DEPTH_TREES: f32 = DEPTH_PLAYER + DEPTH_DIFFERENCE * 2.0;
+pub const DEPTH_PROJECTILE: f32 = DEPTH_PLAYER + DEPTH_DIFFERENCE * 1.0;
 pub const DEPTH_PLAYER: f32 = 0.01;
-pub const DEPTH_SMALL_OBJECT: f32 = 0.001;
+pub const DEPTH_SMALL_OBJECT: f32 = DEPTH_PLAYER - DEPTH_DIFFERENCE * 1.0;
 
 pub mod game {
     pub mod world {
@@ -79,6 +83,8 @@ pub mod game {
         pub mod collision;
         pub mod ui;
         pub mod animation;
+        pub mod load;
+        pub mod depth;
     }
     pub mod player {
         pub mod action;
@@ -92,7 +98,6 @@ pub mod game {
         pub mod noise;
         pub mod timer;
         pub mod direction;
-        pub mod load;
     }
     pub mod entity {
         pub mod enemy;
@@ -154,6 +159,7 @@ impl RainState for State {
         system_camera_controller(handle, self);
         system_camera_tracker(handle);
         system_camera_zoom(handle, self);
+        system_apply_depth_sort(handle);
 
         system_reset_world(handle, self);
 

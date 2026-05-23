@@ -9,7 +9,7 @@ use crate::game::player::action::{item_attack, item_use};
 use crate::game::player::inventory::Inventory;
 use crate::game::player::item::drop_current_item;
 use crate::game::player::movement::Player;
-use crate::game::utility::load::{reload_animations, reload_textures};
+use crate::game::core::load::{reload_animations, reload_textures};
 
 pub struct Lock;
 

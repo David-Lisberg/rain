@@ -15,7 +15,7 @@ pub struct SpriteInstance {
 
 impl SpriteInstance {
     pub fn new(
-        pos: Option<&Position2D>, depth: Option<&DepthZ>, scale: Option<&Scale2D>, pivot: Option<&Pivot2D>, rotation: Option<&RotationZ>, 
+        pos: Option<&Position2D>, depth: Option<&DepthZ>, scale: Option<&Scale2D>, pivot: Option<&Pivot2D>, rotation_z: Option<&RotationZ>, rotation: Option<&Rotation>,
         flip: Option<&Flip>, color: Option<&Color>, uv_offset: [f32; 2], uv_scale: [f32; 2], layer: u32,
     ) -> Self {
         let pos = match pos {
@@ -28,9 +28,11 @@ impl SpriteInstance {
                 None => Vec3::new(0.0, 0.0, 0.0),
             }
         };
-        let rotation = match rotation {
-            Some(r) => r.0,
-            None => 0.0,
+        let rotation = match (rotation_z, rotation) {
+            (Some(r_z), Some(r)) => r.0 + Quat::from_rotation_z(r_z.0),
+            (None, Some(r)) => r.0,
+            (Some(r_z), None) => Quat::from_rotation_z(r_z.0),
+            (None, None) => Quat::IDENTITY,
         };
         let mut scale = match scale {
             Some(s) => s.0,
@@ -45,10 +47,10 @@ impl SpriteInstance {
             }
         }
         let transform = if let Some(p) = pivot {
-            let rotation = Mat4::from_rotation_translation(Quat::from_rotation_z(rotation), pos + p.0.extend(0.0));
+            let rotation = Mat4::from_rotation_translation(rotation, pos + p.0.extend(0.0));
             rotation * Mat4::from_scale_rotation_translation(scale.extend(1.0), Quat::IDENTITY, -p.0.extend(0.0))
         } else {
-            Mat4::from_scale_rotation_translation(scale.extend(1.0), Quat::from_rotation_z(rotation), pos)
+            Mat4::from_scale_rotation_translation(scale.extend(1.0), rotation, pos)
         };
         
         Self {
