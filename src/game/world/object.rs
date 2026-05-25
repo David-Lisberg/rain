@@ -5,7 +5,7 @@ use hecs::Entity;
 use rain::engine::{color::Color, component::{Position2D, Priority, Visible}, core::RainHandle, mesh::ModelMesh, resource::{ARRAY_256X256_ID, ResourceManager}, texture::Texture, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
 use wgpu::util::DeviceExt;
 
-use crate::{DEPTH_PLAYER, DEPTH_SMALL_OBJECT, DEPTH_TREES, State, game::{core::{collision::Collider, depth::DEPTH_SCALE, physics::ADJACENT_I32}, player::{item::ToolType, movement::Player}, world::chunk::{ChunkPosition, position_to_chunk_position}}};
+use crate::{DEPTH_PLAYER, DEPTH_SMALL_OBJECT, DEPTH_TREES, State, game::{core::{collision::Collider, physics::ADJACENT_I32}, player::{item::ToolType, movement::Player}, world::chunk::{ChunkPosition, position_to_chunk_position}}};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Object {
@@ -111,13 +111,13 @@ pub fn construct_object_mesh(handle: &mut RainHandle, state: &mut State) -> Vec<
         };
 
         let vertices = vec![
-            ModelVertex { position: [object.position.x, object.position.y, object.depth_z + object.position.y * DEPTH_SCALE], 
+            ModelVertex { position: [object.position.x, object.position.y, object.depth_z], 
                 uv: [0.0, object_texture.uv[1]], color, layer: object_texture.index },
-            ModelVertex { position: [object.position.x + object.size.x, object.position.y, object.depth_z + object.position.y * DEPTH_SCALE], 
+            ModelVertex { position: [object.position.x + object.size.x, object.position.y, object.depth_z], 
                 uv: [object_texture.uv[0], object_texture.uv[1]], color, layer: object_texture.index },
-            ModelVertex { position: [object.position.x + object.size.x, object.position.y + object.size.y, object.depth_z + object.position.y * DEPTH_SCALE], 
+            ModelVertex { position: [object.position.x + object.size.x, object.position.y + object.size.y, object.depth_z], 
                 uv: [object_texture.uv[0], 0.0], color, layer: object_texture.index },
-            ModelVertex { position: [object.position.x, object.position.y + object.size.y, object.depth_z + object.position.y * DEPTH_SCALE], 
+            ModelVertex { position: [object.position.x, object.position.y + object.size.y, object.depth_z], 
                 uv: [0.0, 0.0], color, layer: object_texture.index },
         ];
         let index = if object.depth_z < DEPTH_PLAYER {
