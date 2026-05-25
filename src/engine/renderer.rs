@@ -804,7 +804,7 @@ impl Renderer {
             for mesh in to_render {
                 if mesh.vertices.size() != 0 {
                     render_pass.set_vertex_buffer(0, mesh.vertices.slice(..));
-                    render_pass.set_index_buffer(mesh.indices.slice(..), wgpu::IndexFormat::Uint16);
+                    render_pass.set_index_buffer(mesh.indices.slice(..), wgpu::IndexFormat::Uint32);
     
                     render_pass.draw_indexed(0..mesh.num_indices, 0, 0..1);
                 }

@@ -1,7 +1,7 @@
 use hecs::Entity;
-use rain::engine::{animation::Animation, component::*, core::RainHandle};
+use rain::engine::{component::*, core::RainHandle};
 
-use crate::game::{core::physics::set_velocity_clamped, player::action::PlayerAttacking, world::water::Swimming};
+use crate::game::{core::{animation::AnimationStateUpdated, physics::set_velocity_clamped}, player::action::{AnimationStatePlayer, PlayerAttacking}, utility::direction::Direction4, world::water::Swimming};
 
 pub struct Player;
 
@@ -20,44 +20,42 @@ pub fn system_player_dash(handle: &mut RainHandle) {
 }
 
 pub fn system_player_walk(handle: &mut RainHandle) {
-    let mut to_add_animation: Vec<(Entity, Animation)> = Vec::new();
-    let mut to_remove_animation: Vec<Entity> = Vec::new();
-    for (e, (_, walk, velocity, direction, animation, swimming)) in handle.world.query::<(
-        &Player, Option<&Walk>, &mut Velocity2D, &Direction, Option<&Animation>, Option<&Swimming>
+    let mut to_add_updated: Vec<Entity> = Vec::new();
+    for (e, (_, walk, velocity, direction, swimming, state)) in handle.world.query::<(
+        &Player, Option<&Walk>, &mut Velocity2D, &Direction, Option<&Swimming>, &mut AnimationStatePlayer
     )>().without::<&PlayerAttacking>().iter() {
         if walk.is_some() {
-            let next_animation: Option<Animation> = if direction.0.y > 0.8 {
-                Some(Animation::new("animation_player_walking_back"))
-            } else if direction.0.y < -0.8 {
-                Some(Animation::new("animation_player_walking_front"))
-            } else if direction.0.x.is_sign_positive() || direction.0.x.is_sign_negative() {
-                Some(Animation::new("animation_player_walking_side"))
-            } else {
-                None
-            };
-            if let Some(next) = next_animation {
-                if let Some(current) = animation {
-                    if current.name != next.name {
-                        to_add_animation.push((e, next));
-                    }
-                } else {
-                    to_add_animation.push((e, next));
+            let direction4 = Direction4::from_vec2(direction.0);
+            match state {
+                AnimationStatePlayer::None => {
+                    *state = AnimationStatePlayer::Walking(direction4);
+                    to_add_updated.push(e);
                 }
+                AnimationStatePlayer::Walking(walk_direction) => {
+                    if *walk_direction != direction4 {
+                        *walk_direction = direction4;
+                        to_add_updated.push(e);
+                    }
+                }
+                _ => {}
             }
             let speed = match swimming.is_some() {
                 true => 3.5,
                 false => 5.0,
             };
             set_velocity_clamped(velocity, speed, direction);
-        } else if animation.is_some() {
-            to_remove_animation.push(e);
+        } else {
+            match state {
+                AnimationStatePlayer::Walking(_) => {
+                    *state = AnimationStatePlayer::None;
+                    to_add_updated.push(e);
+                }
+                _ => {}
+            }
         }
     }
 
-    for (e, animation) in to_add_animation {
-        handle.world.insert_one(e, animation).unwrap();
-    }
-    for e in to_remove_animation {
-        handle.world.remove_one::<Animation>(e).unwrap();
+    for e in to_add_updated {
+        handle.world.insert_one(e, AnimationStateUpdated).unwrap();
     }
 }

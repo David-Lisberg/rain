@@ -6,7 +6,7 @@ use crate::game::player::movement::Player;
 use crate::game::world::chunk::{ChunkPosition, construct_chunk_mesh, generate_chunk};
 use crate::game::world::object::reload_object_mesh;
 
-pub const CHUNK_GENERATION_DISTANCE: i32 = 5;
+pub const CHUNK_GENERATION_DISTANCE: i32 = 7;
 
 pub fn system_world_generation(handle: &mut RainHandle, state: &mut State) {
     let mut to_generate: Vec<ChunkPosition> = Vec::new();

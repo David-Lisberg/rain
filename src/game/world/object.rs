@@ -2,10 +2,19 @@ use std::{collections::HashSet, sync::Arc};
 
 use glam::Vec2;
 use hecs::Entity;
-use rain::engine::{color::Color, component::{Position2D, Priority, Visible}, core::RainHandle, mesh::ModelMesh, resource::{ARRAY_256X256_ID, ResourceManager}, texture::Texture, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
+use rain::engine::color::Color;
+use rain::engine::component::{Position2D, Priority, Visible};
+use rain::engine::core::RainHandle;
+use rain::engine::mesh::ModelMesh;
+use rain::engine::resource::{ARRAY_256X256_ID, ResourceManager};
+use rain::engine::texture::Texture;
+use rain::engine::vertex::{ModelVertex, QUAD_INDICES};
 use wgpu::util::DeviceExt;
 
-use crate::{DEPTH_PLAYER, DEPTH_SMALL_OBJECT, DEPTH_TREES, State, game::{core::{collision::Collider, physics::ADJACENT_I32}, player::{item::ToolType, movement::Player}, world::chunk::{ChunkPosition, position_to_chunk_position}}};
+use crate::{State, DEPTH_PLAYER, DEPTH_SMALL_OBJECT, DEPTH_TREES};
+use crate::game::core::{collision::Collider, physics::ADJACENT_I32};
+use crate::game::player::{item::ToolType, movement::Player};
+use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Object {
@@ -88,7 +97,7 @@ fn object_small_default(_type: ObjectType, position: Vec2) -> Object {
 
 pub fn construct_object_mesh(handle: &mut RainHandle, state: &mut State) -> Vec<ModelMesh> {
     let mut model_vertices: Vec<Vec<ModelVertex>> = vec![Vec::new(); 2];
-    let mut model_indices: Vec<Vec<u16>> = vec![Vec::new(); 2];
+    let mut model_indices: Vec<Vec<u32>> = vec![Vec::new(); 2];
     let mut meshes: Vec<ModelMesh> = Vec::new();
     let mut objects: Vec<&Object> = Vec::new();
 
@@ -100,7 +109,7 @@ pub fn construct_object_mesh(handle: &mut RainHandle, state: &mut State) -> Vec<
             }
         }
     }
-    let mut indices_start: Vec<u16> = vec![0, 0];
+    let mut indices_start: Vec<u32> = vec![0, 0];
     
     objects.sort_by(|a, b| a.position.y.partial_cmp(&b.position.y).unwrap());
     for object in objects.iter() {
@@ -126,7 +135,7 @@ pub fn construct_object_mesh(handle: &mut RainHandle, state: &mut State) -> Vec<
             1
         };
         
-        let indices: Vec<u16> = SPRITE_QUAD_INDICES.iter().map(|x| x + indices_start[index]).collect();
+        let indices: Vec<u32> = QUAD_INDICES.iter().map(|x| x + indices_start[index]).collect();
         model_vertices[index].extend(vertices);
         model_indices[index].extend(indices);
         indices_start[index] += 4;

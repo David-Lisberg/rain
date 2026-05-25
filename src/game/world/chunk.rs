@@ -2,11 +2,21 @@ use std::collections::{HashMap, VecDeque};
 
 use glam::{IVec2, Vec2};
 use hecs::Entity;
-use rain::engine::{color::Color, component::{Position2D, Visible}, core::RainHandle, mesh::ModelMesh, resource::ARRAY_256X256_ID, vertex::{ModelVertex, SPRITE_QUAD_INDICES}};
+use rain::engine::color::Color;
+use rain::engine::component::*;
+use rain::engine::core::RainHandle;
+use rain::engine::mesh::ModelMesh;
+use rain::engine::resource::ARRAY_256X256_ID;
+use rain::engine::vertex::{ModelVertex, QUAD_INDICES};
 use rand::RngExt;
 use wgpu::util::DeviceExt;
 
-use crate::{State, game::{core::{collision::Collider}, utility::noise::{noise_normalize, octave_noise_2d}, world::{generation::CHUNK_GENERATION_DISTANCE, object::{Object, construct_object_default, reload_object_mesh}, tile::{Tile, TileType}}}};
+use crate::State;
+use crate::game::core::collision::Collider;
+use crate::game::utility::noise::{noise_normalize, octave_noise_2d};
+use crate::game::world::generation::CHUNK_GENERATION_DISTANCE;
+use crate::game::world::tile::{Tile, TileType};
+use crate::game::world::object::{Object, construct_object_default, reload_object_mesh};
 use crate::game::player::movement::Player;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
@@ -208,7 +218,7 @@ pub fn generate_chunk(chunk_position: ChunkPosition, state: &mut State) -> Chunk
 
 pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData) -> ModelMesh {
     let mut model_vertices: Vec<ModelVertex> = Vec::new();
-    let mut model_indices: Vec<u16> = Vec::new();
+    let mut model_indices: Vec<u32> = Vec::new();
 
     let color = Color::rain_color_to_array(&Color::WHITE);
 
@@ -223,7 +233,7 @@ pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData) -> Model
             ModelVertex { position: [x + 1.0, y + 1.0, 0.0], uv: [tile_texture.uv[0], 0.0], color, layer: tile_texture.index },
             ModelVertex { position: [x, y + 1.0, 0.0], uv: [0.0, 0.0], color, layer: tile_texture.index },
         ];
-        let indices: Vec<u16> = SPRITE_QUAD_INDICES.iter().map(|x| x + i as u16 * 4).collect();
+        let indices: Vec<u32> = QUAD_INDICES.iter().map(|x| x + i as u32 * 4).collect();
         model_vertices.extend(vertices);
         model_indices.extend(indices);
     }

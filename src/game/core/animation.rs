@@ -10,6 +10,8 @@ use crate::game::player::input::Lock;
 use crate::game::player::inventory::Inventory;
 use crate::game::player::item::ItemCategory;
 
+pub struct AnimationStateUpdated;
+
 #[derive(Clone)]
 struct ActiveEvents {
     entity: Entity,

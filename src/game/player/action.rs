@@ -4,49 +4,33 @@ use glam::Vec2;
 use hecs::Entity;
 use rain::engine::{animation::{Animation, AnimationPool}, component::*, core::RainHandle, input::MouseButton, texture::Texture};
 
-use crate::{DEPTH_PROJECTILE, State, game::{core::collision::*, entity::{damage::HitBox, despawn::TimerDespawn, projectile::Projectile}, player::{inventory::Inventory, item::*, movement::Player}, utility::{direction::Direction8, timer::Timer}, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
+use crate::{DEPTH_PROJECTILE, State, game::{core::{animation::AnimationStateUpdated, collision::*}, entity::{damage::HitBox, despawn::TimerDespawn, projectile::Projectile}, player::{inventory::Inventory, item::*, movement::Player}, utility::{direction::Direction4, timer::Timer}, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
 
 struct SlingHold(f32, usize);
 pub struct PlayerAttacking;
 
+#[derive(Debug, PartialEq)]
+pub enum AnimationStatePlayer {
+    None,
+    Walking(Direction4),
+    Attacking(Direction4, Option<ItemType>),
+}
+
 pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) {
     let mut object_changed = false;
-    let mut to_add_animation_pool: Vec<(Entity, Animation)> = Vec::new();
-    let mut to_add_animation: Vec<(Entity, Animation)> = Vec::new();
-    let mut to_add_attacking: Vec<Entity> = Vec::new();
+    let mut to_add_updated: Vec<Entity> = Vec::new();
     let mut to_spawn_item_drop: Vec<(Position2D, Item, i32)> = Vec::new();
     
-    for (e, (_, position, inventory, player_direction)) in handle.world.query_mut::<(
-        &Player, &Position2D, &mut Inventory, &mut Direction
+    for (e, (_, position, inventory, player_direction, animation_state)) in handle.world.query_mut::<(
+        &Player, &Position2D, &mut Inventory, &mut Direction, &mut AnimationStatePlayer
     )>() {
         let collider_position = position.0 + direction;
         let collider = Collider::from_center(collider_position.x, collider_position.y, 1.0, 1.0);
-        let direction8 = Direction8::from_vec2(direction);
+        let direction4 = Direction4::from_vec2(direction);
+        let mut item_type: Option<ItemType> = None;
+        
         let (tool_type, break_level, hit_ticks) = if let Some(item) = &inventory.slots[inventory.selected_hotbar].item {
-            match direction8 {
-                Direction8::E | Direction8::NE | Direction8::NW | Direction8::SW | Direction8::SE | Direction8::W => {
-                    match item._type {
-                        ItemType::FlintHatchet => to_add_animation_pool.push((e, Animation::new("animation_flint_hatchet_swing_side"))),
-                        _ => {}
-                    }
-                    to_add_animation.push((e, Animation::new("animation_player_swinging_side")));
-                }
-                Direction8::N => {
-                    match item._type {
-                        ItemType::FlintHatchet => to_add_animation_pool.push((e, Animation::new("animation_flint_hatchet_swing_back"))),
-                        _ => {}
-                    }
-                    to_add_animation.push((e, Animation::new("animation_player_swinging_back")));
-                }
-                Direction8::S => {
-                    match item._type {
-                        ItemType::FlintHatchet => to_add_animation_pool.push((e, Animation::new("animation_flint_hatchet_swing_front"))),
-                        _ => {}
-                    }
-                    to_add_animation.push((e, Animation::new("animation_player_swinging_front")));
-                }
-            }
-
+            item_type = Some(item._type.clone());
             match item.category {
                 ItemCategory::Tool(t, b, h, _) => (t, b, h),
                 _ => (ToolType::None, 0, 1),
@@ -55,6 +39,8 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
             (ToolType::None, 0, 1)
         };
         *player_direction = Direction(direction);
+        *animation_state = AnimationStatePlayer::Attacking(direction4, item_type);
+        to_add_updated.push(e);
         
         if let Some(object) = check_collision_with_object(state, &collider) {
             if break_level >= object.break_level && tool_type.can_break(object.required_tool) {
@@ -81,17 +67,8 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
     if object_changed {
         reload_object_mesh(handle, state);
     }
-    for (e, animation) in to_add_animation_pool {
-        if let Ok(pool) = handle.world.query_one_mut::<&mut AnimationPool>(e) {
-            pool.animations.insert(0, animation);
-        }
-        to_add_attacking.push(e);
-    }
-    for (e, animation) in to_add_animation {
-        handle.world.insert_one(e, animation).unwrap();
-    }
-    for e in to_add_attacking {
-        handle.world.insert_one(e, PlayerAttacking).unwrap();
+    for e in to_add_updated {
+        handle.world.insert_one(e, AnimationStateUpdated).unwrap();
     }
 }
 
@@ -120,27 +97,102 @@ pub fn system_update_player_texture(handle: &mut RainHandle) {
     let player_front = handle.fetch_texture("player_front").unwrap();
     let player_back = handle.fetch_texture("player_back").unwrap();
     let player_side = handle.fetch_texture("player_side").unwrap();
-    for (_, (_, direction, animation, texture, flip)) in handle.world.query_mut::<(&Player, &Direction, Option<&Animation>, &mut Arc<Texture>, &mut Flip)>() {
+    for (_, (_, direction, texture, flip)) in handle.world.query_mut::<(&Player, &Direction, &mut Arc<Texture>, &mut Flip)>() {
         if direction.0.y > 0.8 {
             *flip = Flip(false, false);
+            *texture = player_back.clone();
         } else if direction.0.y < -0.8 {
             *flip = Flip(false, false);
+            *texture = player_front.clone();
         } else if direction.0.x.is_sign_positive() {
             *flip = Flip(false, false);
+            *texture = player_side.clone();
         } else if direction.0.x.is_sign_negative() {
             *flip = Flip(true, false);
+            *texture = player_side.clone();
         }
-        if animation.is_none() {
-            if direction.0.y > 0.8 {
-                *texture = player_back.clone();
-            } else if direction.0.y < -0.8 {
-                *texture = player_front.clone();
-            } else if direction.0.x.is_sign_positive() {
-                *texture = player_side.clone();
-            } else if direction.0.x.is_sign_negative() {
-                *texture = player_side.clone();
+    }
+}
+
+pub fn system_update_player_animation(handle: &mut RainHandle) {
+    let mut to_add_animation: Vec<(Entity, Animation)> = Vec::new();
+    let mut to_add_animation_pool: Vec<(Entity, Animation, usize)> = Vec::new();
+    let mut to_remove_updated: Vec<Entity> = Vec::new();
+    let mut to_remove_animations: Vec<Entity> = Vec::new();
+
+    for (e, (_, state, _)) in handle.world.query::<(&Player, &AnimationStatePlayer, &AnimationStateUpdated)>().iter() {
+        to_remove_updated.push(e);
+        match state {
+            AnimationStatePlayer::None => to_remove_animations.push(e),
+            AnimationStatePlayer::Walking(direction) => {
+                match direction {
+                    Direction4::N => to_add_animation.push((e, Animation::new("animation_player_walking_back"))),
+                    Direction4::S => to_add_animation.push((e, Animation::new("animation_player_walking_front"))),
+                    Direction4::E | Direction4::W => to_add_animation.push((e, Animation::new("animation_player_walking_side"))),
+                }
+            }
+            AnimationStatePlayer::Attacking(direction, item_type) => {
+                let item_type = match item_type {
+                    Some(i) => i,
+                    None => {
+                        continue;
+                    }
+                };
+                match item_type {
+                    ItemType::FlintHatchet => {
+                        match direction {
+                            Direction4::N => {
+                                to_add_animation.push((e, Animation::new("animation_player_swinging_back")));
+                                to_add_animation_pool.push((e, Animation::new("animation_flint_hatchet_swing_back"), 0));
+                            }
+                            Direction4::S => {
+                                to_add_animation.push((e, Animation::new("animation_player_swinging_front")));
+                                to_add_animation_pool.push((e, Animation::new("animation_flint_hatchet_swing_front"), 0));
+                            }
+                            Direction4::E | Direction4::W => {
+                                to_add_animation.push((e, Animation::new("animation_player_swinging_side")));
+                                to_add_animation_pool.push((e, Animation::new("animation_flint_hatchet_swing_side"), 0));
+                            }
+                        }
+                    }
+                    _ => {}
+                }
             }
         }
+    }
+
+    for (e, animation) in to_add_animation {
+        handle.world.insert_one(e, animation).unwrap();
+    }
+    for (e, animation, key) in to_add_animation_pool {
+        if let Ok(pool) = handle.world.query_one_mut::<&mut AnimationPool>(e) {
+            pool.animations.insert(key, animation);
+        }
+    }
+    for e in to_remove_updated {
+        handle.world.remove_one::<AnimationStateUpdated>(e).unwrap();
+    }
+    for e in to_remove_animations {
+        handle.world.remove_one::<Animation>(e).unwrap();
+        if let Ok(pool) = handle.world.query_one_mut::<&mut AnimationPool>(e) {
+            pool.animations.clear();
+        }
+    }
+}
+
+pub fn system_clear_animation_state(handle: &mut RainHandle) {
+    for (_, (_, state, animation, animation_pool)) in handle.world.query_mut::<(
+        &Player, &mut AnimationStatePlayer, Option<&Animation>, Option<&AnimationPool>
+    )>() {
+        if animation.is_some() {
+            continue;
+        }
+        if let Some(pool) = animation_pool {
+            if !pool.animations.is_empty() {
+                continue;
+            }
+        }
+        *state = AnimationStatePlayer::None;
     }
 }
 

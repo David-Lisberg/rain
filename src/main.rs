@@ -31,7 +31,10 @@ use crate::game::entity::enemy::system_update_enemy_direction;
 use crate::game::entity::enemy::system_update_enemy_texture;
 use crate::game::entity::path::system_path_walk;
 use crate::game::entity::projectile::system_manage_projectiles;
+use crate::game::player::action::AnimationStatePlayer;
+use crate::game::player::action::system_clear_animation_state;
 use crate::game::player::action::system_player_action;
+use crate::game::player::action::system_update_player_animation;
 use crate::game::player::action::system_update_player_texture;
 use crate::game::player::input::*;
 use crate::game::player::inventory::Inventory;
@@ -124,6 +127,7 @@ pub struct State {
 impl RainState for State {
     fn update(&mut self, handle: &mut RainHandle) {
         system_manage_animation_events(handle);
+        system_clear_animation_state(handle);
         system_player_input(handle, self);
         system_inventory_interface(handle, self);
 
@@ -153,6 +157,7 @@ impl RainState for State {
         system_timer_pickup(handle);
 
         system_update_player_texture(handle);
+        system_update_player_animation(handle);
         system_update_enemy_texture(handle);
         system_object_transparency(handle, self);
         system_camera_controller(handle, self);
@@ -184,13 +189,14 @@ impl RainState for State {
         ));
         handle.world.insert(player_entity, (
             Health::new(100.0), HurtBox(Collider::from_center(0.0, 0.0, 0.8, 0.8)), Persistent, Swimmable, AnimationPool::new(),
+            AnimationStatePlayer::None,
         )).unwrap();
 
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
             inventory.add_item(Item::new(ItemType::FlintHatchet), 1);
         }
 
-        spawn_enemy(handle, self, Vec2::new(5.0, 1.0), Enemy::new(EnemyType::Coati));
+        // spawn_enemy(handle, self, Vec2::new(5.0, 1.0), Enemy::new(EnemyType::Coati));
 
         handle.renderer.camera.set_z(8.0);
     }

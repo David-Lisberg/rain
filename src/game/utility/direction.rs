@@ -11,7 +11,7 @@ pub enum Direction8 {
     NE
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Direction4 {
     N,
     W,

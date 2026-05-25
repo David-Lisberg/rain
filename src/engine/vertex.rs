@@ -34,6 +34,10 @@ pub const SPRITE_QUAD_INDICES: &[u16] = &[
     0, 1, 3,
     1, 2, 3
 ];
+pub const QUAD_INDICES: &[u32] = &[
+    0, 1, 3,
+    1, 2, 3
+];
 
 impl UIVertex {
     pub fn desc() -> wgpu::VertexBufferLayout<'static> {

@@ -19,7 +19,7 @@ impl WorldGenConfig {
                 ((f64::MIN, 0.3), TileType::Water),
             ],
             object_rule : &[
-                ((0.45, f64::MAX), 0.1, &[TileType::Grass, TileType::Grass2], ObjectType::Tree1),
+                ((0.45, f64::MAX), 0.05, &[TileType::Grass, TileType::Grass2], ObjectType::Tree1),
                 ((0.4, 0.6), 0.05, &[TileType::Grass, TileType::Grass2], ObjectType::Twig),
                 ((0.25, 0.5), 0.07, &[TileType::Grass, TileType::Grass2], ObjectType::Grass),
                 ((0.2, 0.9), 0.05, &[TileType::Stone], ObjectType::Stone),

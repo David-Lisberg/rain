@@ -13,9 +13,6 @@
       "duration": 14
     }
   ],
-  "finish": [
-    { "RemoveComponent": "Attacking" }
-  ],
   "repeat": false,
   "source": "res/texture/animation_player_swinging_front.png"
 }
