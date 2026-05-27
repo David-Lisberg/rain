@@ -2,9 +2,16 @@ use std::sync::Arc;
 
 use glam::Vec2;
 use hecs::Entity;
-use rain::engine::{component::*, core::RainHandle, resource::ResourceManager, texture::Texture};
+use rain::engine::component::*;
+use rain::engine::core::RainHandle;
+use rain::engine::resource::ResourceManager;
+use rain::engine::texture::Texture;
 
-use crate::{DEPTH_PLAYER, game::{player::{inventory::Inventory, movement::Player}, utility::timer::Timer}};
+use crate::DEPTH_PLAYER;
+use crate::game::player::inventory::Inventory;
+use crate::game::player::movement::Player;
+use crate::game::utility::timer::Timer;
+
 
 const ITEM_PICKUP_RANGE: f32 = 1.0;
 

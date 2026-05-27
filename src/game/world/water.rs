@@ -1,7 +1,12 @@
 use hecs::Entity;
-use rain::engine::{component::Position2D, core::RainHandle};
+use rain::engine::component::Position2D;
+use rain::engine::core::RainHandle;
 
-use crate::{State, game::{core::{collision::Collider, physics::ADJACENT_I32}, world::chunk::{ChunkPosition, position_to_chunk_position}}};
+use crate::State;
+use crate::game::core::collision::Collider;
+use crate::game::core::physics::ADJACENT_I32;
+use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
+
 
 pub struct Swimmable;
 pub struct Swimming;

@@ -1,4 +1,5 @@
-use crate::game::world::{object::ObjectType, tile::TileType};
+use crate::game::world::object::ObjectType;
+use crate::game::world::tile::TileType;
 
 pub struct WorldGenConfig {
     pub tile_rule: &'static [((f64, f64), TileType)],

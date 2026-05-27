@@ -5,7 +5,6 @@ use rain::engine::animation::{Animation, AnimationEvent, AnimationPool};
 
 use crate::game::core::collision::Collider;
 use crate::game::entity::damage::HitBox;
-use crate::game::player::action::PlayerAttacking;
 use crate::game::player::input::Lock;
 use crate::game::player::inventory::Inventory;
 use crate::game::player::item::ItemCategory;
@@ -102,13 +101,11 @@ pub fn system_manage_animation_events(handle: &mut RainHandle) {
 
     for (e, component) in to_add_component {
         match component.as_str() {
-            "Attacking" => handle.world.insert_one(e, PlayerAttacking).unwrap(),
             _ => {}
         }
     }
     for (e, component) in to_remove_component {
         match component.as_str() {
-            "Attacking" => { handle.world.remove_one::<PlayerAttacking>(e).unwrap(); }
             _ => {}
         }
     }

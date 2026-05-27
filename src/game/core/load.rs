@@ -44,6 +44,9 @@ pub fn load_textures(handle: &mut RainHandle) {
     handle.load_texture("enemy_coati_side", "res/texture/enemy_coati_side.png").expect("Error loading texture.");
     handle.load_texture("enemy_coati_front", "res/texture/enemy_coati_front.png").expect("Error loading texture.");
     handle.load_texture("enemy_coati_back", "res/texture/enemy_coati_back.png").expect("Error loading texture.");
+    handle.load_texture("enemy_coati_crouching_side", "res/texture/enemy_coati_crouching_side.png").expect("Error loading texture.");
+    handle.load_texture("enemy_coati_crouching_front", "res/texture/enemy_coati_crouching_front.png").expect("Error loading texture.");
+    handle.load_texture("enemy_coati_crouching_back", "res/texture/enemy_coati_crouching_back.png").expect("Error loading texture.");
     handle.load_texture("item_coati_pelt", "res/texture/item_coati_pelt.png").expect("Error loading texture.");
     handle.load_texture("item_coati_bone", "res/texture/item_coati_bone.png").expect("Error loading texture.");
     handle.load_texture("item_coati_bone_plate", "res/texture/item_coati_bone_plate.png").expect("Error loading texture.");
@@ -61,4 +64,7 @@ pub fn load_animations(handle: &mut RainHandle) {
     handle.load_animation("animation_flint_hatchet_swing_side", "res/animations/flint_hatchet_swing_side.json").expect("Error loading animation");
     handle.load_animation("animation_flint_hatchet_swing_front", "res/animations/flint_hatchet_swing_front.json").expect("Error loading animation");
     handle.load_animation("animation_flint_hatchet_swing_back", "res/animations/flint_hatchet_swing_back.json").expect("Error loading animation");
+    handle.load_animation("animation_coati_walking_side", "res/animations/coati_walking_side.json").expect("Error loading animation");
+    handle.load_animation("animation_coati_walking_front", "res/animations/coati_walking_front.json").expect("Error loading animation");
+    handle.load_animation("animation_coati_walking_back", "res/animations/coati_walking_back.json").expect("Error loading animation");
 }

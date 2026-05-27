@@ -1,10 +1,14 @@
 use glam::Vec2;
 use hecs::Entity;
-use rain::engine::{color::Color, component::{Position2D, Scale2D}, core::RainHandle};
 use lgui::element::*;
+use rain::engine::color::Color;
+use rain::engine::component::*;
+use rain::engine::core::RainHandle;
 
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, State, game::{entity::damage::{Health, HealthBar}, player::{inventory::*, movement::Player}}};
-
+use crate::game::entity::damage::{Health, HealthBar};
+use crate::game::player::inventory::{INVENTORY_SLOTS_HOTBAR, INVENTORY_SLOTS_INVENTORY, INVENTORY_SLOTS_WIDTH, Inventory};
+use crate::game::player::movement::Player;
+use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, State};
 
 pub const INVENTORY_SLOT_SIZE: f32 = 54.0;
 pub const INVENTORY_SLOT_HEIGHT: f32 = SCREEN_HEIGHT - (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP);

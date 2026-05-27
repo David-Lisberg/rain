@@ -1,4 +1,5 @@
-use crate::game::player::{inventory::Inventory, item::{Item, ItemType}};
+use crate::game::player::inventory::Inventory;
+use crate::game::player::item::{Item, ItemType};
 
 #[derive(Clone, Debug)]
 pub struct Recipe {

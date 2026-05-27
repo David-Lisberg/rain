@@ -1,9 +1,15 @@
 use std::{collections::HashMap, ops::Range};
 
 use lgui::element::{EBuilder, Scale};
-use rain::engine::{core::RainHandle, input::{KeyboardKey, MouseButton}};
+use rain::engine::core::RainHandle;
+use rain::engine::input::{KeyboardKey, MouseButton};
 
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, State, game::{core::ui::*, player::{crafting::{Recipe, check_available_recipes, craft_item}, item::{Item, ItemType}, movement::Player}}};
+use crate::game::player::movement::Player;
+use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, State};
+use crate::game::core::ui::{INVENTORY_GAP, INVENTORY_SLOT_GAP, INVENTORY_SLOT_HEIGHT, INVENTORY_SLOT_SIZE};
+use crate::game::player::crafting::{Recipe, check_available_recipes, craft_item};
+use crate::game::player::item::{Item, ItemType};
+
 
 pub const INVENTORY_SLOTS_PLAYER: usize = 36;
 pub const INVENTORY_SLOTS_WIDTH: usize = 9;

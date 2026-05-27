@@ -1,7 +1,15 @@
 use hecs::Entity;
-use rain::engine::{component::Position2D, core::RainHandle};
+use rain::engine::component::Position2D;
+use rain::engine::core::RainHandle;
 
-use crate::{State, game::{core::collision::Collider, entity::{enemy::Enemy, loot::{LootTable, roll_loot}}, player::{item::{Item, spawn_item_drop}, movement::Player}, utility::timer::Timer}};
+use crate::State;
+use crate::game::core::collision::Collider;
+use crate::game::entity::enemy::Enemy;
+use crate::game::entity::loot::{LootTable, roll_loot};
+use crate::game::player::item::{Item, spawn_item_drop};
+use crate::game::player::movement::Player;
+use crate::game::utility::timer::Timer;
+
 
 pub struct HurtBox(pub Collider);
 #[derive(Clone, Debug)]

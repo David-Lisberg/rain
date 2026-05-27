@@ -27,6 +27,7 @@ use crate::game::entity::enemy::EnemyType;
 use crate::game::entity::enemy::spawn_enemy;
 use crate::game::entity::enemy::system_manage_enemies;
 use crate::game::entity::despawn::system_timer_despawn;
+use crate::game::entity::enemy::system_update_enemy_animation;
 use crate::game::entity::enemy::system_update_enemy_direction;
 use crate::game::entity::enemy::system_update_enemy_texture;
 use crate::game::entity::path::system_path_walk;
@@ -159,6 +160,7 @@ impl RainState for State {
         system_update_player_texture(handle);
         system_update_player_animation(handle);
         system_update_enemy_texture(handle);
+        system_update_enemy_animation(handle);
         system_object_transparency(handle, self);
         system_camera_controller(handle, self);
         system_camera_tracker(handle);
@@ -196,7 +198,7 @@ impl RainState for State {
             inventory.add_item(Item::new(ItemType::FlintHatchet), 1);
         }
 
-        // spawn_enemy(handle, self, Vec2::new(5.0, 1.0), Enemy::new(EnemyType::Coati));
+        spawn_enemy(handle, self, Vec2::new(5.0, 1.0), Enemy::new(EnemyType::Coati));
 
         handle.renderer.camera.set_z(8.0);
     }

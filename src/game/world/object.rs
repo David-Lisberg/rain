@@ -1,4 +1,5 @@
-use std::{collections::HashSet, sync::Arc};
+use std::collections::HashSet;
+use std::sync::Arc;
 
 use glam::Vec2;
 use hecs::Entity;
@@ -12,8 +13,10 @@ use rain::engine::vertex::{ModelVertex, QUAD_INDICES};
 use wgpu::util::DeviceExt;
 
 use crate::{State, DEPTH_PLAYER, DEPTH_SMALL_OBJECT, DEPTH_TREES};
-use crate::game::core::{collision::Collider, physics::ADJACENT_I32};
-use crate::game::player::{item::ToolType, movement::Player};
+use crate::game::core::collision::Collider;
+use crate::game::core::physics::ADJACENT_I32;
+use crate::game::player::item::ToolType;
+use crate::game::player::movement::Player;
 use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
 
 #[derive(Debug, Clone, Copy)]

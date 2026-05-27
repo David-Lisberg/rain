@@ -2,10 +2,21 @@ use std::{collections::VecDeque, f32::consts::PI};
 
 use glam::Vec2;
 use hecs::Entity;
-use rain::engine::{component::{Friction, Position2D, Velocity2D}, core::RainHandle};
+use rain::engine::component::*; 
+use rain::engine::core::RainHandle;
 use rand::RngExt;
 
-use crate::{State, game::{core::{collision::Collider, physics::ADJACENT_I32}, entity::{damage::HitBox, enemy::Enemy, path::Path}, player::movement::Player, utility::timer::Timer, world::chunk::{ChunkPosition, position_to_chunk_position}}};
+use crate::State;
+use crate::game::core::animation::AnimationStateUpdated;
+use crate::game::core::collision::Collider;
+use crate::game::core::physics::ADJACENT_I32;
+use crate::game::entity::damage::HitBox;
+use crate::game::entity::enemy::{AnimationStateEnemy, Enemy};
+use crate::game::entity::path::Path;
+use crate::game::player::movement::Player;
+use crate::game::utility::timer::Timer;
+use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
+
 
 const ADJACENT: [Vec2; 8] = [
     Vec2::new(0.5, 0.0), Vec2::new(-0.5, 0.0),
@@ -73,6 +84,7 @@ pub fn system_enemy_tracking(handle: &mut RainHandle, state: &mut State) {
     let mut to_idle: Vec<Entity> = Vec::new();
     let mut to_attack: Vec<(Entity, Entity)> = Vec::new();
     let mut to_add_path: Vec<(Entity, Path)> = Vec::new();
+    let mut to_add_updated: Vec<Entity> = Vec::new();
 
     let mut targets: Vec<(Entity, Vec2)> = Vec::new();
     for (e, tracking) in handle.world.query::<&Tracking>().iter() {
@@ -80,7 +92,9 @@ pub fn system_enemy_tracking(handle: &mut RainHandle, state: &mut State) {
         targets.push((e, position));
     }
     for (e, target_position) in targets {
-        if let Ok((tracking, enemy, position, collider)) = handle.world.query_one_mut::<(&mut Tracking, &Enemy, &Position2D, &Collider)>(e) {
+        if let Ok((tracking, enemy, position, collider, animation_state)) = handle.world.query_one_mut::<(
+            &mut Tracking, &Enemy, &Position2D, &Collider, &mut AnimationStateEnemy
+        )>(e) {
             if check_line_of_sight(state, position.0, target_position, collider, enemy.tracking_range) {
                 tracking.1.reset();
             } else {
@@ -92,6 +106,8 @@ pub fn system_enemy_tracking(handle: &mut RainHandle, state: &mut State) {
 
             if (target_position - position.0).length() <= enemy.tracking_distance + 1.0 {
                 to_attack.push((e, tracking.0));
+                *animation_state = AnimationStateEnemy::None;
+                to_add_updated.push(e);
                 continue;
             }
 
@@ -119,6 +135,9 @@ pub fn system_enemy_tracking(handle: &mut RainHandle, state: &mut State) {
                 velocity.0 = Vec2::ZERO;
             }
         }
+    }
+    for e in to_add_updated {
+        handle.world.insert_one(e, AnimationStateUpdated).unwrap();
     }
 }
 

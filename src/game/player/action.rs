@@ -2,12 +2,27 @@ use std::sync::Arc;
 
 use glam::Vec2;
 use hecs::Entity;
-use rain::engine::{animation::{Animation, AnimationPool}, component::*, core::RainHandle, input::MouseButton, texture::Texture};
+use rain::engine::animation::{Animation, AnimationPool};
+use rain::engine::component::*;
+use rain::engine::core::RainHandle;
+use rain::engine::input::MouseButton;
+use rain::engine::texture::Texture;
 
-use crate::{DEPTH_PROJECTILE, State, game::{core::{animation::AnimationStateUpdated, collision::*}, entity::{damage::HitBox, despawn::TimerDespawn, projectile::Projectile}, player::{inventory::Inventory, item::*, movement::Player}, utility::{direction::Direction4, timer::Timer}, world::object::{ObjectType, destroy_object, reload_object_mesh}}};
+use crate::{DEPTH_PROJECTILE, State};
+use crate::game::core::animation::AnimationStateUpdated;
+use crate::game::core::collision::{Collider, check_collision_with_object};
+use crate::game::entity::damage::HitBox;
+use crate::game::entity::despawn::TimerDespawn;
+use crate::game::entity::projectile::Projectile;
+use crate::game::player::inventory::Inventory;
+use crate::game::player::item::*;
+use crate::game::player::movement::Player;
+use crate::game::utility::direction::Direction4;
+use crate::game::utility::timer::Timer;
+use crate::game::world::object::{ObjectType, destroy_object, reload_object_mesh};
+
 
 struct SlingHold(f32, usize);
-pub struct PlayerAttacking;
 
 #[derive(Debug, PartialEq)]
 pub enum AnimationStatePlayer {

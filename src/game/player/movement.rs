@@ -1,7 +1,13 @@
 use hecs::Entity;
-use rain::engine::{component::*, core::RainHandle};
+use rain::engine::component::*;
+use rain::engine::core::RainHandle;
 
-use crate::game::{core::{animation::AnimationStateUpdated, physics::set_velocity_clamped}, player::action::{AnimationStatePlayer, PlayerAttacking}, utility::direction::Direction4, world::water::Swimming};
+use crate::game::core::animation::AnimationStateUpdated;
+use crate::game::core::physics::set_velocity_clamped;
+use crate::game::player::action::AnimationStatePlayer;
+use crate::game::utility::direction::Direction4;
+use crate::game::world::water::Swimming;
+
 
 pub struct Player;
 
@@ -23,7 +29,7 @@ pub fn system_player_walk(handle: &mut RainHandle) {
     let mut to_add_updated: Vec<Entity> = Vec::new();
     for (e, (_, walk, velocity, direction, swimming, state)) in handle.world.query::<(
         &Player, Option<&Walk>, &mut Velocity2D, &Direction, Option<&Swimming>, &mut AnimationStatePlayer
-    )>().without::<&PlayerAttacking>().iter() {
+    )>().iter() {
         if walk.is_some() {
             let direction4 = Direction4::from_vec2(direction.0);
             match state {

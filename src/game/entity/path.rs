@@ -1,8 +1,13 @@
 use glam::Vec2;
 use hecs::Entity;
-use rain::engine::{component::{Position2D, Velocity2D}, core::RainHandle};
+use rain::engine::component::*;
+use rain::engine::core::RainHandle;
 
-use crate::game::{entity::enemy::Enemy, world::water::Swimming};
+use crate::game::core::animation::AnimationStateUpdated;
+use crate::game::entity::enemy::{AnimationStateEnemy, Enemy};
+use crate::game::utility::direction::Direction4;
+use crate::game::world::water::Swimming;
+
 
 pub struct Path {
     positions: Vec<Vec2>,
@@ -17,9 +22,10 @@ impl Path {
 
 pub fn system_path_walk(handle: &mut RainHandle) {
     let mut to_remove_path: Vec<Entity> = Vec::new();
+    let mut to_add_updated: Vec<Entity> = Vec::new();
 
-    for (e, (enemy, position, velocity, path, swimming)) in handle.world.query_mut::<(
-        &Enemy, &Position2D, &mut Velocity2D, &mut Path, Option<&Swimming>
+    for (e, (enemy, position, velocity, path, swimming, state)) in handle.world.query_mut::<(
+        &Enemy, &Position2D, &mut Velocity2D, &mut Path, Option<&Swimming>, &mut AnimationStateEnemy
     )>() {
         let (current, _) = path.positions.iter()
             .enumerate()
@@ -31,9 +37,24 @@ pub fn system_path_walk(handle: &mut RainHandle) {
                 true => enemy.swim_speed,
                 false => enemy.walk_speed,
             };
+            let direction4 = Direction4::from_vec2(direction);
+            match state {
+                AnimationStateEnemy::None => {
+                    *state = AnimationStateEnemy::Walking(direction4);
+                    to_add_updated.push(e);
+                }
+                AnimationStateEnemy::Walking(walking_direction) => {
+                    if direction4 != *walking_direction {
+                        *walking_direction = direction4;
+                        to_add_updated.push(e);
+                    }
+                }
+            }
             velocity.0 = speed * direction;
         } else {
+            *state = AnimationStateEnemy::None;
             to_remove_path.push(e);
+            to_add_updated.push(e);
             velocity.0 = Vec2::ZERO;
         }
         path.current = current;
@@ -41,5 +62,8 @@ pub fn system_path_walk(handle: &mut RainHandle) {
 
     for e in to_remove_path {
         handle.world.remove_one::<Path>(e).unwrap();
+    }
+    for e in to_add_updated {
+        handle.world.insert_one(e, AnimationStateUpdated).unwrap();
     }
 }

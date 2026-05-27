@@ -2,15 +2,34 @@ use std::sync::Arc;
 
 use glam::Vec2;
 use hecs::Entity;
-use rain::engine::{component::*, core::RainHandle, resource::ResourceManager, texture::Texture};
+use rain::engine::animation::Animation;
+use rain::engine::texture::Texture;
+use rain::engine::resource::ResourceManager;
+use rain::engine::core::RainHandle;
+use rain::engine::component::*;
 use rand::RngExt;
 
-use crate::{DEPTH_PLAYER, State, game::{core::collision::{Collider, check_collision_with_object}, entity::{ai::Idle, damage::{Health, HealthBar, HurtBox}, loot::LootTable}, player::{item::{Item, ItemType}, movement::Player}, utility::{direction::Direction4, timer::Timer}, world::water::Swimmable}};
+use crate::game::core::animation::AnimationStateUpdated;
+use crate::game::entity::damage::{Health, HealthBar, HurtBox};
+use crate::game::utility::timer::Timer;
+use crate::game::world::water::Swimmable;
+use crate::{DEPTH_PLAYER, State};
+use crate::game::core::collision::{Collider, check_collision_with_object};
+use crate::game::entity::ai::Idle;
+use crate::game::entity::loot::LootTable;
+use crate::game::player::item::{Item, ItemType};
+use crate::game::player::movement::Player;
+use crate::game::utility::direction::Direction4;
 
 const SPAWN_RADIUS_MIN: f32 = 20.0;
 const SPAWN_RADIUS_MAX: f32 = 40.0;
 const DESPAWN_RADIUS: f32 = 50.0;
 const SPAWN_CAP: i32 = 1;
+
+pub enum AnimationStateEnemy {
+    None,
+    Walking(Direction4),
+}
 
 pub struct Enemy {
     pub _type: EnemyType,
@@ -106,7 +125,7 @@ pub fn spawn_enemy(handle: &mut RainHandle, state: &mut State, position: Vec2, e
 
     let e = handle.world.spawn((Sprite, Visible, enemy, Idle, Position2D(position), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), 
         texture, Scale2D(Vec2::new(1.0, 1.0)), DepthZ(DEPTH_PLAYER), Priority(1), Flip(false, false), Health::new(5.0), collider, HurtBox(collider)));
-    handle.world.insert(e, (Swimmable, loot_table)).unwrap();
+    handle.world.insert(e, (Swimmable, loot_table, AnimationStateEnemy::None)).unwrap();
     handle.world.spawn((HealthBar(e, Timer::new(2.0), 1.0),));
 }
 
@@ -165,5 +184,41 @@ pub fn system_update_enemy_texture(handle: &mut RainHandle) {
         if let Ok(texture) = handle.world.query_one_mut::<&mut Arc<Texture>>(e) {
             *texture = new_texture;
         }
+    }
+}
+
+pub fn system_update_enemy_animation(handle: &mut RainHandle) {
+    let mut to_add_animation: Vec<(Entity, Animation)> = Vec::new();
+    let mut to_remove_updated: Vec<Entity> = Vec::new();
+    let mut to_remove_animation: Vec<Entity> = Vec::new();
+
+    for (e, (enemy, state, _)) in handle.world.query::<(&Enemy, &AnimationStateEnemy, &AnimationStateUpdated)>().iter() {
+        to_remove_updated.push(e);
+        match state {
+            AnimationStateEnemy::None => to_remove_animation.push(e),
+            AnimationStateEnemy::Walking(direction) => {
+                let mut animation_string = match enemy._type {
+                    EnemyType::Coati => "animation_coati_walking_".to_string(),
+                };
+                let end_string = match direction {
+                    Direction4::N => "back",
+                    Direction4::S => "front",
+                    Direction4::E | Direction4::W => "side",
+                };
+                animation_string.push_str(end_string);
+                to_add_animation.push((e, Animation::new(&animation_string)));
+            }
+        }
+    }
+
+    for (e, animation) in to_add_animation {
+        handle.world.insert_one(e, animation).unwrap();
+    }
+
+    for e in to_remove_updated {
+        handle.world.remove_one::<AnimationStateUpdated>(e).unwrap();
+    }
+    for e in to_remove_animation {
+        let _ = handle.world.remove_one::<Animation>(e).is_ok();
     }
 }

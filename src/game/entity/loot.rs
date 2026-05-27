@@ -2,7 +2,8 @@ use std::ops::RangeInclusive;
 
 use rand::RngExt;
 
-use crate::{State, game::player::item::Item};
+use crate::State;
+use crate::game::player::item::Item;
 
 pub struct LootTable {
     pub drops: Vec<(f32, RangeInclusive<i32>, Item)>
