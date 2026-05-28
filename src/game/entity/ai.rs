@@ -10,7 +10,7 @@ use crate::State;
 use crate::game::core::animation::AnimationStateUpdated;
 use crate::game::core::collision::Collider;
 use crate::game::core::physics::ADJACENT_I32;
-use crate::game::entity::damage::HitBox;
+use crate::game::entity::damage::{DamageTaken, HitBox};
 use crate::game::entity::enemy::{AnimationStateEnemy, Enemy, EnemyType};
 use crate::game::entity::path::Path;
 use crate::game::entity::projectile::{ProjectileSpawn, spawn_projectile};
@@ -26,7 +26,6 @@ const ADJACENT: [Vec2; 8] = [
     Vec2::new(-0.5, 0.5), Vec2::new(-0.5, -0.5),
 ];
 const EPSILON: f32 = 0.001;
-const IDLE_TIME: i32 = 600;
 
 pub struct Idle;
 pub struct Tracking(Entity, Timer);
@@ -118,6 +117,7 @@ fn generate_random_target(state: &mut State, start: Vec2, range: f32, min_distan
 pub fn system_enemy_digging(handle: &mut RainHandle, state: &mut State) {
     let mut to_track: Vec<Entity> = Vec::new();
     let mut to_idle: Vec<Entity> = Vec::new();
+    let mut to_remove_damage_taken: Vec<Entity> = Vec::new();
 
     let mut player: Option<(Entity, Position2D)> = None;
     for (e, (_, position)) in handle.world.query::<(&Player, &Position2D)>().iter() {
@@ -125,10 +125,16 @@ pub fn system_enemy_digging(handle: &mut RainHandle, state: &mut State) {
     }
     let (player_e, player_position) = player.unwrap();
 
-    for (e, (digging, enemy, position, collider)) in handle.world.query_mut::<(&mut Digging, &mut Enemy, &Position2D, &Collider)>() {
+    for (e, (digging, enemy, position, collider, damage_taken)) in handle.world.query_mut::<(
+        &mut Digging, &mut Enemy, &Position2D, &Collider, Option<&DamageTaken>
+    )>() {
         if check_line_of_sight(state, position.0, player_position.0, collider, enemy.sight_range) {
             to_track.push(e);
             break;
+        }
+        if damage_taken.is_some() {
+            to_track.push(e);
+            to_remove_damage_taken.push(e);
         }
         if !digging.0.step(handle.delta_time) {
             continue;
@@ -149,6 +155,9 @@ pub fn system_enemy_digging(handle: &mut RainHandle, state: &mut State) {
     for e in to_idle {
         handle.world.insert_one(e, Idle).unwrap();
         handle.world.remove_one::<Digging>(e).unwrap();
+    }
+    for e in to_remove_damage_taken {
+        handle.world.remove_one::<DamageTaken>(e).unwrap();
     }
 }
 
@@ -305,8 +314,8 @@ fn system_enemy_escaping(handle: &mut RainHandle, state: &mut State) {
         targets.push((e, position));
     }
     for (e, target_position) in targets {
-        if let Ok((escaping, enemy, position, collider, animation_state)) = handle.world.query_one_mut::<(
-            &mut Escaping, &Enemy, &Position2D, &Collider, &mut AnimationStateEnemy
+        if let Ok((escaping, enemy, position, collider)) = handle.world.query_one_mut::<(
+            &mut Escaping, &Enemy, &Position2D, &Collider
         )>(e) {
             if check_line_of_sight(state, position.0, target_position, collider, enemy.sight_range) {
                 escaping.1.reset();

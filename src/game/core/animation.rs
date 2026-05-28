@@ -109,7 +109,11 @@ pub fn system_manage_animation_events(handle: &mut RainHandle) {
             _ => {}
         }
     }
+
     for active_event in to_add_event {
+        if let Ok(active_event) = handle.world.remove_one::<ActiveEvents>(active_event.entity) {
+            finish_active_event(handle, active_event);
+        }
         handle.world.insert_one(active_event.entity, active_event).unwrap();
     }
     for (e, mut hitbox) in to_add_hitbox {
@@ -158,16 +162,20 @@ pub fn system_manage_animation_events(handle: &mut RainHandle) {
 
     for e in to_remove_event {
         let active_event = handle.world.remove_one::<ActiveEvents>(e).unwrap();
-        for event in &active_event.events {
-            match event {
-                AnimationEvent::HitBox(_) => {
-                    let _ = handle.world.remove_one::<HitBox>(active_event.entity).is_ok();
-                }
-                AnimationEvent::LockInput => {
-                    handle.world.remove_one::<Lock>(active_event.entity).unwrap();
-                }
-                _ => {}
+        finish_active_event(handle, active_event);
+    }
+}
+
+fn finish_active_event(handle: &mut RainHandle, active_event: ActiveEvents) {
+    for event in &active_event.events {
+        match event {
+            AnimationEvent::HitBox(_) => {
+                let _ = handle.world.remove_one::<HitBox>(active_event.entity).is_ok();
             }
+            AnimationEvent::LockInput => {
+                handle.world.remove_one::<Lock>(active_event.entity).unwrap();
+            }
+            _ => {}
         }
     }
 }

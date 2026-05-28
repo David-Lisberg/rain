@@ -10,7 +10,7 @@ use crate::game::player::item::{Item, spawn_item_drop};
 use crate::game::player::movement::Player;
 use crate::game::utility::timer::Timer;
 
-
+pub struct DamageTaken;
 pub struct HurtBox(pub Collider);
 #[derive(Clone, Debug)]
 pub struct HitBox {
@@ -45,6 +45,8 @@ pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle, state: &mut Stat
     let mut to_despawn: Vec<Entity> = Vec::new();
     let mut to_remove_hitbox: Vec<Entity> = Vec::new();
     let mut to_spawn: Vec<(Position2D, Item, i32)> = Vec::new();
+    let mut to_add_damage_taken: Vec<Entity> = Vec::new();
+
     for (e, hitbox) in handle.world.query::<&HitBox>().iter() {
         hitboxes.push((e, hitbox.clone()));
     }
@@ -59,6 +61,8 @@ pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle, state: &mut Stat
                 if health.current <= 0.0 {
                     to_kill.push(e);
                     break;
+                } else {
+                    to_add_damage_taken.push(e);
                 }
                 if hitbox.uses <= 0 {
                     to_remove_hitbox.push(*other_e);
@@ -96,6 +100,9 @@ pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle, state: &mut Stat
     }
     for e in to_remove_hitbox {
         handle.world.remove_one::<HitBox>(e).unwrap();
+    }
+    for e in to_add_damage_taken {
+        handle.world.insert_one(e, DamageTaken).unwrap();
     }
 }
 
