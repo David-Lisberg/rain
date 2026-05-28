@@ -40,12 +40,14 @@ pub struct Enemy {
     pub sight_range: f32,
     pub tracking_range: f32,
     pub tracking_distance: f32,
+    pub idle_interval: i32,
 }
 
 impl Enemy {
     pub fn new(_type: EnemyType) -> Self {
-        let (walk_speed, swim_speed, attack_speed, damage, sight_range, tracking_range, tracking_distance) = match _type {
-            EnemyType::Coati => (2.0, 1.5, 10.0, 10.0, 10.0, 25.0, 3.0)
+        let (walk_speed, swim_speed, attack_speed, damage, sight_range, tracking_range, tracking_distance, idle_interval) = match _type {
+            EnemyType::Coati => (2.0, 1.5, 10.0, 10.0, 10.0, 25.0, 3.0, 600),
+            EnemyType::Squirrel(_) => (2.0, 1.5, 10.0, 10.0, 10.0, 10.0, 5.0, 200),
         };
         Self {
             _type,
@@ -56,18 +58,21 @@ impl Enemy {
             sight_range,
             tracking_range,
             tracking_distance,
+            idle_interval,
         }
     }
 }
 
 pub enum EnemyType {
     Coati,
+    Squirrel(i32),
 }
 
 impl EnemyType {
     pub fn fetch_texture(&self, resource_manager: &ResourceManager) -> Arc<Texture> {
         match self {
             EnemyType::Coati => resource_manager.fetch_texture("enemy_coati_side").unwrap(),
+            EnemyType::Squirrel(_) => resource_manager.fetch_texture("enemy_squirrel_side").unwrap(),
         }
     }
 }
@@ -98,7 +103,7 @@ pub fn system_manage_enemies(handle: &mut RainHandle, state: &mut State) {
         }
     }
     if let Some(position) = enemy_position {
-        spawn_enemy(handle, state, position, Enemy::new(EnemyType::Coati));
+        spawn_enemy(handle, state, position, Enemy::new(EnemyType::Squirrel(0)));
     }
     for e in to_remove {
         state.enemy_count -= 1;
@@ -107,25 +112,32 @@ pub fn system_manage_enemies(handle: &mut RainHandle, state: &mut State) {
 }
 
 pub fn spawn_enemy(handle: &mut RainHandle, state: &mut State, position: Vec2, enemy: Enemy) {
-    let collider = Collider::from_center(position.x, position.y, 0.8, 0.8);
     let texture = enemy._type.fetch_texture(&handle.resource_manager);
+    let (loot_table, scale) = match enemy._type {
+        EnemyType::Coati => {
+            ( LootTable { drops: vec![
+                (1.0, 1..=3, Item::new(ItemType::CoatiPelt)),
+                (1.0, 1..=3, Item::new(ItemType::CoatiBone)),
+                (0.5, 1..=1, Item::new(ItemType::CoatiBonePlate))
+            ] },
+            Scale2D(Vec2::new(1.0, 1.0)) )
+        }
+        EnemyType::Squirrel(_) => {
+            ( LootTable { drops: vec![] },
+            Scale2D(Vec2::new(0.6, 0.6)) )
+        }
+    };
+    let collider = Collider::from_center(position.x, position.y, scale.0.x * 0.8, scale.0.y * 0.8);
+
     if check_collision_with_object(state, &collider).is_some() {
         return;
     }
     state.enemy_count += 1;
-    let loot_table = match enemy._type {
-        EnemyType::Coati => {
-            LootTable { drops: vec![
-                (1.0, 1..=3, Item::new(ItemType::CoatiPelt)),
-                (1.0, 1..=3, Item::new(ItemType::CoatiBone)),
-                (0.5, 1..=1, Item::new(ItemType::CoatiBonePlate))
-            ] }
-        }
-    };
 
     let e = handle.world.spawn((Sprite, Visible, enemy, Idle, Position2D(position), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), 
-        texture, Scale2D(Vec2::new(1.0, 1.0)), DepthZ(DEPTH_PLAYER), Priority(1), Flip(false, false), Health::new(5.0), collider, HurtBox(collider)));
+        texture, scale, DepthZ(DEPTH_PLAYER), Priority(1), Flip(false, false), Health::new(5.0), collider, HurtBox(collider)));
     handle.world.insert(e, (Swimmable, loot_table, AnimationStateEnemy::None)).unwrap();
+
     handle.world.spawn((HealthBar(e, Timer::new(2.0), 1.0),));
 }
 
@@ -157,23 +169,27 @@ pub fn system_update_enemy_texture(handle: &mut RainHandle) {
             Direction4::N => {
                 match enemy._type {
                     EnemyType::Coati => to_add_texture.push((e, "enemy_coati_back".to_string())),
+                    EnemyType::Squirrel(_) => to_add_texture.push((e, "enemy_squirrel_back".to_string())),
                 }
             }
             Direction4::E => {
                 *flip = Flip(false, false);
                 match enemy._type {
                     EnemyType::Coati => to_add_texture.push((e, "enemy_coati_side".to_string())),
+                    EnemyType::Squirrel(_) => to_add_texture.push((e, "enemy_squirrel_side".to_string())),
                 }
             }
             Direction4::S => {
                 match enemy._type {
                     EnemyType::Coati => to_add_texture.push((e, "enemy_coati_front".to_string())),
+                    EnemyType::Squirrel(_) => to_add_texture.push((e, "enemy_squirrel_front".to_string())),
                 }
             }
             Direction4::W => {
                 *flip = Flip(true, false);
                 match enemy._type {
                     EnemyType::Coati => to_add_texture.push((e, "enemy_coati_side".to_string())),
+                    EnemyType::Squirrel(_) => to_add_texture.push((e, "enemy_squirrel_side".to_string())),
                 }
             }
         }
@@ -197,16 +213,19 @@ pub fn system_update_enemy_animation(handle: &mut RainHandle) {
         match state {
             AnimationStateEnemy::None => to_remove_animation.push(e),
             AnimationStateEnemy::Walking(direction) => {
-                let mut animation_string = match enemy._type {
-                    EnemyType::Coati => "animation_coati_walking_".to_string(),
+                let animation_string: Option<String> = match enemy._type {
+                    EnemyType::Coati => Some("animation_coati_walking_".to_string()),
+                    _ => None,
                 };
                 let end_string = match direction {
                     Direction4::N => "back",
                     Direction4::S => "front",
                     Direction4::E | Direction4::W => "side",
                 };
-                animation_string.push_str(end_string);
-                to_add_animation.push((e, Animation::new(&animation_string)));
+                if let Some(mut string) = animation_string {
+                    string.push_str(end_string);
+                    to_add_animation.push((e, Animation::new(&string)));
+                }
             }
         }
     }

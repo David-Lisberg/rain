@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct Timer{
     time: f32,
     start: f32,

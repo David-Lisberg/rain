@@ -13,7 +13,6 @@ pub fn reload_animations(handle: &mut RainHandle) {
 }
 
 pub fn load_textures(handle: &mut RainHandle) {
-    handle.load_texture("circle", "res/texture/white_circle.png").expect("Error loading texture.");
     handle.load_texture("tile_dirt", "res/texture/dirt.png").expect("Error loading texture.");
     handle.load_texture("tile_grass", "res/texture/grass.png").expect("Error loading texture.");
     handle.load_texture("tile_grass2", "res/texture/grass2.png").expect("Error loading texture.");
@@ -41,6 +40,9 @@ pub fn load_textures(handle: &mut RainHandle) {
     handle.load_texture("player_front", "res/texture/player_front.png").expect("Error loading texture.");
     handle.load_texture("player_back", "res/texture/player_back.png").expect("Error loading texture.");
     handle.load_texture("player_side", "res/texture/player_side.png").expect("Error loading texture.");
+    handle.load_texture("enemy_squirrel_side", "res/texture/enemy_squirrel_side.png").expect("Error loading texture.");
+    handle.load_texture("enemy_squirrel_front", "res/texture/enemy_squirrel_front.png").expect("Error loading texture.");
+    handle.load_texture("enemy_squirrel_back", "res/texture/enemy_squirrel_back.png").expect("Error loading texture.");
     handle.load_texture("enemy_coati_side", "res/texture/enemy_coati_side.png").expect("Error loading texture.");
     handle.load_texture("enemy_coati_front", "res/texture/enemy_coati_front.png").expect("Error loading texture.");
     handle.load_texture("enemy_coati_back", "res/texture/enemy_coati_back.png").expect("Error loading texture.");
@@ -52,6 +54,7 @@ pub fn load_textures(handle: &mut RainHandle) {
     handle.load_texture("item_coati_bone_plate", "res/texture/item_coati_bone_plate.png").expect("Error loading texture.");
     handle.load_texture("item_bone_shovel", "res/texture/item_bone_shovel.png").expect("Error loading texture.");
     handle.load_texture("item_wood_shovel", "res/texture/item_wood_shovel.png").expect("Error loading texture.");
+    handle.load_texture("item_acorn", "res/texture/item_acorn.png").expect("Error loading texture.");
 }
 
 pub fn load_animations(handle: &mut RainHandle) {

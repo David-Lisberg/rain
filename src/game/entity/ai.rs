@@ -11,8 +11,9 @@ use crate::game::core::animation::AnimationStateUpdated;
 use crate::game::core::collision::Collider;
 use crate::game::core::physics::ADJACENT_I32;
 use crate::game::entity::damage::HitBox;
-use crate::game::entity::enemy::{AnimationStateEnemy, Enemy};
+use crate::game::entity::enemy::{AnimationStateEnemy, Enemy, EnemyType};
 use crate::game::entity::path::Path;
+use crate::game::entity::projectile::{ProjectileSpawn, spawn_projectile};
 use crate::game::player::movement::Player;
 use crate::game::utility::timer::Timer;
 use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
@@ -29,7 +30,9 @@ const IDLE_TIME: i32 = 600;
 
 pub struct Idle;
 pub struct Tracking(Entity, Timer);
+pub struct Digging(Timer);
 pub struct Attacking(Entity, Timer, bool);
+pub struct Escaping(Entity, Timer);
 
 #[derive(Clone)]
 struct AStarNode {
@@ -46,8 +49,17 @@ impl AStarNode {
     }
 }
 
+pub fn system_enemy_ai(handle: &mut RainHandle, state: &mut State) {
+    system_enemy_idle(handle, state);
+    system_enemy_tracking(handle, state);
+    system_enemy_digging(handle, state);
+    system_enemy_attacking(handle);
+    system_enemy_escaping(handle, state);
+}
+
 pub fn system_enemy_idle(handle: &mut RainHandle, state: &mut State) {
     let mut to_track: Vec<Entity> = Vec::new();
+    let mut to_add_digging: Vec<Entity> = Vec::new();
     let mut to_add_path: Vec<(Entity, Path)> = Vec::new();
     
     let mut player: Option<(Entity, Position2D)> = None;
@@ -59,14 +71,26 @@ pub fn system_enemy_idle(handle: &mut RainHandle, state: &mut State) {
     for (i, (e, (_, enemy, position, collider))) in handle.world.query::<(&Idle, &Enemy, &Position2D, &Collider)>().iter().enumerate() {
         if check_line_of_sight(state, position.0, player_position.0, collider, enemy.sight_range) {
             to_track.push(e);
+            break;
         }
-        if state.counter % IDLE_TIME == (i as i32 * 137) % IDLE_TIME {
-            let radians = state.rng.random::<f32>() * 2.0 * PI;
-            let direction = Vec2::from_angle(radians);
-            let distance = state.rng.random::<f32>() * 4.0 + 5.0;
-            let target = direction * distance + position.0;
-            if let Some(path) = generate_path(state, position.0, target, collider) {
-                to_add_path.push((e, path));
+        if state.counter % enemy.idle_interval == (i as i32 * 137) % enemy.idle_interval {
+            match enemy._type {
+                EnemyType::Coati => {
+                    let target = generate_random_target(state, position.0, 4.0, 5.0);
+                    if let Some(path) = generate_path(state, position.0, target, collider) {
+                        to_add_path.push((e, path));
+                    }
+                }
+                EnemyType::Squirrel(acorns) => {
+                    if acorns < 3 && state.rng.random::<f32>() < 0.7 {
+                        to_add_digging.push(e);
+                    } else {
+                        let target = generate_random_target(state, position.0, 4.0, 5.0);
+                        if let Some(path) = generate_path(state, position.0, target, collider) {
+                            to_add_path.push((e, path));
+                        }
+                    }
+                }
             }
         }
     }
@@ -75,8 +99,56 @@ pub fn system_enemy_idle(handle: &mut RainHandle, state: &mut State) {
         handle.world.insert_one(e, Tracking(player_e, Timer::new(5.0))).unwrap();
         handle.world.remove_one::<Idle>(e).unwrap();
     }
+    for e in to_add_digging {
+        handle.world.insert_one(e, Digging(Timer::new(3.0))).unwrap();
+        handle.world.remove_one::<Idle>(e).unwrap();
+    }
     for (e, path) in to_add_path {
         handle.world.insert_one(e, path).unwrap();
+    }
+}
+
+fn generate_random_target(state: &mut State, start: Vec2, range: f32, min_distance: f32) -> Vec2 {
+    let radians = state.rng.random::<f32>() * 2.0 * PI;
+    let direction = Vec2::from_angle(radians);
+    let distance = state.rng.random::<f32>() * range + min_distance;
+    direction * distance + start
+}
+
+pub fn system_enemy_digging(handle: &mut RainHandle, state: &mut State) {
+    let mut to_track: Vec<Entity> = Vec::new();
+    let mut to_idle: Vec<Entity> = Vec::new();
+
+    let mut player: Option<(Entity, Position2D)> = None;
+    for (e, (_, position)) in handle.world.query::<(&Player, &Position2D)>().iter() {
+        player = Some((e, position.clone()));
+    }
+    let (player_e, player_position) = player.unwrap();
+
+    for (e, (digging, enemy, position, collider)) in handle.world.query_mut::<(&mut Digging, &mut Enemy, &Position2D, &Collider)>() {
+        if check_line_of_sight(state, position.0, player_position.0, collider, enemy.sight_range) {
+            to_track.push(e);
+            break;
+        }
+        if !digging.0.step(handle.delta_time) {
+            continue;
+        }
+        match &mut enemy._type {
+            EnemyType::Squirrel(acorns) => {
+                *acorns += 1;
+                to_idle.push(e);
+            }
+            _ => {}
+        }
+    }
+
+    for e in to_track {
+        handle.world.insert_one(e, Tracking(player_e, Timer::new(5.0))).unwrap();
+        handle.world.remove_one::<Digging>(e).unwrap();
+    }
+    for e in to_idle {
+        handle.world.insert_one(e, Idle).unwrap();
+        handle.world.remove_one::<Digging>(e).unwrap();
     }
 }
 
@@ -122,6 +194,7 @@ pub fn system_enemy_tracking(handle: &mut RainHandle, state: &mut State) {
     for e in to_idle {
         handle.world.insert_one(e, Idle).unwrap();
         handle.world.remove_one::<Tracking>(e).unwrap();
+        remove_path(handle, e);
     }
     for (e, path) in to_add_path {
         handle.world.insert_one(e, path).unwrap();
@@ -129,22 +202,28 @@ pub fn system_enemy_tracking(handle: &mut RainHandle, state: &mut State) {
     for (e, target_entity) in to_attack {
         handle.world.insert_one(e, Attacking(target_entity, Timer::new(1.0), false)).unwrap();
         handle.world.remove_one::<Tracking>(e).unwrap();
-        let removed = handle.world.remove_one::<Path>(e).is_ok();
-        if removed {
-            if let Ok(mut velocity) = handle.world.get::<&mut Velocity2D>(e) {
-                velocity.0 = Vec2::ZERO;
-            }
-        }
+        remove_path(handle, e);
     }
     for e in to_add_updated {
         handle.world.insert_one(e, AnimationStateUpdated).unwrap();
     }
 }
 
+fn remove_path(handle: &mut RainHandle, entity: Entity) {
+    let removed = handle.world.remove_one::<Path>(entity).is_ok();
+    if removed {
+        if let Ok(mut velocity) = handle.world.get::<&mut Velocity2D>(entity) {
+            velocity.0 = Vec2::ZERO;
+        }
+    }
+}
+
 pub fn system_enemy_attacking(handle: &mut RainHandle) {
     let mut to_idle: Vec<Entity> = Vec::new();
+    let mut to_spawn_projectile: Vec<ProjectileSpawn> = Vec::new();
     let mut to_add_friction: Vec<(Entity, Friction)> = Vec::new();
     let mut to_add_hitbox: Vec<(Entity, HitBox)> = Vec::new();
+    let mut to_add_escaping: Vec<(Entity, Entity, Timer)> = Vec::new();
 
     let mut targets: Vec<(Entity, Vec2)> = Vec::new();
     for (e, attacking) in handle.world.query::<&Attacking>().iter() {
@@ -152,25 +231,44 @@ pub fn system_enemy_attacking(handle: &mut RainHandle) {
         targets.push((e, position));
     }
     for (e, target_position) in targets {
-        if let Ok((attacking, enemy, position, velocity)) = handle.world.query_one_mut::<(&mut Attacking, &Enemy, &Position2D, &mut Velocity2D)>(e) {
+        if let Ok((attacking, enemy, position, velocity)) = handle.world.query_one_mut::<(
+            &mut Attacking, &mut Enemy, &Position2D, &mut Velocity2D
+        )>(e) {
             if !attacking.1.step(handle.delta_time) {
                 continue;
             }
-            if velocity.0.length() < 0.01 {
-                if attacking.2 {
-                    to_idle.push(e);
-                } else {
-                    let direction = (target_position - position.0).normalize();
-                    velocity.0 = direction * enemy.attack_speed;
-                    to_add_friction.push((e, Friction(5.0)));
-
-                    let hitbox_offset = direction + position.0;
-                    let hitbox = HitBox::new(
-                        enemy.damage, Collider::from_center(hitbox_offset.x, hitbox_offset.y, 0.4, 0.4), vec![e], 1,
-                    );
-                    to_add_hitbox.push((e, hitbox));
-
-                    attacking.2 = true;
+            match &mut enemy._type {
+                EnemyType::Coati => {
+                    if velocity.0.length() < 0.01 {
+                        if attacking.2 {
+                            to_idle.push(e);
+                        } else {
+                            let direction = (target_position - position.0).normalize();
+                            velocity.0 = direction * enemy.attack_speed;
+                            to_add_friction.push((e, Friction(5.0)));
+        
+                            let hitbox_offset = direction + position.0;
+                            let hitbox = HitBox::new(
+                                enemy.damage, Collider::from_center(hitbox_offset.x, hitbox_offset.y, 0.4, 0.4), vec![e], 1,
+                            );
+                            to_add_hitbox.push((e, hitbox));
+        
+                            attacking.2 = true;
+                        }
+                    }
+                }
+                EnemyType::Squirrel(acorns) => {
+                    if *acorns > 0 {
+                        let direction = (target_position - position.0).normalize();
+                        let spawn = ProjectileSpawn::new(
+                            e, "item_acorn".to_string(), enemy.attack_speed, direction, position.0, Vec2::new(0.4, 0.4), enemy.damage
+                        );
+                        to_spawn_projectile.push(spawn);
+                        attacking.1.reset();
+                        *acorns -= 1;
+                    } else {
+                        to_add_escaping.push((e, attacking.0, Timer::new(1.5)));
+                    }
                 }
             }
         }
@@ -186,6 +284,55 @@ pub fn system_enemy_attacking(handle: &mut RainHandle) {
     }
     for (e, hitbox) in to_add_hitbox {
         handle.world.insert_one(e, hitbox).unwrap();
+    }
+    for spawn in to_spawn_projectile {
+        spawn_projectile(handle, spawn);
+    }
+    for (e, target, timer) in to_add_escaping {
+        handle.world.insert_one(e, Escaping(target, timer)).unwrap();
+        handle.world.remove_one::<Attacking>(e).unwrap();
+        let _ = handle.world.remove::<(Friction, HitBox)>(e).is_ok();
+    }
+}
+
+fn system_enemy_escaping(handle: &mut RainHandle, state: &mut State) {
+    let mut to_add_idle: Vec<Entity> = Vec::new();
+    let mut to_add_path: Vec<(Entity, Path)> = Vec::new();
+
+    let mut targets: Vec<(Entity, Vec2)> = Vec::new();
+    for (e, escaping) in handle.world.query::<&Escaping>().iter() {
+        let position = handle.world.get::<&Position2D>(escaping.0).unwrap().0;
+        targets.push((e, position));
+    }
+    for (e, target_position) in targets {
+        if let Ok((escaping, enemy, position, collider, animation_state)) = handle.world.query_one_mut::<(
+            &mut Escaping, &Enemy, &Position2D, &Collider, &mut AnimationStateEnemy
+        )>(e) {
+            if check_line_of_sight(state, position.0, target_position, collider, enemy.sight_range) {
+                escaping.1.reset();
+            } else {
+                if escaping.1.step(handle.delta_time) {
+                    to_add_idle.push(e);
+                    break;
+                }
+            }
+
+            let direction = (position.0 - target_position).normalize();
+            let escape_position = enemy.sight_range * direction + position.0;
+
+            if let Some(path) = generate_path(state, position.0, escape_position, collider) {
+                to_add_path.push((e, path));
+            }
+        }
+    }
+
+    for e in to_add_idle {
+        handle.world.insert_one(e, Idle).unwrap();
+        handle.world.remove_one::<Escaping>(e).unwrap();
+        remove_path(handle, e);
+    }
+    for (e, path) in to_add_path {
+        handle.world.insert_one(e, path).unwrap();
     }
 }
 

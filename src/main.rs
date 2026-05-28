@@ -15,9 +15,7 @@ use crate::game::core::camera::*;
 use crate::game::core::collision::Collider;
 use crate::game::core::physics::*;
 use crate::game::core::ui::render_ui;
-use crate::game::entity::ai::system_enemy_attacking;
-use crate::game::entity::ai::system_enemy_idle;
-use crate::game::entity::ai::system_enemy_tracking;
+use crate::game::entity::ai::system_enemy_ai;
 use crate::game::entity::damage::Health;
 use crate::game::entity::damage::HurtBox;
 use crate::game::entity::damage::system_health_bar;
@@ -137,9 +135,7 @@ impl RainState for State {
 
         system_manage_enemies(handle, self);
         system_swimming(handle, self);
-        system_enemy_idle(handle, self);
-        system_enemy_tracking(handle, self);
-        system_enemy_attacking(handle);
+        system_enemy_ai(handle, self);
         system_path_walk(handle);
         system_update_enemy_direction(handle);
         
@@ -198,7 +194,7 @@ impl RainState for State {
             inventory.add_item(Item::new(ItemType::FlintHatchet), 1);
         }
 
-        spawn_enemy(handle, self, Vec2::new(5.0, 1.0), Enemy::new(EnemyType::Coati));
+        spawn_enemy(handle, self, Vec2::new(5.0, 1.0), Enemy::new(EnemyType::Squirrel(0)));
 
         handle.renderer.camera.set_z(8.0);
     }
