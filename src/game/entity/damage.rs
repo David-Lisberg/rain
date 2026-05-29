@@ -86,7 +86,7 @@ pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle, state: &mut Stat
         to_despawn.push(e);
     }
     for (position, item, quantity) in to_spawn {
-        spawn_item_drop(handle, position, item, quantity);
+        spawn_item_drop(handle, state, position, item, quantity);
     }
     for e in to_despawn {
         if handle.world.get::<&Enemy>(e).is_ok() {

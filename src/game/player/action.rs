@@ -72,7 +72,7 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
         }
     }
     for (position, item, quantity) in to_spawn_item_drop {
-        spawn_item_drop(handle, position, item, quantity);
+        spawn_item_drop(handle, state, position, item, quantity);
     }
     if object_changed {
         reload_object_mesh(handle, state);

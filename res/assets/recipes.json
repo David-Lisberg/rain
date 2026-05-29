@@ -1,0 +1,38 @@
+[
+    {
+        "input": [["grass", 2]], 
+        "output": ["twine", 1]
+    },
+    {
+        "input": [["twine", 3], ["twig", 2], ["coati_pelt", 2]], 
+        "output": ["sling", 1]
+    },
+    {
+        "input": [["twine", 2], ["twig", 3], ["flint", 2]], 
+        "output": ["flint_hatchet", 1]
+    },
+    {
+        "input": [["twine", 2], ["twig", 3], ["small_bone", 3]], 
+        "output": ["bone_hatchet", 1]
+    },
+    {
+        "input": [["twine", 2], ["twig", 3], ["stone", 3]], 
+        "output": ["stone_pickaxe", 1]
+    },
+    {
+        "input": [["twine", 2], ["twig", 3], ["bone_plate", 2]], 
+        "output": ["bone_shovel", 1]
+    },
+    {
+        "input": [["twine", 2], ["twig", 3], ["wood_planks", 3]], 
+        "output": ["wood_shovel", 1]
+    },
+    {
+        "input": [["wood", 1]], 
+        "output": ["wood_planks", 2]
+    },
+    {
+        "input": [["wood_planks", 1]], 
+        "output": ["twig", 2]
+    }
+]

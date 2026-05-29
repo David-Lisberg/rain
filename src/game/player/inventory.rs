@@ -187,7 +187,7 @@ pub fn system_inventory_interface(handle: &mut RainHandle, state: &mut State) {
         if inventory.just_opened {
             inventory.just_opened = false;
             let inputs = inventory.collect_items();
-            inventory.available_recipes = check_available_recipes(&inputs)
+            inventory.available_recipes = check_available_recipes(state, &inputs)
         }
 
         let mut index: Option<usize> = None;
@@ -258,7 +258,7 @@ pub fn system_inventory_interface(handle: &mut RainHandle, state: &mut State) {
             }
             if updated {
                 let inputs: Vec<(ItemType, i32)> = inventory.collect_items();
-                inventory.available_recipes = check_available_recipes(&inputs);
+                inventory.available_recipes = check_available_recipes(state, &inputs);
             }
         }
         if let Some(i) = index {

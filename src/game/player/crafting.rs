@@ -1,28 +1,20 @@
+use serde::Deserialize;
+
+use crate::State;
 use crate::game::player::inventory::Inventory;
 use crate::game::player::item::{Item, ItemType};
 
-#[derive(Clone, Debug)]
+pub type RecipeRegistry = Vec<Recipe>;
+#[derive(Clone, Debug, Deserialize)]
 pub struct Recipe {
-    pub input: &'static [(ItemType, i32)],
+    pub input: Vec<(ItemType, i32)>,
     pub output: (ItemType, i32),
 }
 
-const AVAILABLE_RECIPES: &[Recipe] = &[
-    Recipe { input: &[(ItemType::Grass, 2)], output: (ItemType::Twine, 1)},
-    Recipe { input: &[(ItemType::Twine, 3), (ItemType::Twig, 2), (ItemType::CoatiPelt, 2)], output: (ItemType::Sling, 1)},
-    Recipe { input: &[(ItemType::Twine, 2), (ItemType::Twig, 3), (ItemType::Flint, 2)], output: (ItemType::FlintHatchet, 1)},
-    Recipe { input: &[(ItemType::Twine, 2), (ItemType::Twig, 3), (ItemType::SmallBone, 3)], output: (ItemType::BoneHatchet, 1)},
-    Recipe { input: &[(ItemType::Twine, 2), (ItemType::Twig, 3), (ItemType::Stone, 3)], output: (ItemType::StonePickaxe, 1)},
-    Recipe { input: &[(ItemType::Twine, 2), (ItemType::Twig, 3), (ItemType::BonePlate, 2)], output: (ItemType::BoneShovel, 1)},
-    Recipe { input: &[(ItemType::Twine, 2), (ItemType::Twig, 3), (ItemType::WoodPlanks, 3)], output: (ItemType::WoodShovel, 1)},
-    Recipe { input: &[(ItemType::Wood, 1)], output: (ItemType::WoodPlanks, 2)},
-    Recipe { input: &[(ItemType::WoodPlanks, 1)], output: (ItemType::Twig, 2)},
-];
-
-pub fn check_available_recipes(inputs: &Vec<(ItemType, i32)>) -> Vec<Recipe> {
+pub fn check_available_recipes(state: &mut State, inputs: &Vec<(ItemType, i32)>) -> Vec<Recipe> {
     let mut available_recipes: Vec<Recipe> = Vec::new();
 
-    for recipe in AVAILABLE_RECIPES {
+    for recipe in &state.recipe_registry {
         let mut i = 0;
         loop {
             let mut failed = true;
@@ -47,7 +39,7 @@ pub fn check_available_recipes(inputs: &Vec<(ItemType, i32)>) -> Vec<Recipe> {
 }
 
 pub fn craft_item(inventory: &mut Inventory, recipe: &Recipe) {
-    for input in recipe.input {
+    for input in &recipe.input {
         let mut remaining = input.1;
         for slot in inventory.slots.iter_mut() {
             if let Some(item) = &slot.item {

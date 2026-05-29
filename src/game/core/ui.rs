@@ -101,10 +101,11 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
                 );
             }
             if let Some(item) = &inventory.slots[i].item {
+                let item_data = state.item_registry.get(&item._type).unwrap();
                 slot_element.sub_element_ex(||
                     EBuilder::new(border_width, border_width)
                         .shape(Shape::Rect(INVENTORY_SLOT_SIZE - border_width * 2.0, INVENTORY_SLOT_SIZE - border_width * 2.0))
-                        .texture(item._type.fetch_texture(&mut handle.resource_manager))
+                        .texture(handle.resource_manager.fetch_texture(&item_data.texture).unwrap())
                         .build()
                 );
                 if inventory.slots[i].quantity > 1 {
@@ -134,10 +135,11 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
                     );
                 }
                 if let Some(item) = &inventory.slots[i].item {
+                    let item_data = state.item_registry.get(&item._type).unwrap();
                     slot_element.sub_element_ex(||
                         EBuilder::new(border_width, border_width)
                             .shape(Shape::Rect(INVENTORY_SLOT_SIZE - border_width * 2.0, INVENTORY_SLOT_SIZE - border_width * 2.0))
-                            .texture(item._type.fetch_texture(&mut handle.resource_manager))
+                            .texture(handle.resource_manager.fetch_texture(&item_data.texture).unwrap())
                             .build()
                     );
                     if inventory.slots[i].quantity > 1 {
@@ -158,12 +160,13 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
             let y = INVENTORY_SLOT_HEIGHT - INVENTORY_GAP - (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP) * 3.2;
             for (i, recipe) in inventory.available_recipes.iter().enumerate() {
                 let x = start_recipe + (i % INVENTORY_SLOTS_WIDTH) as f32 * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP);
+                let item_data = state.item_registry.get(&recipe.output.0).unwrap();
                 let mut recipe_element = EBuilder::new(x, y)
                     .rect(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE)
                     .texture(handle.fetch_texture("inventory_slot").unwrap());
                 recipe_element.sub_element_ex(|| EBuilder::new(border_width, border_width)
                     .rect(INVENTORY_SLOT_SIZE - border_width * 2.0, INVENTORY_SLOT_SIZE - border_width * 2.0)
-                    .texture(recipe.output.0.fetch_texture(&mut handle.resource_manager))
+                    .texture(handle.resource_manager.fetch_texture(&item_data.texture).unwrap())
                     .build()
                 );
                 if recipe.output.1 > 1 {
@@ -212,8 +215,8 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
     if let Some(item) = item_hover {
         let mouse_position = handle.mouse_position();
         let item_data = state.item_registry.get(&item._type).unwrap();
-        let width = handle.measure_text(&item_data.name, BLURB_FONT_SIZE);
+        let width = handle.measure_text(&item_data.texture, BLURB_FONT_SIZE);
         handle.draw_rectangle((mouse_position.x + MOUSE_OFFSET, mouse_position.y + MOUSE_OFFSET, width, BLURB_FONT_SIZE as f32), Color::BLACK);
-        handle.draw_text(mouse_position.x + MOUSE_OFFSET, mouse_position.y + MOUSE_OFFSET, &item_data.name, BLURB_FONT_SIZE, Color::WHITE);
+        handle.draw_text(mouse_position.x + MOUSE_OFFSET, mouse_position.y + MOUSE_OFFSET, &item_data.texture, BLURB_FONT_SIZE, Color::WHITE);
     }
 }

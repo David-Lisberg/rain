@@ -1,15 +1,12 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use glam::Vec2;
 use hecs::Entity;
 use rain::engine::component::*;
 use rain::engine::core::RainHandle;
-use rain::engine::resource::ResourceManager;
-use rain::engine::texture::Texture;
 use serde::Deserialize;
 
-use crate::DEPTH_PLAYER;
+use crate::{DEPTH_PLAYER, State};
 use crate::game::player::inventory::Inventory;
 use crate::game::player::movement::Player;
 use crate::game::utility::timer::Timer;
@@ -94,28 +91,6 @@ pub enum ItemCategory {
 }
 
 impl ItemType {
-    pub fn fetch_texture(&self, resource_manager: &ResourceManager) -> Arc<Texture> {
-        match self {
-            ItemType::Twig => resource_manager.fetch_texture("object_twig").unwrap(),
-            ItemType::Grass => resource_manager.fetch_texture("object_grass").unwrap(),
-            ItemType::Stone => resource_manager.fetch_texture("object_stone").unwrap(),
-            ItemType::StonePickaxe => resource_manager.fetch_texture("item_stone_pickaxe").unwrap(),
-            ItemType::Flint => resource_manager.fetch_texture("object_flint").unwrap(),
-            ItemType::FlintHatchet => resource_manager.fetch_texture("item_flint_hatchet").unwrap(),
-            ItemType::BoneHatchet => resource_manager.fetch_texture("item_bone_hatchet").unwrap(),
-            ItemType::Wood => resource_manager.fetch_texture("item_wood").unwrap(),
-            ItemType::WoodPlanks => resource_manager.fetch_texture("item_wood_planks").unwrap(),
-            ItemType::Twine => resource_manager.fetch_texture("item_twine").unwrap(),
-            ItemType::Sling => resource_manager.fetch_texture("item_sling").unwrap(),
-            ItemType::CoatiPelt => resource_manager.fetch_texture("item_coati_pelt").unwrap(),
-            ItemType::SquirrelPelt => resource_manager.fetch_texture("item_squirrel_pelt").unwrap(),
-            ItemType::SmallBone => resource_manager.fetch_texture("item_small_bone").unwrap(),
-            ItemType::BonePlate => resource_manager.fetch_texture("item_bone_plate").unwrap(),
-            ItemType::BoneShovel => resource_manager.fetch_texture("item_bone_shovel").unwrap(),
-            ItemType::WoodShovel => resource_manager.fetch_texture("item_wood_shovel").unwrap(),
-        }
-    }
-
     pub fn stack_size_max(&self) -> i32 {
         match self {
             ItemType::Sling => 1,
@@ -135,14 +110,16 @@ pub struct ItemDrop {
     quantity: i32,
 }
 
-pub fn spawn_item_drop(handle: &mut RainHandle, position: Position2D, item: Item, quantity: i32) {
-    let texture = item._type.fetch_texture(&handle.resource_manager);
+pub fn spawn_item_drop(handle: &mut RainHandle, state: &mut State, position: Position2D, item: Item, quantity: i32) {
+    let item_data = state.item_registry.get(&item._type).unwrap();
+    let texture = handle.fetch_texture(&item_data.texture).unwrap();
     let item_drop = ItemDrop { item, quantity };
     handle.world.spawn((Sprite, Visible, texture, item_drop, position, Scale2D(Vec2::new(0.3, 0.3)), DepthZ(DEPTH_PLAYER), Priority(1)));
 }
 
-pub fn spawn_item_drop_with_timer(handle: &mut RainHandle, position: Position2D, item: Item, quantity: i32, time: f32) {
-    let texture = item._type.fetch_texture(&handle.resource_manager);
+pub fn spawn_item_drop_with_timer(handle: &mut RainHandle, state: &mut State, position: Position2D, item: Item, quantity: i32, time: f32) {
+    let item_data = state.item_registry.get(&item._type).unwrap();
+    let texture = handle.fetch_texture(&item_data.texture).unwrap();
     let item_drop = ItemDrop { item, quantity };
     handle.world.spawn((
         Sprite, Visible, texture, item_drop, position, Scale2D(Vec2::new(0.3, 0.3)), DepthZ(DEPTH_PLAYER), Priority(1), TimerPickup(Timer::new(time))),
@@ -178,7 +155,7 @@ pub fn system_item_drop_pickup(handle: &mut RainHandle) {
     }
 }
 
-pub fn drop_current_item(handle: &mut RainHandle, drop_all: bool) {
+pub fn drop_current_item(handle: &mut RainHandle, state: &mut State, drop_all: bool) {
     let mut to_spawn: Vec<(Position2D, Item, i32)> = Vec::new();
     for (_, (_, position, inventory)) in handle.world.query_mut::<(&Player, &Position2D, &mut Inventory)>() {
         let index = if inventory.open {
@@ -204,7 +181,7 @@ pub fn drop_current_item(handle: &mut RainHandle, drop_all: bool) {
     }
 
     for (position, item, quantity) in to_spawn {
-        spawn_item_drop_with_timer(handle, position, item, quantity, 2.0);
+        spawn_item_drop_with_timer(handle, state, position, item, quantity, 2.0);
     }
 }
 

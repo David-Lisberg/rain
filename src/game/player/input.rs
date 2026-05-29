@@ -139,7 +139,7 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
         item_use(handle);
     }
     if let Some(drop_all) = drop_item {
-        drop_current_item(handle, drop_all);
+        drop_current_item(handle, state, drop_all);
     }
 
     for e in to_remove_walk {
