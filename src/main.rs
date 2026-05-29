@@ -183,7 +183,7 @@ impl RainState for State {
         let player_collider = Collider::from_center(0.0, 0.0, 0.8, 0.8);
         let player_entity = handle.world.spawn((
             Player, Sprite, Visible, 
-            Position2D(Vec2::ZERO), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), Friction(25.0),
+            Position2D(Vec2::ZERO), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), Friction(50.0),
             Scale2D(Vec2::new(0.8, 0.8)), Direction(Vec2::new(0.0, -1.0)), player_texture, Priority(1), DepthZ(DEPTH_PLAYER), Flip(false, false), 
             player_collider,
             Inventory::new(36),

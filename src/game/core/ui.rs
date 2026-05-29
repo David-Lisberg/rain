@@ -6,7 +6,8 @@ use rain::engine::component::*;
 use rain::engine::core::RainHandle;
 
 use crate::game::entity::damage::{Health, HealthBar};
-use crate::game::player::inventory::{INVENTORY_SLOTS_HOTBAR, INVENTORY_SLOTS_INVENTORY, INVENTORY_SLOTS_WIDTH, Inventory, InventoryHover};
+use crate::game::player::crafting::Recipe;
+use crate::game::player::inventory::{CraftHover, INVENTORY_SLOTS_HOTBAR, INVENTORY_SLOTS_INVENTORY, INVENTORY_SLOTS_WIDTH, Inventory, InventoryHover};
 use crate::game::player::item::Item;
 use crate::game::player::movement::Player;
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, State};
@@ -83,8 +84,9 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
         .visible(false);
 
     let mut item_hover: Option<Item> = None;
-    for (_, (_, inventory, health, hover)) in handle.world.query::<(
-        &Player, &Inventory, &Health, Option<&InventoryHover>
+    let mut recipe_hover: Option<Recipe> = None;
+    for (_, (_, inventory, health, inventory_hover, craft_hover)) in handle.world.query::<(
+        &Player, &Inventory, &Health, Option<&InventoryHover>, Option<&CraftHover>
     )>().iter() {
 
         for i in INVENTORY_SLOTS_HOTBAR {
@@ -207,16 +209,40 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
                 .build()
         );
 
-        if let Some(i) = hover {
+        if let Some(i) = inventory_hover {
             item_hover = inventory.slots[i.0].item.clone();
+        }
+        if let Some(i) = craft_hover {
+            recipe_hover = Some(inventory.available_recipes[i.0].clone());
         }
     }
     state.gui.element_immediate(handle, element.build());
     if let Some(item) = item_hover {
         let mouse_position = handle.mouse_position();
         let item_data = state.item_registry.get(&item._type).unwrap();
-        let width = handle.measure_text(&item_data.texture, BLURB_FONT_SIZE);
+        let width = handle.measure_text(&item_data.name, BLURB_FONT_SIZE);
         handle.draw_rectangle((mouse_position.x + MOUSE_OFFSET, mouse_position.y + MOUSE_OFFSET, width, BLURB_FONT_SIZE as f32), Color::BLACK);
-        handle.draw_text(mouse_position.x + MOUSE_OFFSET, mouse_position.y + MOUSE_OFFSET, &item_data.texture, BLURB_FONT_SIZE, Color::WHITE);
+        handle.draw_text(mouse_position.x + MOUSE_OFFSET, mouse_position.y + MOUSE_OFFSET, &item_data.name, BLURB_FONT_SIZE, Color::WHITE);
+    }
+    if let Some(recipe) = recipe_hover {
+        let mouse_position = handle.mouse_position();
+        let item_data = state.item_registry.get(&recipe.output.0).unwrap();
+        let mut strings = vec![format!("Craft {}x {}", recipe.output.1, item_data.name), "Uses:".to_string()];
+        let width = handle.measure_text(&strings[0], BLURB_FONT_SIZE);
+
+        for input in recipe.input {
+            let item_data = state.item_registry.get(&input.0).unwrap();
+            strings.push(format!("{}x {}", input.1, item_data.name));
+        }
+
+        let height = BLURB_FONT_SIZE as f32 * 1.3 * strings.len() as f32;
+        handle.draw_rectangle((mouse_position.x + MOUSE_OFFSET, mouse_position.y + MOUSE_OFFSET, width, height), Color::BLACK);
+
+        for (i, string) in strings.iter().enumerate() {
+            handle.draw_text(
+                mouse_position.x + MOUSE_OFFSET, mouse_position.y + MOUSE_OFFSET + BLURB_FONT_SIZE as f32 * 1.3 * i as f32, 
+                string, BLURB_FONT_SIZE, Color::WHITE
+            );
+        }
     }
 }

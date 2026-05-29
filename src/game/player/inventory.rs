@@ -26,6 +26,7 @@ pub struct Inventory {
     pub available_recipes: Vec<Recipe>,
 }
 pub struct InventoryHover(pub usize);
+pub struct CraftHover(pub usize);
 
 impl Inventory {
     pub fn new(num_slots: usize) -> Self {
@@ -143,10 +144,18 @@ impl Inventory {
 
     pub fn collect_items(&self) -> Vec<(ItemType, i32)> {
         let mut input_map: HashMap<ItemType, i32> = HashMap::new();
-        for selected in self.selected.iter() {
-            let slot = self.slots.get(*selected).unwrap();
-            if let Some(item) = &slot.item {
-                *input_map.entry(item._type.clone()).or_insert(0) += slot.quantity;
+        if !self.selected.is_empty() {
+            for selected in self.selected.iter() {
+                let slot = self.slots.get(*selected).unwrap();
+                if let Some(item) = &slot.item {
+                    *input_map.entry(item._type.clone()).or_insert(0) += slot.quantity;
+                }
+            }
+        } else {
+            for slot in self.slots.iter() {
+                if let Some(item) = &slot.item {
+                    *input_map.entry(item._type.clone()).or_insert(0) += slot.quantity;
+                }
             }
         }
         input_map.into_iter().collect()
@@ -182,6 +191,8 @@ pub fn system_inventory_interface(handle: &mut RainHandle, state: &mut State) {
 
     let mut to_add_inventory_hover: Vec<(Entity, usize)> = Vec::new();
     let mut to_remove_inventory_hover: Vec<Entity> = Vec::new();
+    let mut to_add_craft_hover: Vec<(Entity, usize)> = Vec::new();
+    let mut to_remove_craft_hover: Vec<Entity> = Vec::new();
 
     for (e, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
         if inventory.just_opened {
@@ -191,6 +202,7 @@ pub fn system_inventory_interface(handle: &mut RainHandle, state: &mut State) {
         }
 
         let mut index: Option<usize> = None;
+        let mut craft_hover: Option<usize> = None;
         if inventory.open {
             for i in INVENTORY_SLOTS_HOTBAR {
                 let x = start + i as f32 * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP);
@@ -231,8 +243,12 @@ pub fn system_inventory_interface(handle: &mut RainHandle, state: &mut State) {
                         .rect(INVENTORY_SLOT_SIZE, INVENTORY_SLOT_SIZE)
                         .build())
                     .build()) {
-                    craft_item(inventory, recipe);
-                    updated = true;
+                    if left_button_released {
+                        craft_item(inventory, recipe);
+                        updated = true;
+                    }
+                    craft_hover = Some(i);
+                    break;
                 }
             }
             if let Some(i) = index {
@@ -253,13 +269,17 @@ pub fn system_inventory_interface(handle: &mut RainHandle, state: &mut State) {
                         inventory.selected[0] = i;
                     }
                 }
-            } else if !updated {
+            } else if !updated && (right_button_released || left_button_released) {
                 inventory.selected.clear();
             }
             if updated {
                 let inputs: Vec<(ItemType, i32)> = inventory.collect_items();
                 inventory.available_recipes = check_available_recipes(state, &inputs);
             }
+        }
+        match (craft_hover, updated) {
+            (Some(i), false) => to_add_craft_hover.push((e, i)),
+            _ => to_remove_craft_hover.push(e),
         }
         if let Some(i) = index {
             to_add_inventory_hover.push((e, i));
@@ -273,5 +293,11 @@ pub fn system_inventory_interface(handle: &mut RainHandle, state: &mut State) {
     }
     for e in to_remove_inventory_hover {
         let _ = handle.world.remove_one::<InventoryHover>(e).is_ok();
+    }
+    for (e, i) in to_add_craft_hover {
+        handle.world.insert_one(e, CraftHover(i)).unwrap();
+    }
+    for e in to_remove_craft_hover {
+        let _ = handle.world.remove_one::<CraftHover>(e).is_ok();
     }
 }

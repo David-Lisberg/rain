@@ -131,7 +131,39 @@ impl RainHandle {
         self.renderer.text_state.to_draw.push(text_info);
     }
 
+    pub fn draw_text_bounded(&mut self, text: &String, font_size: u32, color: Color, width: f32, x: f32, mut y: f32) {
+        let mut current = String::new();
+        for word in text.split_whitespace() {
+            let mut temp = current.clone();
+            temp.push_str(word);
+            if self.measure_text(&temp, font_size) > width {
+                self.draw_text(x, y, &current, font_size, color);
+                y += font_size as f32 * 1.3;
+                current.clear();
+            }
+            current.push_str(word);
+            current.push(' ');
+        }
+        self.draw_text(x, y, &current, font_size, color);
+    }
+
     pub fn measure_text(&mut self, text: &str, font_size: u32) -> f32 {
         self.lgui_measure_text(text, font_size)
+    }
+
+    pub fn measure_text_height(&mut self, text: &String, font_size: u32, width: f32) -> f32 {
+        let mut current = String::new();
+        let mut height = 0.0;
+        for word in text.split_whitespace() {
+            let mut temp = current.clone();
+            temp.push_str(word);
+            if self.measure_text(&temp, font_size) > width {
+                height += font_size as f32 * 1.3;
+                current.clear();
+            }
+            current.push_str(word);
+            current.push(' ');
+        }
+        height + font_size as f32 * 1.3
     }
 }
