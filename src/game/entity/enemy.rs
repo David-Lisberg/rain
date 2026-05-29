@@ -21,9 +21,9 @@ use crate::game::player::item::{Item, ItemType};
 use crate::game::player::movement::Player;
 use crate::game::utility::direction::Direction4;
 
-const SPAWN_RADIUS_MIN: f32 = 20.0;
-const SPAWN_RADIUS_MAX: f32 = 40.0;
-const DESPAWN_RADIUS: f32 = 50.0;
+const SPAWN_RADIUS_MIN: f32 = 40.0;
+const SPAWN_RADIUS_MAX: f32 = 60.0;
+const DESPAWN_RADIUS: f32 = 65.0;
 const SPAWN_CAP: i32 = 5;
 
 pub enum AnimationStateEnemy {

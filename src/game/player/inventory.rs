@@ -1,5 +1,6 @@
 use std::{collections::HashMap, ops::Range};
 
+use hecs::Entity;
 use lgui::element::{EBuilder, Scale};
 use rain::engine::core::RainHandle;
 use rain::engine::input::{KeyboardKey, MouseButton};
@@ -24,6 +25,7 @@ pub struct Inventory {
     pub selected_hotbar: usize,
     pub available_recipes: Vec<Recipe>,
 }
+pub struct InventoryHover(pub usize);
 
 impl Inventory {
     pub fn new(num_slots: usize) -> Self {
@@ -178,19 +180,18 @@ pub fn system_inventory_interface(handle: &mut RainHandle, state: &mut State) {
 
     let shift_pressed = handle.is_key_pressed(KeyboardKey::ShiftLeft);
 
-    for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
+    let mut to_add_inventory_hover: Vec<(Entity, usize)> = Vec::new();
+    let mut to_remove_inventory_hover: Vec<Entity> = Vec::new();
+
+    for (e, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
         if inventory.just_opened {
             inventory.just_opened = false;
             let inputs = inventory.collect_items();
             inventory.available_recipes = check_available_recipes(&inputs)
         }
 
-        if !right_button_released && !left_button_released {
-            return;
-        }
-
+        let mut index: Option<usize> = None;
         if inventory.open {
-            let mut index: Option<usize> = None;
             for i in INVENTORY_SLOTS_HOTBAR {
                 let x = start + i as f32 * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP);
                 if state.gui.button(point, EBuilder::new(0.0, 0.0)
@@ -260,5 +261,17 @@ pub fn system_inventory_interface(handle: &mut RainHandle, state: &mut State) {
                 inventory.available_recipes = check_available_recipes(&inputs);
             }
         }
+        if let Some(i) = index {
+            to_add_inventory_hover.push((e, i));
+        } else {
+            to_remove_inventory_hover.push(e);
+        }
+    }
+
+    for (e, i) in to_add_inventory_hover {
+        handle.world.insert_one(e, InventoryHover(i)).unwrap();
+    }
+    for e in to_remove_inventory_hover {
+        let _ = handle.world.remove_one::<InventoryHover>(e).is_ok();
     }
 }

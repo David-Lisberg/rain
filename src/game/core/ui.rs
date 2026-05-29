@@ -6,7 +6,8 @@ use rain::engine::component::*;
 use rain::engine::core::RainHandle;
 
 use crate::game::entity::damage::{Health, HealthBar};
-use crate::game::player::inventory::{INVENTORY_SLOTS_HOTBAR, INVENTORY_SLOTS_INVENTORY, INVENTORY_SLOTS_WIDTH, Inventory};
+use crate::game::player::inventory::{INVENTORY_SLOTS_HOTBAR, INVENTORY_SLOTS_INVENTORY, INVENTORY_SLOTS_WIDTH, Inventory, InventoryHover};
+use crate::game::player::item::Item;
 use crate::game::player::movement::Player;
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, State};
 
@@ -19,6 +20,8 @@ const HEALTH_BAR_GAP: f32 = 40.0;
 const HEALTH_BAR_HEIGHT: f32 = INVENTORY_SLOT_HEIGHT - HEALTH_BAR_GAP;
 const HEALTH_BAR_WIDTH: f32 = INVENTORY_SLOT_SIZE * 7.5;
 const ENEMY_HEALTH_BAR_WIDTH: f32 = 25.0;
+const MOUSE_OFFSET: f32 = 12.0;
+const BLURB_FONT_SIZE: u32 = 12;
 
 pub fn render_ui(handle: &mut RainHandle, state: &mut State) {
     let current_width = handle.renderer.config.width as f32;
@@ -73,13 +76,16 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
     let slots_width = num_slots * INVENTORY_SLOT_SIZE + (num_slots - 1.0) * INVENTORY_SLOT_GAP;
     let start = (SCREEN_WIDTH - slots_width) / 2.0; 
     let border_width = INVENTORY_SLOT_SIZE / 8.0;
-
+    
     let mut element = EBuilder::new(0.0, 0.0)
         .shape(Shape::Rect(SCREEN_WIDTH, SCREEN_HEIGHT))
         .scale(Scale::NormalShift)
         .visible(false);
 
-    for (_, (_, inventory, health)) in handle.world.query::<(&Player, &Inventory, &Health)>().iter() {
+    let mut item_hover: Option<Item> = None;
+    for (_, (_, inventory, health, hover)) in handle.world.query::<(
+        &Player, &Inventory, &Health, Option<&InventoryHover>
+    )>().iter() {
 
         for i in INVENTORY_SLOTS_HOTBAR {
             let x = start + i as f32 * (INVENTORY_SLOT_SIZE + INVENTORY_SLOT_GAP);
@@ -142,6 +148,7 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
                         );
                     }
                 }
+
                 element.sub_element_ex(|| slot_element.build());
             }
 
@@ -196,6 +203,17 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
                 .texture(handle.fetch_texture("health_bar_frame").unwrap())
                 .build()
         );
+
+        if let Some(i) = hover {
+            item_hover = inventory.slots[i.0].item.clone();
+        }
     }
-    state.gui.element(element.build());
+    state.gui.element_immediate(handle, element.build());
+    if let Some(item) = item_hover {
+        let mouse_position = handle.mouse_position();
+        let item_data = state.item_registry.get(&item._type).unwrap();
+        let width = handle.measure_text(&item_data.name, BLURB_FONT_SIZE);
+        handle.draw_rectangle((mouse_position.x + MOUSE_OFFSET, mouse_position.y + MOUSE_OFFSET, width, BLURB_FONT_SIZE as f32), Color::BLACK);
+        handle.draw_text(mouse_position.x + MOUSE_OFFSET, mouse_position.y + MOUSE_OFFSET, &item_data.name, BLURB_FONT_SIZE, Color::WHITE);
+    }
 }

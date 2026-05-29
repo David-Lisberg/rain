@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use glam::*;
+use lgui::platform::Drawable;
 
 use crate::engine::color::Color;
 use crate::engine::core::RainHandle;
@@ -128,5 +129,9 @@ impl RainHandle {
             color: Color::rain_color_to_glyphon_color(&color),
         };
         self.renderer.text_state.to_draw.push(text_info);
+    }
+
+    pub fn measure_text(&mut self, text: &str, font_size: u32) -> f32 {
+        self.lgui_measure_text(text, font_size)
     }
 }

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use glam::Vec2;
@@ -6,6 +7,7 @@ use rain::engine::component::*;
 use rain::engine::core::RainHandle;
 use rain::engine::resource::ResourceManager;
 use rain::engine::texture::Texture;
+use serde::Deserialize;
 
 use crate::DEPTH_PLAYER;
 use crate::game::player::inventory::Inventory;
@@ -15,12 +17,19 @@ use crate::game::utility::timer::Timer;
 
 const ITEM_PICKUP_RANGE: f32 = 1.0;
 
+pub type ItemRegistry = HashMap<ItemType, ItemData>;
 pub struct TimerPickup(pub Timer);
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Item {
     pub _type: ItemType,
     pub category: ItemCategory,
+}
+
+#[derive(Deserialize)]
+pub struct ItemData {
+    pub name: String,
+    pub texture: String,
 }
 
 impl Item {
@@ -38,7 +47,8 @@ impl Item {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ItemType {
     Twig,
     Grass,

@@ -1,0 +1,20 @@
+[
+    ["animation_player_walking_side", "res/animations/player_walking_side.json"],
+    ["animation_player_walking_front", "res/animations/player_walking_front.json"],
+    ["animation_player_walking_back", "res/animations/player_walking_back.json"],
+    ["animation_player_swinging_side", "res/animations/player_swinging_side.json"],
+    ["animation_player_swinging_front", "res/animations/player_swinging_front.json"],
+    ["animation_player_swinging_back", "res/animations/player_swinging_back.json"],
+    ["animation_player_punching_side", "res/animations/player_punching_side.json"],
+    ["animation_player_punching_front", "res/animations/player_punching_front.json"],
+    ["animation_player_punching_back", "res/animations/player_punching_back.json"],
+    ["animation_flint_hatchet_swing_side", "res/animations/flint_hatchet_swing_side.json"],
+    ["animation_flint_hatchet_swing_front", "res/animations/flint_hatchet_swing_front.json"],
+    ["animation_flint_hatchet_swing_back", "res/animations/flint_hatchet_swing_back.json"],
+    ["animation_bone_hatchet_swing_side", "res/animations/bone_hatchet_swing_side.json"],
+    ["animation_bone_hatchet_swing_front", "res/animations/bone_hatchet_swing_front.json"],
+    ["animation_bone_hatchet_swing_back", "res/animations/bone_hatchet_swing_back.json"],
+    ["animation_coati_walking_side", "res/animations/coati_walking_side.json"],
+    ["animation_coati_walking_front", "res/animations/coati_walking_front.json"],
+    ["animation_coati_walking_back", "res/animations/coati_walking_back.json"]
+]

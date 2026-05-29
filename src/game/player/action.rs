@@ -25,7 +25,7 @@ struct SlingHold(f32, usize);
 pub enum AnimationStatePlayer {
     None,
     Walking(Direction4),
-    Attacking(Direction4, Option<ItemType>),
+    Attacking(Direction4, Option<Item>),
 }
 
 pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) {
@@ -39,10 +39,8 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
         let collider_position = position.0 + direction;
         let collider = Collider::from_center(collider_position.x, collider_position.y, 1.0, 1.0);
         let direction4 = Direction4::from_vec2(direction);
-        let mut item_type: Option<ItemType> = None;
         
         let (tool_type, break_level, hit_ticks) = if let Some(item) = &inventory.slots[inventory.selected_hotbar].item {
-            item_type = Some(item._type.clone());
             match item.category {
                 ItemCategory::Tool(t, b, h, _) => (t, b, h),
                 _ => (ToolType::None, 0, 1),
@@ -51,7 +49,7 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
             (ToolType::None, 0, 1)
         };
         *player_direction = Direction(direction);
-        *animation_state = AnimationStatePlayer::Attacking(direction4, item_type);
+        *animation_state = AnimationStatePlayer::Attacking(direction4, inventory.slots[inventory.selected_hotbar].item.clone());
         to_add_updated.push(e);
         
         if let Some(object) = check_collision_with_object(state, &collider) {
@@ -143,36 +141,34 @@ pub fn system_update_player_animation(handle: &mut RainHandle) {
                     Direction4::E | Direction4::W => to_add_animation.push((e, Animation::new("animation_player_walking_side"))),
                 }
             }
-            AnimationStatePlayer::Attacking(direction, item_type) => {
-                let item_type = match item_type {
-                    Some(i) => i,
-                    None => {
-                        continue;
-                    }
+            AnimationStatePlayer::Attacking(direction, item) => {
+                let (item_type, item_category) = match item {
+                    Some(i) => (Some(i._type.clone()), i.category.clone()),
+                    None => (None, ItemCategory::Other)
                 };
-                match item_type {
-                    ItemType::FlintHatchet => {
-                        match direction {
-                            Direction4::N => {
-                                to_add_animation.push((e, Animation::new("animation_player_swinging_back")));
-                                to_add_animation_pool.push((e, Animation::new("animation_flint_hatchet_swing_back"), 0));
-                            }
-                            Direction4::S => {
-                                to_add_animation.push((e, Animation::new("animation_player_swinging_front")));
-                                to_add_animation_pool.push((e, Animation::new("animation_flint_hatchet_swing_front"), 0));
-                            }
-                            Direction4::E | Direction4::W => {
-                                to_add_animation.push((e, Animation::new("animation_player_swinging_side")));
-                                to_add_animation_pool.push((e, Animation::new("animation_flint_hatchet_swing_side"), 0));
-                            }
+                let direction_string = match direction {
+                    Direction4::N => "_back",
+                    Direction4::S => "_front",
+                    Direction4::E | Direction4::W => "_side",
+                };
+
+                match item_category {
+                    ItemCategory::Tool(_, _, _, _) => {
+                        let item_type = item_type.unwrap();
+                        let item_string = match item_type {
+                            ItemType::FlintHatchet => Some("_flint_hatchet_swing"),
+                            ItemType::BoneHatchet => Some("_bone_hatchet_swing"),
+                            _ => None,
+                        };
+                        if let Some(string) = item_string {
+                            to_add_animation_pool.push((e, Animation::new(&format!("{}{}{}", "animation", string, direction_string)), 0));
+                            to_add_animation.push((e, Animation::new(&format!("{}{}", "animation_player_swinging", direction_string))))
+                        } else {
+                            to_add_animation.push((e, Animation::new(&format!("{}{}", "animation_player_punching", direction_string))));
                         }
                     }
-                    _ => {
-                        match direction {
-                            Direction4::N => to_add_animation.push((e, Animation::new("animation_player_punching_back"))),
-                            Direction4::S => to_add_animation.push((e, Animation::new("animation_player_punching_front"))),
-                            Direction4::E | Direction4::W => to_add_animation.push((e, Animation::new("animation_player_punching_side"))),
-                        }
+                    ItemCategory::Other => {
+                        to_add_animation.push((e, Animation::new(&format!("{}{}", "animation_player_punching", direction_string))))
                     }
                 }
             }

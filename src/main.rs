@@ -38,14 +38,14 @@ use crate::game::player::action::system_update_player_texture;
 use crate::game::player::input::*;
 use crate::game::player::inventory::Inventory;
 use crate::game::player::inventory::system_inventory_interface;
-use crate::game::player::item::Item;
+use crate::game::player::item::{Item, ItemRegistry};
 use crate::game::player::item::ItemType;
 use crate::game::player::item::system_item_drop_pickup;
 use crate::game::player::item::system_timer_pickup;
 use crate::game::player::movement::Player;
 use crate::game::player::movement::system_player_dash;
 use crate::game::player::movement::system_player_walk;
-use crate::game::core::load::load_animations;
+use crate::game::core::load::{load_animations, load_registry};
 use crate::game::core::load::load_textures;
 use crate::game::world::chunk::ChunkData;
 use crate::game::world::chunk::ChunkPosition;
@@ -121,6 +121,7 @@ pub struct State {
     counter: i32,
     enemy_count: i32,
     to_reset: bool,
+    item_registry: ItemRegistry,
 }
 
 impl RainState for State {
@@ -191,7 +192,7 @@ impl RainState for State {
         )).unwrap();
 
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
-            // inventory.add_item(Item::new(ItemType::FlintHatchet), 1);
+            inventory.add_item(Item::new(ItemType::BoneHatchet), 1);
         }
 
         // spawn_enemy(handle, self, Vec2::new(5.0, 1.0), Enemy::new(EnemyType::Squirrel(0)));
@@ -215,6 +216,7 @@ fn main() -> anyhow::Result<()> {
         counter: 0,
         enemy_count: 0,
         to_reset: false,
+        item_registry: load_registry("res/assets/items.json"),
     };
     let _ = RainApp::new(state)
         .size(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32)

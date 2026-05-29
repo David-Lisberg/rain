@@ -1,0 +1,70 @@
+{
+    "twig": {
+        "name": "Twig",
+        "texture": "object_twig"
+    },
+    "grass": {
+        "name": "Grass",
+        "texture": "object_grass"
+    },
+    "stone": {
+        "name": "Stone",
+        "texture": "object_stone"
+    },
+    "twine": {
+        "name": "Twine",
+        "texture": "item_twine"
+    },
+    "sling": {
+        "name": "Sling",
+        "texture": "item_sling"
+    },
+    "flint": {
+        "name": "Flint",
+        "texture": "object_flint"
+    },
+    "flint_hatchet": {
+        "name": "Flint Hatchet",
+        "texture": "item_flint_hatchet"
+    },
+    "bone_hatchet": {
+        "name": "Bone Hatchet",
+        "texture": "item_bone_hatchet"
+    },
+    "stone_pickaxe": {
+        "name": "Stone Pickaxe",
+        "texture": "item_stone_pickaxe"
+    },
+    "wood": {
+        "name": "Wood",
+        "texture": "item_wood"
+    },
+    "wood_planks": {
+        "name": "Wood Planks",
+        "texture": "item_wood_planks"
+    },
+    "coati_pelt": {
+        "name": "Coati Pelt",
+        "texture": "item_coati_pelt"
+    },
+    "squirrel_pelt": {
+        "name": "Squirrel Pelt",
+        "texture": "item_squirrel_pelt"
+    },
+    "small_bone": {
+        "name": "Small Bone",
+        "texture": "item_small_bone"
+    },
+    "bone_plate": {
+        "name": "Bone Plate",
+        "texture": "item_bone_plate"
+    },
+    "bone_shovel": {
+        "name": "Bone Shovel",
+        "texture": "item_bone_shovel"
+    },
+    "wood_shovel": {
+        "name": "Wood Shovel",
+        "texture": "item_wood_shovel"
+    }
+}
