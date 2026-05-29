@@ -191,10 +191,10 @@ impl RainState for State {
         )).unwrap();
 
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
-            inventory.add_item(Item::new(ItemType::FlintHatchet), 1);
+            // inventory.add_item(Item::new(ItemType::FlintHatchet), 1);
         }
 
-        spawn_enemy(handle, self, Vec2::new(5.0, 1.0), Enemy::new(EnemyType::Squirrel(0)));
+        // spawn_enemy(handle, self, Vec2::new(5.0, 1.0), Enemy::new(EnemyType::Squirrel(0)));
 
         handle.renderer.camera.set_z(8.0);
     }

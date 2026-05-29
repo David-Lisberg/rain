@@ -24,7 +24,7 @@ use crate::game::utility::direction::Direction4;
 const SPAWN_RADIUS_MIN: f32 = 20.0;
 const SPAWN_RADIUS_MAX: f32 = 40.0;
 const DESPAWN_RADIUS: f32 = 50.0;
-const SPAWN_CAP: i32 = 1;
+const SPAWN_CAP: i32 = 5;
 
 pub enum AnimationStateEnemy {
     None,
@@ -78,7 +78,7 @@ impl EnemyType {
 }
 
 pub fn system_manage_enemies(handle: &mut RainHandle, state: &mut State) {
-    if state.counter % 180 != 0 {
+    if state.counter % 300 != 0 {
         return;
     }
     let mut player_position: Option<Vec2> = None;
@@ -117,13 +117,16 @@ pub fn spawn_enemy(handle: &mut RainHandle, state: &mut State, position: Vec2, e
         EnemyType::Coati => {
             ( LootTable { drops: vec![
                 (1.0, 1..=3, Item::new(ItemType::CoatiPelt)),
-                (1.0, 1..=3, Item::new(ItemType::CoatiBone)),
-                (0.5, 1..=1, Item::new(ItemType::CoatiBonePlate))
+                (1.0, 1..=3, Item::new(ItemType::SmallBone)),
+                (0.5, 1..=1, Item::new(ItemType::BonePlate))
             ] },
             Scale2D(Vec2::new(1.0, 1.0)) )
         }
         EnemyType::Squirrel(_) => {
-            ( LootTable { drops: vec![] },
+            ( LootTable { drops: vec![
+                (1.0, 1..=3, Item::new(ItemType::SquirrelPelt)),
+                (0.5, 1..=2, Item::new(ItemType::SmallBone))
+            ] },
             Scale2D(Vec2::new(0.6, 0.6)) )
         }
     };

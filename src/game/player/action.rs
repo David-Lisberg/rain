@@ -167,7 +167,13 @@ pub fn system_update_player_animation(handle: &mut RainHandle) {
                             }
                         }
                     }
-                    _ => {}
+                    _ => {
+                        match direction {
+                            Direction4::N => to_add_animation.push((e, Animation::new("animation_player_punching_back"))),
+                            Direction4::S => to_add_animation.push((e, Animation::new("animation_player_punching_front"))),
+                            Direction4::E | Direction4::W => to_add_animation.push((e, Animation::new("animation_player_punching_side"))),
+                        }
+                    }
                 }
             }
         }

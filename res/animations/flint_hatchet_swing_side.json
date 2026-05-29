@@ -23,7 +23,7 @@
       "events": [
         "LockInput",
         {
-          "HitBox": [1.0, 0.0, 0.8, 0.8]
+          "HitBox": [1.0, 0.0, 1.2, 1.2]
         }
       ]
     },
@@ -50,5 +50,5 @@
     "duration": 1
   },
   "repeat": false,
-  "source": "res/texture/flint_hatchet.png"
+  "source": "res/texture/item_flint_hatchet.png"
 }
