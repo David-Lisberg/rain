@@ -2,6 +2,7 @@ use rain::engine::core::RainHandle;
 
 use crate::game::player::crafting::RecipeRegistry;
 use crate::game::player::item::ItemRegistry;
+use crate::game::world::config::WorldGenConfig;
 
 type TextureRegistry = Vec<(String, String)>;
 type AnimationRegistry = Vec<(String, String)>;
@@ -44,4 +45,9 @@ pub fn load_item_registry(path: &str) -> ItemRegistry {
 pub fn load_recipe_registry(path: &str) -> RecipeRegistry {
     let json = std::fs::read_to_string(path).expect("Error loading recipe registry.");
     serde_json::from_str(&json).expect("Error parsing recipe registry.")
+}
+
+pub fn load_world_gen_config(path: &str) -> WorldGenConfig {
+    let json = std::fs::read_to_string(path).expect("Error loading world gen config.");
+    serde_json::from_str(&json).expect("Error parsing world gen config.")
 }

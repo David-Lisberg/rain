@@ -46,7 +46,7 @@ use crate::game::player::item::system_timer_pickup;
 use crate::game::player::movement::Player;
 use crate::game::player::movement::system_player_dash;
 use crate::game::player::movement::system_player_walk;
-use crate::game::core::load::{load_animations, load_item_registry, load_recipe_registry};
+use crate::game::core::load::{load_animations, load_item_registry, load_recipe_registry, load_world_gen_config};
 use crate::game::core::load::load_textures;
 use crate::game::world::chunk::ChunkData;
 use crate::game::world::chunk::ChunkPosition;
@@ -117,7 +117,7 @@ pub struct State {
     transparent_object_chunks: Vec<ChunkPosition>,
     gui: GUI,
     rng: ThreadRng,
-    perlin: Perlin,
+    perlin: [Perlin; 3],
     zoom: f32,
     counter: i32,
     enemy_count: i32,
@@ -183,7 +183,7 @@ impl RainState for State {
         let player_collider = Collider::from_center(0.0, 0.0, 0.8, 0.8);
         let player_entity = handle.world.spawn((
             Player, Sprite, Visible, 
-            Position2D(Vec2::ZERO), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), Friction(50.0),
+            Position2D(Vec2::new(0.0, 0.0)), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), Friction(50.0),
             Scale2D(Vec2::new(0.8, 0.8)), Direction(Vec2::new(0.0, -1.0)), player_texture, Priority(1), DepthZ(DEPTH_PLAYER), Flip(false, false), 
             player_collider,
             Inventory::new(36),
@@ -206,10 +206,13 @@ impl RainState for State {
 fn main() -> anyhow::Result<()> {
     let mut rng = rand::rng();
     let seed = rng.next_u32();
-    let perlin = Perlin::new(seed);
+    let perlin = std::array::from_fn(|i| {
+        Perlin::new(seed + i as u32)
+    });
+    let biome_seed = rng.next_u32();
     let state = State {
         chunks: HashMap::new(),
-        world_gen_config: WorldGenConfig::default(),
+        world_gen_config: load_world_gen_config("res/assets/world_gen.json"),
         transparent_object_chunks: Vec::new(),
         gui: GUI::new(SCREEN_WIDTH, SCREEN_HEIGHT),
         rng,

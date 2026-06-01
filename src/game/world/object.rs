@@ -10,6 +10,7 @@ use rain::engine::mesh::ModelMesh;
 use rain::engine::resource::{ARRAY_256X256_ID, ResourceManager};
 use rain::engine::texture::Texture;
 use rain::engine::vertex::{ModelVertex, QUAD_INDICES};
+use serde::Deserialize;
 use wgpu::util::DeviceExt;
 
 use crate::{State, DEPTH_PLAYER, DEPTH_SMALL_OBJECT, DEPTH_TREES};
@@ -18,6 +19,8 @@ use crate::game::core::physics::ADJACENT_I32;
 use crate::game::player::item::ToolType;
 use crate::game::player::movement::Player;
 use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
+
+pub const OBJECT_GENERATION_DISTANCE: i32 = 5;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Object {
@@ -39,7 +42,7 @@ impl Object {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Deserialize)]
 pub enum ObjectType {
     Tree1,
     Twig,
@@ -104,11 +107,19 @@ pub fn construct_object_mesh(handle: &mut RainHandle, state: &mut State) -> Vec<
     let mut meshes: Vec<ModelMesh> = Vec::new();
     let mut objects: Vec<&Object> = Vec::new();
 
-    let mut query = handle.world.query::<(&ChunkPosition, &ModelMesh)>();
-    for (_, (chunk_position, _)) in query.iter() {
-        if let Some(chunk) = state.chunks.get(chunk_position) {
-            for object in &chunk.objects {
-                objects.push(object);
+    let mut player_position: Option<ChunkPosition> = None;
+    for (_, (_, position)) in handle.world.query::<(&Player, &Position2D)>().iter() {
+        let chunk_position = position_to_chunk_position(position.0.x, position.0.y);
+        player_position = Some(chunk_position);
+    }
+    let player_position = player_position.unwrap();
+    for (_, (chunk_position, _)) in handle.world.query::<(&ChunkPosition, &ModelMesh)>().iter() {
+        if chunk_position.x <= player_position.x + OBJECT_GENERATION_DISTANCE / 2 && chunk_position.x >= player_position.x - OBJECT_GENERATION_DISTANCE / 2 &&
+           chunk_position.y <= player_position.y + OBJECT_GENERATION_DISTANCE / 2 && chunk_position.y >= player_position.y - OBJECT_GENERATION_DISTANCE / 2 {
+            if let Some(chunk) = state.chunks.get(chunk_position) {
+                for object in &chunk.objects {
+                    objects.push(object);
+                }
             }
         }
     }

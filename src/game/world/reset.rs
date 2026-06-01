@@ -6,6 +6,7 @@ use rain::engine::core::RainHandle;
 use rand::Rng;
 
 use crate::State;
+use crate::game::core::load::load_world_gen_config;
 pub struct Persistent;
 
 pub fn system_reset_world(handle: &mut RainHandle, state: &mut State) {
@@ -14,12 +15,14 @@ pub fn system_reset_world(handle: &mut RainHandle, state: &mut State) {
 
         let mut rng = rand::rng();
         let seed = rng.next_u32();
-        let perlin = Perlin::new(seed);
 
         state.rng = rng;
-        state.perlin = perlin;
+        state.perlin = std::array::from_fn(|i| {
+            Perlin::new(seed + i as u32)
+        });
         state.chunks = HashMap::new();
         state.enemy_count = 0;
+        state.world_gen_config = load_world_gen_config("res/assets/world_gen.json");
 
         let to_despawn: Vec<Entity> = handle.world.query::<()>()
             .without::<&Persistent>()

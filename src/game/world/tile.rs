@@ -14,7 +14,7 @@ pub struct Tile {
     pub _type: TileType, 
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Deserialize)]
 pub enum TileType {
     Grass,
     Grass2,
@@ -51,6 +51,13 @@ impl TileType {
             TileType::Sand => resource_manager.fetch_texture("tile_sand").unwrap(),
             TileType::Clay => resource_manager.fetch_texture("tile_clay").unwrap(),
             TileType::Mud => resource_manager.fetch_texture("tile_mud").unwrap(),
+        }
+    }
+
+    pub fn has_tileset(&self) -> bool {
+        match self {
+            TileType::Grass => true,
+            _ => false,
         }
     }
 }
