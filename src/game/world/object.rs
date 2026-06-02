@@ -7,7 +7,7 @@ use rain::engine::color::Color;
 use rain::engine::component::{Position2D, Priority, Visible};
 use rain::engine::core::RainHandle;
 use rain::engine::mesh::ModelMesh;
-use rain::engine::resource::{ARRAY_256X256_ID, ResourceManager};
+use rain::engine::resource::{ARRAY_512X512_ID, ResourceManager};
 use rain::engine::texture::Texture;
 use rain::engine::vertex::{ModelVertex, QUAD_INDICES};
 use serde::Deserialize;
@@ -168,7 +168,7 @@ pub fn construct_object_mesh(handle: &mut RainHandle, state: &mut State) -> Vec<
                 usage: wgpu::BufferUsages::INDEX,
             }),
             num_indices: indices.len() as u32,
-            array_id: ARRAY_256X256_ID,
+            array_id: ARRAY_512X512_ID,
         })
     }
     meshes

@@ -14,17 +14,18 @@ pub struct Tile {
     pub _type: TileType, 
 }
 
-#[derive(PartialEq, Clone, Deserialize)]
+#[repr(u8)]
+#[derive(PartialEq, Clone, Deserialize, PartialOrd, Copy, Ord, Eq, Debug)]
 pub enum TileType {
-    Grass,
-    Grass2,
-    Dirt,
-    Stone,
-    Cobblestone,
-    Water,
-    Sand,
-    Clay,
-    Mud
+    Water = 0,
+    Sand = 1,
+    Clay = 2,
+    Mud = 3,
+    Grass = 4,
+    Grass2 = 5,
+    Dirt = 6,
+    Stone = 7,
+    Cobblestone = 8,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -51,6 +52,13 @@ impl TileType {
             TileType::Sand => resource_manager.fetch_texture("tile_sand").unwrap(),
             TileType::Clay => resource_manager.fetch_texture("tile_clay").unwrap(),
             TileType::Mud => resource_manager.fetch_texture("tile_mud").unwrap(),
+        }
+    }
+
+    pub fn fetch_tileset(&self, resource_manager: &ResourceManager) -> Option<Arc<Texture>> {
+        match self {
+            TileType::Grass => Some(resource_manager.fetch_texture("tile_grass_tileset").unwrap()),
+            _ => None,
         }
     }
 

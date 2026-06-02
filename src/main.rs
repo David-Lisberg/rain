@@ -56,6 +56,7 @@ use crate::game::world::generation::system_world_generation;
 use crate::game::world::object::system_object_transparency;
 use crate::game::world::reset::Persistent;
 use crate::game::world::reset::system_reset_world;
+use crate::game::world::tileset::generate_tileset_lookup;
 use crate::game::world::water::Swimmable;
 use crate::game::world::water::system_swimming;
 
@@ -78,6 +79,7 @@ pub mod game {
         pub mod config;
         pub mod reset;
         pub mod water;
+        pub mod tileset;
     }
     pub mod core {
         pub mod physics;
@@ -124,6 +126,7 @@ pub struct State {
     to_reset: bool,
     item_registry: ItemRegistry,
     recipe_registry: RecipeRegistry,
+    tileset_lookup: [u8; 256],
 }
 
 impl RainState for State {
@@ -133,8 +136,8 @@ impl RainState for State {
         system_player_input(handle, self);
         system_inventory_interface(handle, self);
 
-        system_manage_chunks(handle, self);
         system_world_generation(handle, self);
+        system_manage_chunks(handle, self);
 
         system_manage_enemies(handle, self);
         system_swimming(handle, self);
@@ -209,7 +212,6 @@ fn main() -> anyhow::Result<()> {
     let perlin = std::array::from_fn(|i| {
         Perlin::new(seed + i as u32)
     });
-    let biome_seed = rng.next_u32();
     let state = State {
         chunks: HashMap::new(),
         world_gen_config: load_world_gen_config("res/assets/world_gen.json"),
@@ -223,6 +225,7 @@ fn main() -> anyhow::Result<()> {
         to_reset: false,
         item_registry: load_item_registry("res/assets/items.json"),
         recipe_registry: load_recipe_registry("res/assets/recipes.json"),
+        tileset_lookup: generate_tileset_lookup(),
     };
     let _ = RainApp::new(state)
         .size(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32)

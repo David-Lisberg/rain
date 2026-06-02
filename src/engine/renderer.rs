@@ -636,7 +636,7 @@ impl Renderer {
         self.text_state.buffer_pool.reset();
 
         let mut buffer_segments: [BufferSegment; 2] = [
-            BufferSegment::new(ARRAY_256X256_ID),
+            BufferSegment::new(ARRAY_512X512_ID),
             BufferSegment::new(ARRAY_4096X4096_ID)
         ];
 
@@ -717,7 +717,7 @@ impl Renderer {
         depth_ops: Option<wgpu::Operations<f32>>
     ) {
         let mut buffer_segments: [BufferSegmentSpriteInstance; 2] = [
-            BufferSegmentSpriteInstance::new(ARRAY_256X256_ID),
+            BufferSegmentSpriteInstance::new(ARRAY_512X512_ID),
             BufferSegmentSpriteInstance::new(ARRAY_4096X4096_ID)
         ];
         let stride = std::mem::size_of::<SpriteInstance>() as u32;
@@ -798,7 +798,7 @@ impl Renderer {
 
             render_pass.set_pipeline(&self.model_pipeline);
 
-            let (_, bind_group) = resource_manager.texture_arrays.get(&ARRAY_256X256_ID).unwrap();
+            let (_, bind_group) = resource_manager.texture_arrays.get(&ARRAY_512X512_ID).unwrap();
             render_pass.set_bind_group(0, bind_group, &[]);
             render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
             for mesh in to_render {

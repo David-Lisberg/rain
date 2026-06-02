@@ -42,5 +42,6 @@
     ["item_bone_plate", "res/texture/item_bone_plate.png"],
     ["item_bone_shovel", "res/texture/item_bone_shovel.png"],
     ["item_wood_shovel", "res/texture/item_wood_shovel.png"],
-    ["item_acorn", "res/texture/item_acorn.png"]
+    ["item_acorn", "res/texture/item_acorn.png"],
+    ["tile_grass_tileset", "res/texture/grass_tileset.png"]
 ]

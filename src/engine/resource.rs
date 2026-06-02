@@ -6,7 +6,7 @@ use image::GenericImageView;
 
 use crate::engine::{animation::AnimationData, core::RainHandle, texture::{Texture, TextureArray}};
 
-pub const ARRAY_256X256_ID: u32 = 0;
+pub const ARRAY_512X512_ID: u32 = 0;
 pub const ARRAY_4096X4096_ID: u32 = 1;
 
 pub struct ResourceManager {
@@ -22,17 +22,17 @@ impl ResourceManager {
 
         let texture_bind_group_layout = Self::texture_bind_group_layout(device);
 
-        let array_256x256 = TextureArray::new(device, 256, 256, 256, ARRAY_256X256_ID);
-        let bind_group_256x256 = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        let array_512x512 = TextureArray::new(device, 512, 512, 256, ARRAY_512X512_ID);
+        let bind_group_512x512 = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &texture_bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&array_256x256.view),
+                    resource: wgpu::BindingResource::TextureView(&array_512x512.view),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&array_256x256.sampler),
+                    resource: wgpu::BindingResource::Sampler(&array_512x512.sampler),
                 }
             ],
             label: Some("diffuse_bind_group"),
@@ -54,7 +54,7 @@ impl ResourceManager {
             label: Some("diffuse_bind_group"),
         });
 
-        texture_arrays.insert(ARRAY_256X256_ID, (array_256x256, bind_group_256x256));
+        texture_arrays.insert(ARRAY_512X512_ID, (array_512x512, bind_group_512x512));
         texture_arrays.insert(ARRAY_4096X4096_ID, (array_4096x4096, bind_group_4096x4096));
 
         Self {
@@ -96,10 +96,10 @@ impl ResourceManager {
             return Err(Error::msg("Image size too large. Must be below 4096x4096."));
         }
 
-        let (array, _) = if dimensions.0 > 256 || dimensions.1 > 256 {
+        let (array, _) = if dimensions.0 > 512 || dimensions.1 > 512 {
             self.texture_arrays.get_mut(&ARRAY_4096X4096_ID).unwrap()
         } else {
-            self.texture_arrays.get_mut(&ARRAY_256X256_ID).unwrap()
+            self.texture_arrays.get_mut(&ARRAY_512X512_ID).unwrap()
         };
 
         let texture = Texture::from_image(queue, array, image);

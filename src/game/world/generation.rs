@@ -27,10 +27,10 @@ pub fn system_world_generation(handle: &mut RainHandle, state: &mut State) {
     }
     for chunk_position in to_generate {
         let chunk = generate_chunk(chunk_position, state);
-        let mesh = construct_chunk_mesh(handle, &chunk);
-        handle.world.spawn((chunk_position, mesh, Visible));
+        // let mesh = construct_chunk_mesh(handle, &chunk);
+        handle.world.spawn((chunk_position,));
         state.chunks.insert(chunk_position, chunk);
     }
 
-    reload_object_mesh(handle, state);
+    // reload_object_mesh(handle, state);
 }
