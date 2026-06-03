@@ -14,7 +14,6 @@ use wgpu::util::DeviceExt;
 
 use crate::State;
 use crate::game::core::collision::Collider;
-use crate::game::core::physics::ADJACENT_I32;
 use crate::game::utility::noise::{noise_normalize, octave_noise_2d};
 use crate::game::world::config::BiomeType;
 use crate::game::world::generation::CHUNK_GENERATION_DISTANCE;
@@ -57,13 +56,10 @@ pub struct ChunkData {
 }
 
 pub struct ChunkInfo {
-    position: ChunkPosition,
     data: [[(f64, BiomeType); CHUNK_DIM]; CHUNK_DIM],
 }
 
 pub const CHUNK_DIM: usize = 32; /* indices should be u32s if CHUNK_DIM > 64 */
-const NOISE_BIOME_SCALE_FACTOR: f64 = 0.007346;
-const NOISE_TILE_SCALE_FACTOR: f64 = 0.0123;
 const NOISE_OBJECT_SCALE_FACTOR: f64 = 0.037;
 const NOISE_DENSITY_SCALE_FACTOR: f64 = 0.0243;
 const NOISE_WATER_BANK_SCALE_FACTOR: f64 = 0.035;
@@ -74,8 +70,6 @@ const SCALE_EROSION: f64 = 0.02013;
 const SCALE_RIVER: f64 = 0.0049;
 
 const RIVER_THRESHOLD: f64 = 0.11;
-
-const MAX_HEIGHT: f64 = 3.0;
 
 const SPLINE_CONTINENTALNESS: &[(f64, f64)] = &[(-1.0, 0.0), (-0.35, 0.2), (-0.3, 1.1), (-0.15, 1.3), (-0.1, 1.6), (1.0, 2.0)];
 const SPLINE_EROSION: &[(f64, f64)] = &[(-1.0, 1.0), (0.0, 0.2), (1.0, 0.1)];
@@ -110,7 +104,7 @@ pub fn generate_chunk_info(state: &mut State, chunk_position: ChunkPosition) -> 
             (height, biome)
         })
     });
-    ChunkInfo { position: chunk_position, data }
+    ChunkInfo { data }
 }
 
 fn evaluate_spline(spline: &[(f64, f64)], input: f64) -> f64 {
@@ -150,38 +144,6 @@ pub fn generate_chunk(chunk_position: ChunkPosition, state: &mut State) -> Chunk
             Tile { _type: tile_type }
         })
     });
-
-    // let mut tiles = std::array::from_fn(|i| {
-    //     let x = (chunk_position.x * CHUNK_DIM as i32) as f64 + (i % CHUNK_DIM) as f64;
-    //     let y = (chunk_position.y * CHUNK_DIM as i32) as f64 + (i / CHUNK_DIM) as f64;
-    //     let mut noise_value = octave_noise_2d(x * NOISE_TILE_SCALE_FACTOR, y * NOISE_TILE_SCALE_FACTOR, 6, 0.5, &state.perlin[0]);
-    //     noise_value = noise_normalize(noise_value);
-    //     let mut biome_noise = octave_noise_2d(x * NOISE_BIOME_SCALE_FACTOR, y * NOISE_BIOME_SCALE_FACTOR, 5, 0.5, &state.perlin[1]);
-    //     biome_noise = noise_normalize(biome_noise);
-        
-    //     let biome_type = match biome_noise {
-    //         v if v > 0.45 => BiomeType::Forest,
-    //         _ => BiomeType::None,
-    //     };
-
-    //     let tile_type = {
-    //         let mut tile_type: Option<TileType> = None;
-    //         for biome_rule in &state.world_gen_config {
-    //             if biome_rule._type == biome_type {
-    //                 for ((low, high), tile) in &biome_rule.tile_rule {
-    //                     if noise_value >= *low && noise_value < *high {
-    //                         tile_type = Some(tile.clone());
-    //                     }
-    //                 }
-    //                 tile_type = Some(tile_type.unwrap_or(biome_rule.default_tile.clone()));
-    //             }
-    //         }
-    //         tile_type.unwrap()
-    //     };
-
-    //     Tile { _type: tile_type }
-    // });
-
 
     let mut water_bank_queue: VecDeque<IVec2> = VecDeque::new();
     let mut water_distance: HashMap<IVec2, f32> = HashMap::new();
@@ -400,62 +362,6 @@ pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData, tileset:
     }
 }
 
-// pub fn construct_height_map_mesh(handle: &mut RainHandle, chunk: &ChunkInfo) -> ModelMesh {
-//     let mut model_vertices: Vec<ModelVertex> = Vec::new();
-//     let mut model_indices: Vec<u32> = Vec::new();
-
-//     for (i, row) in chunk.data.iter().enumerate() {
-//         for (j, (height, biome)) in row.iter().enumerate() {
-//             let mut color_data = glam::Vec3::new(1.0, 1.0, 1.0);
-//             color_data = color_data * (*height / MAX_HEIGHT) as f32;
-//             let color = match biome {
-//                 BiomeType::Forest => Color::GREEN,
-//                 BiomeType::Ocean => Color::BLUE,
-//                 BiomeType::Coast => Color::YELLOW,
-//                 BiomeType::River => Color::CYAN,
-//                 BiomeType::None => Color::from_f32(color_data.x, color_data.y, color_data.z, 1.0),
-//             };
-//             // let color = if *height > 1.0 {
-//             //     Color::from_f32(color_data.x, color_data.y, color_data.z, 1.0)
-//             // } else {
-//             //     Color::BLUE
-//             // };
-    
-//             let color = Color::rain_color_to_array(&color);
-    
-//             let texture = handle.fetch_texture("").unwrap();
-//             let x = (chunk.position.x * CHUNK_DIM as i32) as f32 + i as f32;
-//             let y = (chunk.position.y * CHUNK_DIM as i32) as f32 + j as f32;
-            
-//             let vertices = vec![
-//                 ModelVertex { position: [x, y, 0.0], uv: [0.0, texture.uv[1]], color, layer: texture.index },
-//                 ModelVertex { position: [x + 1.0, y, 0.0], uv: [texture.uv[0], texture.uv[1]], color, layer: texture.index },
-//                 ModelVertex { position: [x + 1.0, y + 1.0, 0.0], uv: [texture.uv[0], 0.0], color, layer: texture.index },
-//                 ModelVertex { position: [x, y + 1.0, 0.0], uv: [0.0, 0.0], color, layer: texture.index },
-//             ];
-//             let indices: Vec<u32> = QUAD_INDICES.iter().map(|x| x + (i * CHUNK_DIM as usize + j) as u32 * 4).collect();
-//             model_vertices.extend(vertices);
-//             model_indices.extend(indices);
-//         }
-//     }
-
-    
-//     ModelMesh {
-//         vertices: handle.renderer.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-//             label: Some("chunk_vertex_buffer"),
-//             contents: bytemuck::cast_slice(&model_vertices),
-//             usage: wgpu::BufferUsages::VERTEX,
-//         }),
-//         indices: handle.renderer.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-//             label: Some("chunk_index_buffer"),
-//             contents: bytemuck::cast_slice(&model_indices),
-//             usage: wgpu::BufferUsages::INDEX,
-//         }),
-//         num_indices: model_indices.len() as u32,
-//         array_id: ARRAY_256X256_ID,
-//     }
-// }
-
 pub fn system_manage_chunks(handle: &mut RainHandle, state: &mut State) {
     let mut to_deload: Vec<Entity> = Vec::new();
     let mut to_load: Vec<(Entity, ChunkPosition)> = Vec::new();
@@ -540,7 +446,7 @@ const ADJACENT_BORDER: [((i32, i32), (Range<usize>, Range<usize>), (Range<usize>
     ((-1, 0), ((CHUNK_DIM - 1)..CHUNK_DIM, 0..CHUNK_DIM), (0..1, 1..(CHUNK_DIM + 1))),
     ((-1, 1), ((CHUNK_DIM - 1)..CHUNK_DIM, 0..1), (0..1, (CHUNK_DIM + 1)..(CHUNK_DIM + 2)))
 ];
-const BLOB_TILESET: [((i32, i32), u8); 8] = [((0, 1), 199), ((1, 1), 7), ((1, 0), 31), ((1, -1), 28), ((0, -1), 124), ((-1, -1), 112), ((-1, 0), 241), ((-1, 1), 193)];
+const BLOB_TILESET: [((i32, i32), u8); 8] = [((0, 1), 199), ((1, 1), 2), ((1, 0), 31), ((1, -1), 8), ((0, -1), 124), ((-1, -1), 32), ((-1, 0), 241), ((-1, 1), 128)];
 
 fn construct_chunk_tileset(padded: [[TileType; CHUNK_DIM + 2]; CHUNK_DIM + 2]) -> ChunkTileSet {
     let mut tileset_masks: [[Vec<(TileType, u8)>; CHUNK_DIM]; CHUNK_DIM] = std::array::from_fn(|_| std::array::from_fn(|_| Vec::new()));

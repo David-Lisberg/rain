@@ -18,8 +18,8 @@ pub struct Tile {
 #[derive(PartialEq, Clone, Deserialize, PartialOrd, Copy, Ord, Eq, Debug)]
 pub enum TileType {
     Water = 0,
-    Sand = 1,
-    Clay = 2,
+    Clay = 1,
+    Sand = 2,
     Mud = 3,
     Grass = 4,
     Grass2 = 5,
@@ -58,6 +58,12 @@ impl TileType {
     pub fn fetch_tileset(&self, resource_manager: &ResourceManager) -> Option<Arc<Texture>> {
         match self {
             TileType::Grass => Some(resource_manager.fetch_texture("tile_grass_tileset").unwrap()),
+            TileType::Grass2 => Some(resource_manager.fetch_texture("tile_grass2_tileset").unwrap()),
+            TileType::Dirt => Some(resource_manager.fetch_texture("tile_dirt_tileset").unwrap()),
+            TileType::Stone => Some(resource_manager.fetch_texture("tile_stone_tileset").unwrap()),
+            TileType::Sand => Some(resource_manager.fetch_texture("tile_sand_tileset").unwrap()),
+            TileType::Mud => Some(resource_manager.fetch_texture("tile_mud_tileset").unwrap()),
+            TileType::Clay => Some(resource_manager.fetch_texture("tile_clay_tileset").unwrap()),
             _ => None,
         }
     }
@@ -65,6 +71,12 @@ impl TileType {
     pub fn has_tileset(&self) -> bool {
         match self {
             TileType::Grass => true,
+            TileType::Grass2 => true,
+            TileType::Dirt => true,
+            TileType::Stone => true,
+            TileType::Sand => true,
+            TileType::Mud => true,
+            TileType::Clay => true,
             _ => false,
         }
     }

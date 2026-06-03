@@ -3,10 +3,9 @@ use rain::engine::component::*;
 
 use crate::State;
 use crate::game::player::movement::Player;
-use crate::game::world::chunk::{ChunkPosition, construct_chunk_mesh, generate_chunk};
-use crate::game::world::object::reload_object_mesh;
+use crate::game::world::chunk::{ChunkPosition, generate_chunk};
 
-pub const CHUNK_GENERATION_DISTANCE: i32 = 7;
+pub const CHUNK_GENERATION_DISTANCE: i32 = 5;
 
 pub fn system_world_generation(handle: &mut RainHandle, state: &mut State) {
     let mut to_generate: Vec<ChunkPosition> = Vec::new();
@@ -27,10 +26,7 @@ pub fn system_world_generation(handle: &mut RainHandle, state: &mut State) {
     }
     for chunk_position in to_generate {
         let chunk = generate_chunk(chunk_position, state);
-        // let mesh = construct_chunk_mesh(handle, &chunk);
         handle.world.spawn((chunk_position,));
         state.chunks.insert(chunk_position, chunk);
     }
-
-    // reload_object_mesh(handle, state);
 }

@@ -20,9 +20,6 @@ use crate::game::entity::damage::Health;
 use crate::game::entity::damage::HurtBox;
 use crate::game::entity::damage::system_health_bar;
 use crate::game::entity::damage::system_hitbox_hurtbox_collision;
-use crate::game::entity::enemy::Enemy;
-use crate::game::entity::enemy::EnemyType;
-use crate::game::entity::enemy::spawn_enemy;
 use crate::game::entity::enemy::system_manage_enemies;
 use crate::game::entity::despawn::system_timer_despawn;
 use crate::game::entity::enemy::system_update_enemy_animation;
@@ -67,6 +64,7 @@ const DEPTH_DIFFERENCE: f32 = -0.00001;
 
 pub const DEPTH_PLAYER: f32 = 0.01;
 pub const DEPTH_TREES: f32 = DEPTH_PLAYER + DEPTH_DIFFERENCE * 2.0;
+pub const DEPTH_FLIGHT: f32 = DEPTH_PLAYER + DEPTH_DIFFERENCE * 3.0;
 pub const DEPTH_PROJECTILE: f32 = DEPTH_PLAYER + DEPTH_DIFFERENCE;
 pub const DEPTH_SMALL_OBJECT: f32 = DEPTH_PLAYER - DEPTH_DIFFERENCE * 2.0;
 
@@ -199,8 +197,6 @@ impl RainState for State {
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
             inventory.add_item(Item::new(ItemType::BoneHatchet), 1);
         }
-
-        // spawn_enemy(handle, self, Vec2::new(5.0, 1.0), Enemy::new(EnemyType::Squirrel(0)));
 
         handle.renderer.camera.set_z(8.0);
     }

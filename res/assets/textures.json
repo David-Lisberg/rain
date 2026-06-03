@@ -9,6 +9,8 @@
     ["tile_clay", "res/texture/tile_clay.png"],
     ["tile_mud", "res/texture/tile_mud.png"],
     ["object_tree1", "res/texture/tree1.png"],
+    ["object_tree2", "res/texture/tree2.png"],
+    ["object_tree3", "res/texture/tree3.png"],
     ["object_twig", "res/texture/twig.png"],
     ["object_grass", "res/texture/object_grass.png"],
     ["object_stone", "res/texture/object_stone.png"],
@@ -43,5 +45,11 @@
     ["item_bone_shovel", "res/texture/item_bone_shovel.png"],
     ["item_wood_shovel", "res/texture/item_wood_shovel.png"],
     ["item_acorn", "res/texture/item_acorn.png"],
-    ["tile_grass_tileset", "res/texture/grass_tileset.png"]
+    ["tile_grass_tileset", "res/texture/grass_tileset.png"],
+    ["tile_grass2_tileset", "res/texture/grass2_tileset.png"],
+    ["tile_dirt_tileset", "res/texture/dirt_tileset.png"],
+    ["tile_stone_tileset", "res/texture/stone_tileset.png"],
+    ["tile_sand_tileset", "res/texture/sand_tileset.png"],
+    ["tile_mud_tileset", "res/texture/tile_mud_tileset.png"],
+    ["tile_clay_tileset", "res/texture/tile_clay_tileset.png"]
 ]

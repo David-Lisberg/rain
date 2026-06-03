@@ -61,6 +61,8 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
                         ObjectType::Stone => (Item::new(ItemType::Stone), 1),
                         ObjectType::Flint => (Item::new(ItemType::Flint), 1),
                         ObjectType::Tree1 => (Item::new(ItemType::Wood), 3),
+                        ObjectType::Tree2 => (Item::new(ItemType::Wood), 3),
+                        ObjectType::Tree3 => (Item::new(ItemType::Wood), 3),
                     };
                     object_changed = true;
                     let remaining = inventory.add_item(item.clone(), quantity);
