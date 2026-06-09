@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use glam::Vec2;
@@ -8,9 +9,11 @@ use rain::engine::resource::ResourceManager;
 use rain::engine::core::RainHandle;
 use rain::engine::component::*;
 use rand::RngExt;
+use serde::Deserialize;
 
 use crate::game::core::animation::AnimationStateUpdated;
 use crate::game::entity::damage::{Health, HealthBar, HurtBox};
+use crate::game::entity::transition::TransitionGraph;
 use crate::game::utility::timer::Timer;
 use crate::game::world::water::Swimmable;
 use crate::{DEPTH_PLAYER, State};
@@ -24,17 +27,26 @@ use crate::game::utility::direction::Direction4;
 const SPAWN_RADIUS_MIN: f32 = 40.0;
 const SPAWN_RADIUS_MAX: f32 = 60.0;
 const DESPAWN_RADIUS: f32 = 65.0;
-const SPAWN_CAP: i32 = 5;
+const SPAWN_CAP: i32 = 1;
 
 pub enum AnimationStateEnemy {
     None,
     Walking(Direction4),
 }
 
-pub struct Enemy {
-    pub _type: EnemyType,
+pub type EnemyRegistry = HashMap<EnemyType, EnemyData>;
+
+#[derive(Deserialize, Clone)]
+pub struct EnemyData {
+    pub transition_graph: TransitionGraph,
+    pub health: f32,
+    pub texture_side: String,
+    pub texture_front: Option<String>,
+    pub texture_back: Option<String>,
+    pub resource: Option<i32>,
+    pub max_resource: Option<i32>,
     pub walk_speed: f32,
-    pub swim_speed: f32,
+    pub swim_speed: Option<f32>,
     pub attack_speed: f32,
     pub damage: f32,
     pub sight_range: f32,
@@ -43,36 +55,30 @@ pub struct Enemy {
     pub idle_interval: i32,
 }
 
-impl Enemy {
-    pub fn new(_type: EnemyType) -> Self {
-        let (walk_speed, swim_speed, attack_speed, damage, sight_range, tracking_range, tracking_distance, idle_interval) = match _type {
-            EnemyType::Coati => (2.0, 1.5, 10.0, 10.0, 10.0, 25.0, 3.0, 600),
-            EnemyType::Squirrel(_) => (2.0, 1.5, 10.0, 10.0, 10.0, 10.0, 5.0, 200),
-        };
-        Self {
-            _type,
-            walk_speed,
-            swim_speed,
-            attack_speed,
-            damage,
-            sight_range,
-            tracking_range,
-            tracking_distance,
-            idle_interval,
-        }
-    }
-}
+pub struct Enemy(pub EnemyType);
 
+pub struct Resource {
+    pub current: i32,
+    pub max: Option<i32>,
+}
+pub struct Diggable;
+
+// EnemyType::Deer => (1.0, 0.5, 10.0, 15.0, 8.0, 12.0, 12.0, 600),
+
+#[derive(Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 pub enum EnemyType {
     Coati,
-    Squirrel(i32),
+    Squirrel,
+    // Deer,
 }
 
 impl EnemyType {
     pub fn fetch_texture(&self, resource_manager: &ResourceManager) -> Arc<Texture> {
         match self {
             EnemyType::Coati => resource_manager.fetch_texture("enemy_coati_side").unwrap(),
-            EnemyType::Squirrel(_) => resource_manager.fetch_texture("enemy_squirrel_side").unwrap(),
+            EnemyType::Squirrel => resource_manager.fetch_texture("enemy_squirrel_side").unwrap(),
+            // EnemyType::Deer => resource_manager.fetch_texture("enemy_deer_side").unwrap(),
         }
     }
 }
@@ -103,7 +109,7 @@ pub fn system_manage_enemies(handle: &mut RainHandle, state: &mut State) {
         }
     }
     if let Some(position) = enemy_position {
-        spawn_enemy(handle, state, position, Enemy::new(EnemyType::Squirrel(0)));
+        spawn_enemy(handle, state, position, Enemy(EnemyType::Squirrel));
     }
     for e in to_remove {
         state.enemy_count -= 1;
@@ -112,8 +118,9 @@ pub fn system_manage_enemies(handle: &mut RainHandle, state: &mut State) {
 }
 
 pub fn spawn_enemy(handle: &mut RainHandle, state: &mut State, position: Vec2, enemy: Enemy) {
-    let texture = enemy._type.fetch_texture(&handle.resource_manager);
-    let (loot_table, scale) = match enemy._type {
+    let enemy_data = state.enemy_registry.get(&enemy.0).unwrap().clone();
+    let texture = handle.fetch_texture(&enemy_data.texture_side).unwrap();
+    let (loot_table, scale) = match enemy.0 {
         EnemyType::Coati => {
             ( LootTable { drops: vec![
                 (1.0, 1..=3, Item::new(ItemType::CoatiPelt)),
@@ -122,7 +129,7 @@ pub fn spawn_enemy(handle: &mut RainHandle, state: &mut State, position: Vec2, e
             ] },
             Scale2D(Vec2::new(1.0, 1.0)) )
         }
-        EnemyType::Squirrel(_) => {
+        EnemyType::Squirrel => {
             ( LootTable { drops: vec![
                 (1.0, 1..=3, Item::new(ItemType::SquirrelPelt)),
                 (0.5, 1..=2, Item::new(ItemType::SmallBone))
@@ -140,6 +147,11 @@ pub fn spawn_enemy(handle: &mut RainHandle, state: &mut State, position: Vec2, e
     let e = handle.world.spawn((Sprite, Visible, enemy, Idle, Position2D(position), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), 
         texture, scale, DepthZ(DEPTH_PLAYER), Priority(1), Flip(false, false), Health::new(5.0), collider, HurtBox(collider)));
     handle.world.insert(e, (Swimmable, loot_table, AnimationStateEnemy::None)).unwrap();
+
+    if let Some(current) = enemy_data.resource {
+        let resource = Resource { current, max: enemy_data.max_resource };
+        handle.world.insert_one(e, resource).unwrap();
+    }
 
     handle.world.spawn((HealthBar(e, Timer::new(2.0), 1.0),));
 }
@@ -163,37 +175,32 @@ pub fn system_update_enemy_direction(handle: &mut RainHandle) {
     }
 }
 
-pub fn system_update_enemy_texture(handle: &mut RainHandle) {
+pub fn system_update_enemy_texture(handle: &mut RainHandle, state: &mut State) {
     let mut to_add_texture: Vec<(Entity, String)> = Vec::new();
 
     for (e, (enemy, direction, flip)) in handle.world.query_mut::<(&Enemy, &Direction, &mut Flip)>() {
         let direction4 = Direction4::from_vec2(direction.0);
+        let enemy_data = state.enemy_registry.get(&enemy.0).unwrap();
         match direction4 {
             Direction4::N => {
-                match enemy._type {
-                    EnemyType::Coati => to_add_texture.push((e, "enemy_coati_back".to_string())),
-                    EnemyType::Squirrel(_) => to_add_texture.push((e, "enemy_squirrel_back".to_string())),
+                match enemy_data.texture_back.clone() {
+                    Some(t) => to_add_texture.push((e, t)),
+                    None => to_add_texture.push((e, enemy_data.texture_side.clone())),
                 }
             }
             Direction4::E => {
                 *flip = Flip(false, false);
-                match enemy._type {
-                    EnemyType::Coati => to_add_texture.push((e, "enemy_coati_side".to_string())),
-                    EnemyType::Squirrel(_) => to_add_texture.push((e, "enemy_squirrel_side".to_string())),
-                }
+                to_add_texture.push((e, enemy_data.texture_side.clone()));
             }
             Direction4::S => {
-                match enemy._type {
-                    EnemyType::Coati => to_add_texture.push((e, "enemy_coati_front".to_string())),
-                    EnemyType::Squirrel(_) => to_add_texture.push((e, "enemy_squirrel_front".to_string())),
+                match enemy_data.texture_front.clone() {
+                    Some(t) => to_add_texture.push((e, t)),
+                    None => to_add_texture.push((e, enemy_data.texture_side.clone())),
                 }
             }
             Direction4::W => {
                 *flip = Flip(true, false);
-                match enemy._type {
-                    EnemyType::Coati => to_add_texture.push((e, "enemy_coati_side".to_string())),
-                    EnemyType::Squirrel(_) => to_add_texture.push((e, "enemy_squirrel_side".to_string())),
-                }
+                to_add_texture.push((e, enemy_data.texture_side.clone()));
             }
         }
     }
@@ -216,7 +223,7 @@ pub fn system_update_enemy_animation(handle: &mut RainHandle) {
         match state {
             AnimationStateEnemy::None => to_remove_animation.push(e),
             AnimationStateEnemy::Walking(direction) => {
-                let animation_string: Option<String> = match enemy._type {
+                let animation_string: Option<String> = match enemy.0 {
                     EnemyType::Coati => Some("animation_coati_walking_".to_string()),
                     _ => None,
                 };

@@ -20,7 +20,7 @@ use crate::game::entity::damage::Health;
 use crate::game::entity::damage::HurtBox;
 use crate::game::entity::damage::system_health_bar;
 use crate::game::entity::damage::system_hitbox_hurtbox_collision;
-use crate::game::entity::enemy::system_manage_enemies;
+use crate::game::entity::enemy::{EnemyRegistry, system_manage_enemies};
 use crate::game::entity::despawn::system_timer_despawn;
 use crate::game::entity::enemy::system_update_enemy_animation;
 use crate::game::entity::enemy::system_update_enemy_direction;
@@ -43,7 +43,7 @@ use crate::game::player::item::system_timer_pickup;
 use crate::game::player::movement::Player;
 use crate::game::player::movement::system_player_dash;
 use crate::game::player::movement::system_player_walk;
-use crate::game::core::load::{load_animations, load_item_registry, load_recipe_registry, load_world_gen_config};
+use crate::game::core::load::{load_animations, load_enemy_registry, load_item_registry, load_recipe_registry, load_world_gen_config};
 use crate::game::core::load::load_textures;
 use crate::game::world::chunk::ChunkData;
 use crate::game::world::chunk::ChunkPosition;
@@ -108,6 +108,7 @@ pub mod game {
         pub mod path;
         pub mod projectile;
         pub mod loot;
+        pub mod transition;
     }
 }
 
@@ -124,6 +125,7 @@ pub struct State {
     to_reset: bool,
     item_registry: ItemRegistry,
     recipe_registry: RecipeRegistry,
+    enemy_registry: EnemyRegistry,
     tileset_lookup: [u8; 256],
 }
 
@@ -140,7 +142,7 @@ impl RainState for State {
         system_manage_enemies(handle, self);
         system_swimming(handle, self);
         system_enemy_ai(handle, self);
-        system_path_walk(handle);
+        system_path_walk(handle, self);
         system_update_enemy_direction(handle);
         
         system_player_walk(handle);
@@ -159,7 +161,7 @@ impl RainState for State {
 
         system_update_player_texture(handle);
         system_update_player_animation(handle);
-        system_update_enemy_texture(handle);
+        system_update_enemy_texture(handle, self);
         system_update_enemy_animation(handle);
         system_object_transparency(handle, self);
         system_camera_controller(handle, self);
@@ -221,6 +223,7 @@ fn main() -> anyhow::Result<()> {
         to_reset: false,
         item_registry: load_item_registry("res/assets/items.json"),
         recipe_registry: load_recipe_registry("res/assets/recipes.json"),
+        enemy_registry: load_enemy_registry("res/assets/enemies.json"),
         tileset_lookup: generate_tileset_lookup(),
     };
     let _ = RainApp::new(state)

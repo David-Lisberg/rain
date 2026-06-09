@@ -29,6 +29,7 @@
     ["player_front", "res/texture/player_front.png"],
     ["player_back", "res/texture/player_back.png"],
     ["player_side", "res/texture/player_side.png"],
+    ["enemy_deer_side", "res/texture/enemy_deer_side.png"],
     ["enemy_squirrel_side", "res/texture/enemy_squirrel_side.png"],
     ["enemy_squirrel_front", "res/texture/enemy_squirrel_front.png"],
     ["enemy_squirrel_back", "res/texture/enemy_squirrel_back.png"],

@@ -7,13 +7,13 @@ use rain::engine::core::RainHandle;
 use rand::RngExt;
 
 use crate::State;
-use crate::game::core::animation::AnimationStateUpdated;
 use crate::game::core::collision::Collider;
 use crate::game::core::physics::ADJACENT_I32;
-use crate::game::entity::damage::{DamageTaken, HitBox};
-use crate::game::entity::enemy::{AnimationStateEnemy, Enemy, EnemyType};
+use crate::game::entity::damage::HitBox;
+use crate::game::entity::enemy::{Enemy, Resource};
 use crate::game::entity::path::Path;
 use crate::game::entity::projectile::{ProjectileSpawn, spawn_projectile};
+use crate::game::entity::transition::{TransitionCondition, TransitionState, TransitionStateContext};
 use crate::game::player::movement::Player;
 use crate::game::utility::timer::Timer;
 use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
@@ -30,7 +30,8 @@ const EPSILON: f32 = 0.001;
 pub struct Idle;
 pub struct Tracking(Entity, Timer);
 pub struct Digging(Timer);
-pub struct Attacking(Entity, Timer, bool);
+pub struct AttackingDash(Entity, Timer, bool);
+pub struct AttackingProjectile(Entity, Timer);
 pub struct Escaping(Entity, Timer);
 
 #[derive(Clone)]
@@ -52,13 +53,25 @@ pub fn system_enemy_ai(handle: &mut RainHandle, state: &mut State) {
     system_enemy_idle(handle, state);
     system_enemy_tracking(handle, state);
     system_enemy_digging(handle, state);
-    system_enemy_attacking(handle);
+    system_enemy_attacking_dash(handle, state);
+    system_enemy_attacking_projectile(handle, state);
     system_enemy_escaping(handle, state);
 }
 
+fn add_transition_state(handle: &mut RainHandle, entity: Entity, transition_state: TransitionState, context: TransitionStateContext) {
+    println!("{:?}", transition_state);
+    match transition_state {
+        TransitionState::AttackingDash => handle.world.insert_one(entity, AttackingDash(context.target, Timer::new(1.0), false)).unwrap(),
+        TransitionState::AttackingProjectile => handle.world.insert_one(entity, AttackingProjectile(context.target, Timer::new(1.0))).unwrap(),
+        TransitionState::Digging => handle.world.insert_one(entity, Digging(Timer::new(3.0))).unwrap(),
+        TransitionState::Escaping => handle.world.insert_one(entity, Escaping(context.target, Timer::new(3.0))).unwrap(),
+        TransitionState::Idle => handle.world.insert_one(entity, Idle).unwrap(),
+        TransitionState::Tracking => handle.world.insert_one(entity, Tracking(context.target, Timer::new(4.0))).unwrap(),
+    }
+}
+
 pub fn system_enemy_idle(handle: &mut RainHandle, state: &mut State) {
-    let mut to_track: Vec<Entity> = Vec::new();
-    let mut to_add_digging: Vec<Entity> = Vec::new();
+    let mut to_add_transition_state: Vec<(Entity, TransitionState)> = Vec::new();
     let mut to_add_path: Vec<(Entity, Path)> = Vec::new();
     
     let mut player: Option<(Entity, Position2D)> = None;
@@ -67,40 +80,44 @@ pub fn system_enemy_idle(handle: &mut RainHandle, state: &mut State) {
     }
     let (player_e, player_position) = player.unwrap();
 
-    for (i, (e, (_, enemy, position, collider))) in handle.world.query::<(&Idle, &Enemy, &Position2D, &Collider)>().iter().enumerate() {
-        if check_line_of_sight(state, position.0, player_position.0, collider, enemy.sight_range) {
-            to_track.push(e);
-            break;
-        }
-        if state.counter % enemy.idle_interval == (i as i32 * 137) % enemy.idle_interval {
-            match enemy._type {
-                EnemyType::Coati => {
-                    let target = generate_random_target(state, position.0, 4.0, 5.0);
-                    if let Some(path) = generate_path(state, position.0, target, collider) {
-                        to_add_path.push((e, path));
-                    }
-                }
-                EnemyType::Squirrel(acorns) => {
-                    if acorns < 3 && state.rng.random::<f32>() < 0.7 {
-                        to_add_digging.push(e);
-                    } else {
-                        let target = generate_random_target(state, position.0, 4.0, 5.0);
-                        if let Some(path) = generate_path(state, position.0, target, collider) {
-                            to_add_path.push((e, path));
+    for (i, (e, (_, enemy, position, collider, resource))) in handle.world.query::<(
+        &Idle, &Enemy, &Position2D, &Collider, Option<&Resource>
+    )>().iter().enumerate() {
+        let enemy_data = state.enemy_registry.get(&enemy.0).unwrap().clone();
+        let do_idle_behavior = state.counter % enemy_data.idle_interval == (i as i32 * 137) % enemy_data.idle_interval;
+        if let Some(transition_graph) = enemy_data.transition_graph.get(&TransitionState::Idle).clone() {
+            for (transition_state, conditions) in transition_graph {
+                let mut success = true;
+                for condition in conditions {
+                    match condition {
+                        TransitionCondition::Actionable => success &= do_idle_behavior,
+                        TransitionCondition::Random(chance) => success &= state.rng.random::<f32>() <= *chance,
+                        TransitionCondition::LineOfSight => success &= check_line_of_sight(state, position.0, player_position.0, collider, enemy_data.sight_range),
+                        TransitionCondition::NotMaxResource => match resource {
+                            Some(r) => success &= r.current < r.max.unwrap_or(0),
+                            _ => {}
                         }
+                        _ => {}
                     }
                 }
+                if success {
+                    to_add_transition_state.push((e, transition_state.clone()));
+                    break;
+                }
+            }
+        }
+        if do_idle_behavior {
+            let target = generate_random_target(state, position.0, 4.0, 5.0);
+            if let Some(path) = generate_path(state, position.0, target, collider) {
+                to_add_path.push((e, path));
             }
         }
     }
 
-    for e in to_track {
-        handle.world.insert_one(e, Tracking(player_e, Timer::new(5.0))).unwrap();
+    for (e, transition_state) in to_add_transition_state {
         handle.world.remove_one::<Idle>(e).unwrap();
-    }
-    for e in to_add_digging {
-        handle.world.insert_one(e, Digging(Timer::new(3.0))).unwrap();
-        handle.world.remove_one::<Idle>(e).unwrap();
+        remove_path(handle, e);
+        add_transition_state(handle, e, transition_state, TransitionStateContext { target: player_e });
     }
     for (e, path) in to_add_path {
         handle.world.insert_one(e, path).unwrap();
@@ -115,9 +132,7 @@ fn generate_random_target(state: &mut State, start: Vec2, range: f32, min_distan
 }
 
 pub fn system_enemy_digging(handle: &mut RainHandle, state: &mut State) {
-    let mut to_track: Vec<Entity> = Vec::new();
-    let mut to_idle: Vec<Entity> = Vec::new();
-    let mut to_remove_damage_taken: Vec<Entity> = Vec::new();
+    let mut to_add_transition_state: Vec<(Entity, TransitionState)> = Vec::new();
 
     let mut player: Option<(Entity, Position2D)> = None;
     for (e, (_, position)) in handle.world.query::<(&Player, &Position2D)>().iter() {
@@ -125,47 +140,44 @@ pub fn system_enemy_digging(handle: &mut RainHandle, state: &mut State) {
     }
     let (player_e, player_position) = player.unwrap();
 
-    for (e, (digging, enemy, position, collider, damage_taken)) in handle.world.query_mut::<(
-        &mut Digging, &mut Enemy, &Position2D, &Collider, Option<&DamageTaken>
+    for (e, (digging, enemy, position, collider, resource)) in handle.world.query_mut::<(
+        &mut Digging, &Enemy, &Position2D, &Collider, &mut Resource
     )>() {
-        if check_line_of_sight(state, position.0, player_position.0, collider, enemy.sight_range) {
-            to_track.push(e);
-            break;
-        }
-        if damage_taken.is_some() {
-            to_track.push(e);
-            to_remove_damage_taken.push(e);
-        }
-        if !digging.0.step(handle.delta_time) {
-            continue;
-        }
-        match &mut enemy._type {
-            EnemyType::Squirrel(acorns) => {
-                *acorns += 1;
-                to_idle.push(e);
+        let enemy_data = state.enemy_registry.get(&enemy.0).unwrap().clone();
+        let actionable = digging.0.step(handle.delta_time);
+        if let Some(transition_graph) = enemy_data.transition_graph.get(&TransitionState::Digging).clone() {
+            for (transition_state, conditions) in transition_graph {
+                let mut success = true;
+                for condition in conditions {
+                    match condition {
+                        TransitionCondition::Random(chance) => success &= state.rng.random::<f32>() <= *chance,
+                        TransitionCondition::LineOfSight => success &= check_line_of_sight(state, position.0, player_position.0, collider, enemy_data.sight_range),
+                        TransitionCondition::NotMaxResource => success &= resource.current < resource.max.unwrap_or(0),
+                        TransitionCondition::Actionable => success &= actionable,
+                        _ => {}
+                    }
+                }
+                if success {
+                    to_add_transition_state.push((e, transition_state.clone()));
+                    break;
+                }
             }
-            _ => {}
+        }
+        if actionable {
+            resource.current += 1;
+            digging.0.reset();
         }
     }
 
-    for e in to_track {
-        handle.world.insert_one(e, Tracking(player_e, Timer::new(5.0))).unwrap();
+    for (e, transition_state) in to_add_transition_state {
         handle.world.remove_one::<Digging>(e).unwrap();
-    }
-    for e in to_idle {
-        handle.world.insert_one(e, Idle).unwrap();
-        handle.world.remove_one::<Digging>(e).unwrap();
-    }
-    for e in to_remove_damage_taken {
-        handle.world.remove_one::<DamageTaken>(e).unwrap();
+        add_transition_state(handle, e, transition_state, TransitionStateContext { target: player_e });
     }
 }
 
 pub fn system_enemy_tracking(handle: &mut RainHandle, state: &mut State) {
-    let mut to_idle: Vec<Entity> = Vec::new();
-    let mut to_attack: Vec<(Entity, Entity)> = Vec::new();
+    let mut to_add_transition_state: Vec<(Entity, TransitionState, TransitionStateContext)> = Vec::new();
     let mut to_add_path: Vec<(Entity, Path)> = Vec::new();
-    let mut to_add_updated: Vec<Entity> = Vec::new();
 
     let mut targets: Vec<(Entity, Vec2)> = Vec::new();
     for (e, tracking) in handle.world.query::<&Tracking>().iter() {
@@ -173,48 +185,52 @@ pub fn system_enemy_tracking(handle: &mut RainHandle, state: &mut State) {
         targets.push((e, position));
     }
     for (e, target_position) in targets {
-        if let Ok((tracking, enemy, position, collider, animation_state)) = handle.world.query_one_mut::<(
-            &mut Tracking, &Enemy, &Position2D, &Collider, &mut AnimationStateEnemy
+        if let Ok((tracking, enemy, position, collider)) = handle.world.query_one_mut::<(
+            &mut Tracking, &Enemy, &Position2D, &Collider
         )>(e) {
-            if check_line_of_sight(state, position.0, target_position, collider, enemy.tracking_range) {
+            let enemy_data = state.enemy_registry.get(&enemy.0).unwrap().clone();
+            let mut actionable = false;
+            if check_line_of_sight(state, position.0, target_position, collider, enemy_data.tracking_range) {
                 tracking.1.reset();
             } else {
                 if tracking.1.step(handle.delta_time) {
-                    to_idle.push(e);
-                    continue;
+                    actionable = true;
+                }
+            }
+            if let Some(transition_graph) = enemy_data.transition_graph.get(&TransitionState::Tracking).clone() {
+                for (transition_state, conditions) in transition_graph {
+                    let mut success = true;
+                    for condition in conditions {
+                        match condition {
+                            TransitionCondition::Random(chance) => success &= state.rng.random::<f32>() <= *chance,
+                            TransitionCondition::LineOfSight => success &= check_line_of_sight(state, position.0, target_position, collider, enemy_data.sight_range),
+                            TransitionCondition::Actionable => success &= actionable,
+                            TransitionCondition::InAttackRange => success &= (target_position - position.0).length() <= enemy_data.tracking_distance + 1.0,
+                            _ => {}
+                        }
+                    }
+                    if success {
+                        to_add_transition_state.push((e, transition_state.clone(), TransitionStateContext{ target: tracking.0 }));
+                        break;
+                    }
                 }
             }
 
-            if (target_position - position.0).length() <= enemy.tracking_distance + 1.0 {
-                to_attack.push((e, tracking.0));
-                *animation_state = AnimationStateEnemy::None;
-                to_add_updated.push(e);
-                continue;
-            }
-
             let direction = (position.0 - target_position).normalize();
-            let tracking_position = target_position + direction * enemy.tracking_distance;
+            let tracking_position = target_position + direction * enemy_data.tracking_distance;
             if let Some(path) = generate_path(state, position.0, tracking_position, collider) {
                 to_add_path.push((e, path));
             }
         }
     }
 
-    for e in to_idle {
-        handle.world.insert_one(e, Idle).unwrap();
-        handle.world.remove_one::<Tracking>(e).unwrap();
-        remove_path(handle, e);
-    }
     for (e, path) in to_add_path {
         handle.world.insert_one(e, path).unwrap();
     }
-    for (e, target_entity) in to_attack {
-        handle.world.insert_one(e, Attacking(target_entity, Timer::new(1.0), false)).unwrap();
+    for (e, transition_state, context) in to_add_transition_state {
         handle.world.remove_one::<Tracking>(e).unwrap();
         remove_path(handle, e);
-    }
-    for e in to_add_updated {
-        handle.world.insert_one(e, AnimationStateUpdated).unwrap();
+        add_transition_state(handle, e, transition_state, context);
     }
 }
 
@@ -227,85 +243,133 @@ fn remove_path(handle: &mut RainHandle, entity: Entity) {
     }
 }
 
-pub fn system_enemy_attacking(handle: &mut RainHandle) {
-    let mut to_idle: Vec<Entity> = Vec::new();
-    let mut to_spawn_projectile: Vec<ProjectileSpawn> = Vec::new();
+fn system_enemy_attacking_dash(handle: &mut RainHandle, state: &mut State) {
+    let mut to_add_transition_state: Vec<(Entity, TransitionState, TransitionStateContext)> = Vec::new();
     let mut to_add_friction: Vec<(Entity, Friction)> = Vec::new();
     let mut to_add_hitbox: Vec<(Entity, HitBox)> = Vec::new();
-    let mut to_add_escaping: Vec<(Entity, Entity, Timer)> = Vec::new();
 
     let mut targets: Vec<(Entity, Vec2)> = Vec::new();
-    for (e, attacking) in handle.world.query::<&Attacking>().iter() {
+    for (e, attacking) in handle.world.query::<&AttackingDash>().iter() {
         let position = handle.world.get::<&Position2D>(attacking.0).unwrap().0;
         targets.push((e, position));
     }
     for (e, target_position) in targets {
         if let Ok((attacking, enemy, position, velocity)) = handle.world.query_one_mut::<(
-            &mut Attacking, &mut Enemy, &Position2D, &mut Velocity2D
+            &mut AttackingDash, &Enemy, &Position2D, &mut Velocity2D
         )>(e) {
             if !attacking.1.step(handle.delta_time) {
                 continue;
             }
-            match &mut enemy._type {
-                EnemyType::Coati => {
-                    if velocity.0.length() < 0.01 {
-                        if attacking.2 {
-                            to_idle.push(e);
-                        } else {
-                            let direction = (target_position - position.0).normalize();
-                            velocity.0 = direction * enemy.attack_speed;
-                            to_add_friction.push((e, Friction(5.0)));
-        
-                            let hitbox_offset = direction + position.0;
-                            let hitbox = HitBox::new(
-                                enemy.damage, Collider::from_center(hitbox_offset.x, hitbox_offset.y, 0.4, 0.4), vec![e], 1,
-                            );
-                            to_add_hitbox.push((e, hitbox));
-        
-                            attacking.2 = true;
+            let enemy_data = state.enemy_registry.get(&enemy.0).unwrap();
+            let mut actionable = false;
+            if velocity.0.length() < 0.01 {
+                if attacking.2 {
+                    actionable = true;
+                } else {
+                    let direction = (target_position - position.0).normalize();
+                    velocity.0 = direction * enemy_data.attack_speed;
+                    to_add_friction.push((e, Friction(5.0)));
+
+                    let hitbox_offset = direction + position.0;
+                    let hitbox = HitBox::new(
+                        enemy_data.damage, Collider::from_center(hitbox_offset.x, hitbox_offset.y, 0.4, 0.4), vec![e], 1,
+                    );
+                    to_add_hitbox.push((e, hitbox));
+
+                    attacking.2 = true;
+                }
+            }
+            if let Some(transition_graph) = enemy_data.transition_graph.get(&TransitionState::AttackingDash).clone() {
+                for (transition_state, conditions) in transition_graph {
+                    let mut success = true;
+                    for condition in conditions {
+                        match condition {
+                            TransitionCondition::Random(chance) => success &= state.rng.random::<f32>() <= *chance,
+                            TransitionCondition::Actionable => success &= actionable,
+                            _ => {}
                         }
                     }
-                }
-                EnemyType::Squirrel(acorns) => {
-                    if *acorns > 0 {
-                        let direction = (target_position - position.0).normalize();
-                        let spawn = ProjectileSpawn::new(
-                            e, "item_acorn".to_string(), enemy.attack_speed, direction, position.0, Vec2::new(0.4, 0.4), enemy.damage
-                        );
-                        to_spawn_projectile.push(spawn);
-                        attacking.1.reset();
-                        *acorns -= 1;
-                    } else {
-                        to_add_escaping.push((e, attacking.0, Timer::new(1.5)));
+                    if success {
+                        to_add_transition_state.push((e, transition_state.clone(), TransitionStateContext{ target: attacking.0 }));
+                        break;
                     }
                 }
             }
         }
     }
 
-    for e in to_idle {
-        handle.world.insert_one(e, Idle).unwrap();
-        handle.world.remove_one::<Attacking>(e).unwrap();
-        let _ = handle.world.remove::<(Friction, HitBox)>(e).is_ok();
-    }
     for (e, friction) in to_add_friction {
         handle.world.insert_one(e, friction).unwrap();
     }
     for (e, hitbox) in to_add_hitbox {
         handle.world.insert_one(e, hitbox).unwrap();
     }
+    for (e, transition_state, context) in to_add_transition_state {
+        handle.world.remove_one::<AttackingDash>(e).unwrap();
+        let _ = handle.world.remove::<(Friction, HitBox)>(e).is_ok();
+        add_transition_state(handle, e, transition_state, context);
+    }
+}
+
+fn system_enemy_attacking_projectile(handle: &mut RainHandle, state: &mut State) {
+    let mut to_add_transition_state: Vec<(Entity, TransitionState, TransitionStateContext)> = Vec::new();
+    let mut to_spawn_projectile: Vec<ProjectileSpawn> = Vec::new();
+
+    let mut targets: Vec<(Entity, Vec2)> = Vec::new();
+    for (e, attacking) in handle.world.query::<&AttackingProjectile>().iter() {
+        let position = handle.world.get::<&Position2D>(attacking.0).unwrap().0;
+        targets.push((e, position));
+    }
+    for (e, target_position) in targets {
+        if let Ok((attacking, enemy, position, resource)) = handle.world.query_one_mut::<(
+            &mut AttackingProjectile, &Enemy, &Position2D, &mut Resource
+        )>(e) {
+            if !attacking.1.step(handle.delta_time) {
+                continue;
+            }
+            let enemy_data = state.enemy_registry.get(&enemy.0).unwrap();
+            let mut actionable = false;
+            if resource.current > 0 {
+                let direction = (target_position - position.0).normalize();
+                let spawn = ProjectileSpawn::new(
+                    e, "item_acorn".to_string(), enemy_data.attack_speed, direction, position.0, Vec2::new(0.4, 0.4), enemy_data.damage
+                );
+                to_spawn_projectile.push(spawn);
+                attacking.1.reset();
+                resource.current -= 1;
+            } else {
+                actionable = true;
+            }
+            if let Some(transition_graph) = enemy_data.transition_graph.get(&TransitionState::AttackingProjectile).clone() {
+                for (transition_state, conditions) in transition_graph {
+                    let mut success = true;
+                    for condition in conditions {
+                        match condition {
+                            TransitionCondition::Random(chance) => success &= state.rng.random::<f32>() <= *chance,
+                            TransitionCondition::Actionable => success &= actionable,
+                            _ => {}
+                        }
+                    }
+                    if success {
+                        to_add_transition_state.push((e, transition_state.clone(), TransitionStateContext{ target: attacking.0 }));
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     for spawn in to_spawn_projectile {
         spawn_projectile(handle, spawn);
     }
-    for (e, target, timer) in to_add_escaping {
-        handle.world.insert_one(e, Escaping(target, timer)).unwrap();
-        handle.world.remove_one::<Attacking>(e).unwrap();
-        let _ = handle.world.remove::<(Friction, HitBox)>(e).is_ok();
+    for (e, transition_state, context) in to_add_transition_state {
+        handle.world.remove_one::<AttackingProjectile>(e).unwrap();
+        add_transition_state(handle, e, transition_state, context);
     }
 }
 
 fn system_enemy_escaping(handle: &mut RainHandle, state: &mut State) {
-    let mut to_add_idle: Vec<Entity> = Vec::new();
+    let mut to_add_transition_state: Vec<(Entity, TransitionState, TransitionStateContext)> = Vec::new();
     let mut to_add_path: Vec<(Entity, Path)> = Vec::new();
 
     let mut targets: Vec<(Entity, Vec2)> = Vec::new();
@@ -317,31 +381,47 @@ fn system_enemy_escaping(handle: &mut RainHandle, state: &mut State) {
         if let Ok((escaping, enemy, position, collider)) = handle.world.query_one_mut::<(
             &mut Escaping, &Enemy, &Position2D, &Collider
         )>(e) {
-            if check_line_of_sight(state, position.0, target_position, collider, enemy.sight_range) {
+            let enemy_data = state.enemy_registry.get(&enemy.0).unwrap().clone();
+            let mut actionable = false;
+            if check_line_of_sight(state, position.0, target_position, collider, enemy_data.sight_range) {
                 escaping.1.reset();
             } else {
                 if escaping.1.step(handle.delta_time) {
-                    to_add_idle.push(e);
-                    break;
+                    actionable = true;
                 }
             }
-
+            if let Some(transition_graph) = enemy_data.transition_graph.get(&TransitionState::Escaping).clone() {
+                for (transition_state, conditions) in transition_graph {
+                    let mut success = true;
+                    for condition in conditions {
+                        match condition {
+                            TransitionCondition::Random(chance) => success &= state.rng.random::<f32>() <= *chance,
+                            TransitionCondition::Actionable => success &= actionable,
+                            _ => {}
+                        }
+                    }
+                    if success {
+                        to_add_transition_state.push((e, transition_state.clone(), TransitionStateContext{ target: escaping.0 }));
+                        break;
+                    }
+                }
+            }
+            
             let direction = (position.0 - target_position).normalize();
-            let escape_position = enemy.sight_range * direction + position.0;
-
+            let escape_position = enemy_data.sight_range * direction + position.0;
             if let Some(path) = generate_path(state, position.0, escape_position, collider) {
                 to_add_path.push((e, path));
             }
         }
     }
 
-    for e in to_add_idle {
-        handle.world.insert_one(e, Idle).unwrap();
-        handle.world.remove_one::<Escaping>(e).unwrap();
-        remove_path(handle, e);
-    }
     for (e, path) in to_add_path {
         handle.world.insert_one(e, path).unwrap();
+    }
+    for (e, transition_state, context) in to_add_transition_state {
+        handle.world.remove_one::<Escaping>(e).unwrap();
+        remove_path(handle, e);
+        add_transition_state(handle, e, transition_state, context);
     }
 }
 

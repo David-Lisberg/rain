@@ -1,0 +1,56 @@
+{
+    "coati": {
+        "transition_graph": {},
+        "health": 5.0,
+        "texture_side": "enemy_coati_side",
+        "texture_front": "enemy_coati_front",
+        "texture_back": "enemy_coati_back",
+        "walk_speed": 2.0,
+        "swim_speed": 1.5,
+        "attack_speed": 10.0,
+        "damage": 10.0,
+        "sight_range": 10.0,
+        "tracking_range": 25.0,
+        "tracking_distance": 3.0,
+        "idle_interval": 600
+    },
+    "squirrel": {
+        "transition_graph": {
+            "idle": [
+                [
+                    "digging",
+                    [
+                        "actionable",
+                        "not_max_resource",
+                        {"random": 0.7}
+                    ]
+                ],
+                ["tracking", ["line_of_sight"]]
+            ],
+            "digging": [
+                ["idle", ["actionable"]],
+                ["tracking", ["line_of_sight"]]
+            ],
+            "tracking": [
+                ["attacking_projectile", ["in_attack_range"]],
+                ["idle", ["actionable"]]
+            ],
+            "attacking_projectile": [["escaping", ["actionable"]]],
+            "escaping": [["idle", ["actionable"]]]
+        },
+        "resource": 0,
+        "max_resource": 3,
+        "health": 5.0,
+        "texture_side": "enemy_squirrel_side",
+        "texture_front": "enemy_squirrel_front",
+        "texture_back": "enemy_squirrel_back",
+        "walk_speed": 2.0,
+        "swim_speed": 1.5,
+        "attack_speed": 10.0,
+        "damage": 10.0,
+        "sight_range": 10.0,
+        "tracking_range": 10.0,
+        "tracking_distance": 5.0,
+        "idle_interval": 200
+    }
+}
