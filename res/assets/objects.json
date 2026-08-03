@@ -5,6 +5,17 @@
         "depth_layer": -2,
         "collidable": false,
         "transparent": false,
+        "loot_table": [
+            {
+                "chance": 1.0,
+                "min": 1,
+                "max": 1,
+                "item": {
+                    "type": "twig",
+                    "category": "other"
+                }
+            }
+        ],
         "collider": [0.0, 0.0, 0.6, 0.6],
         "offset": [0.2, 0.2]
     },
@@ -14,6 +25,17 @@
         "depth_layer": -2,
         "collidable": false,
         "transparent": false,
+        "loot_table": [
+            {
+                "chance": 1.0,
+                "min": 1,
+                "max": 1,
+                "item": {
+                    "type": "grass",
+                    "category": "other"
+                }
+            }
+        ],
         "collider": [0.0, 0.0, 0.6, 0.6],
         "offset": [0.2, 0.2]
     },
@@ -23,6 +45,17 @@
         "depth_layer": -2,
         "collidable": false,
         "transparent": false,
+        "loot_table": [
+            {
+                "chance": 1.0,
+                "min": 1,
+                "max": 1,
+                "item": {
+                    "type": "stone",
+                    "category": "other"
+                }
+            }
+        ],
         "collider": [0.0, 0.0, 0.6, 0.6],
         "offset": [0.2, 0.2]
     },
@@ -32,6 +65,17 @@
         "depth_layer": -2,
         "collidable": false,
         "transparent": false,
+        "loot_table": [
+            {
+                "chance": 1.0,
+                "min": 1,
+                "max": 1,
+                "item": {
+                    "type": "flint",
+                    "category": "other"
+                }
+            }
+        ],
         "collider": [0.0, 0.0, 0.6, 0.6],
         "offset": [0.2, 0.2]
     },
@@ -41,6 +85,17 @@
         "depth_layer": 2,
         "collidable": true,
         "transparent": true,
+        "loot_table": [
+            {
+                "chance": 1.0,
+                "min": 3,
+                "max": 3,
+                "item": {
+                    "type": "wood",
+                    "category": "other"
+                }
+            }
+        ],
         "hit_ticks": 3,
         "break_level": 1,
         "required_tool": "axe",

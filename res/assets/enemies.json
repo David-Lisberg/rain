@@ -1,37 +1,35 @@
 {
     "coati": {
         "transition_graph": {},
-        "loot_table": {
-            "entries": [
-                {
-                    "chance": 1.0,
-                    "min": 1,
-                    "max": 3,
-                    "item": {
-                        "type": "coati_pelt",
-                        "category": "other"
-                    }
-                },
-                {
-                    "chance": 1.0,
-                    "min": 1,
-                    "max": 3,
-                    "item": {
-                        "type": "small_bone",
-                        "category": "other"
-                    }
-                },
-                {
-                    "chance": 0.5,
-                    "min": 1,
-                    "max": 1,
-                    "item": {
-                        "type": "bone_plate",
-                        "category": "other"
-                    }
+        "loot_table": [
+            {
+                "chance": 1.0,
+                "min": 1,
+                "max": 3,
+                "item": {
+                    "type": "coati_pelt",
+                    "category": "other"
                 }
-            ]
-        },  
+            },
+            {
+                "chance": 1.0,
+                "min": 1,
+                "max": 3,
+                "item": {
+                    "type": "small_bone",
+                    "category": "other"
+                }
+            },
+            {
+                "chance": 0.5,
+                "min": 1,
+                "max": 1,
+                "item": {
+                    "type": "bone_plate",
+                    "category": "other"
+                }
+            }
+        ],
         "size": [1.0, 1.0],
         "health": 5.0,
         "texture_side": "enemy_coati_side",
@@ -70,28 +68,26 @@
             "attacking_projectile": [["escaping", ["actionable"]]],
             "escaping": [["idle", ["actionable"]]]
         },
-        "loot_table": {
-            "entries": [
-                {
-                    "chance": 1.0,
-                    "min": 1,
-                    "max": 3,
-                    "item": {
-                        "type": "squirrel_pelt",
-                        "category": "other"
-                    }
-                },
-                {
-                    "chance": 0.5,
-                    "min": 1,
-                    "max": 2,
-                    "item": {
-                        "type": "small_bone",
-                        "category": "other"
-                    }
+        "loot_table": [
+            {
+                "chance": 1.0,
+                "min": 1,
+                "max": 3,
+                "item": {
+                    "type": "squirrel_pelt",
+                    "category": "other"
                 }
-            ]
-        },  
+            },
+            {
+                "chance": 0.5,
+                "min": 1,
+                "max": 2,
+                "item": {
+                    "type": "small_bone",
+                    "category": "other"
+                }
+            }
+        ],
         "size": [0.6, 0.6],
         "resource": 0,
         "max_resource": 3,

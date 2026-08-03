@@ -13,6 +13,7 @@ use rain::engine::vertex::{ModelVertex, QUAD_INDICES};
 use serde::Deserialize;
 use wgpu::util::DeviceExt;
 
+use crate::game::entity::loot::LootTable;
 use crate::{DEPTH_DIFFERENCE, DEPTH_PLAYER, State};
 use crate::game::core::collision::Collider;
 use crate::game::core::physics::ADJACENT_I32;
@@ -30,6 +31,7 @@ pub struct ObjectData {
     pub size: Vec2,
     pub transparent: bool,
     pub collidable: bool,
+    pub loot_table: LootTable,
     pub hit_ticks: Option<i32>,
     pub break_level: Option<i32>,
     pub required_tool: Option<ToolType>,

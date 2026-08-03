@@ -13,14 +13,12 @@ pub struct LootTableEntry {
 }
 
 #[derive(Deserialize, Clone)]
-pub struct LootTable {
-    pub entries: Vec<LootTableEntry>
-}
+pub struct LootTable(Vec<LootTableEntry>);
 
 pub fn roll_loot(state: &mut State, loot_table: &LootTable) -> Vec<(Item, i32)> {
     let mut loot: Vec<(Item, i32)> = Vec::new();
 
-    for entry in &loot_table.entries {
+    for entry in &loot_table.0 {
         let random_value = state.rng.random::<f32>();
         if random_value <= entry.chance {
             let quantity = state.rng.random_range(entry.min..=entry.max);

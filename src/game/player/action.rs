@@ -11,6 +11,7 @@ use rain::engine::texture::Texture;
 use crate::State;
 use crate::game::core::animation::AnimationStateUpdated;
 use crate::game::core::collision::{Collider, check_collision_with_object};
+use crate::game::entity::loot::roll_loot;
 use crate::game::entity::projectile::{ProjectileSpawn, spawn_projectile};
 use crate::game::player::inventory::Inventory;
 use crate::game::player::item::*;
@@ -55,20 +56,15 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
         if let Some(object) = check_collision_with_object(state, &collider) {
             if break_level >= object.break_level && tool_type.can_break(object.required_tool) {
                 if destroy_object(state, &object, hit_ticks) {
-                    let (item, quantity) = match object._type {
-                        ObjectType::Twig => (Item::new(ItemType::Twig), 1),
-                        ObjectType::Grass => (Item::new(ItemType::Grass), 1),
-                        ObjectType::Stone => (Item::new(ItemType::Stone), 1),
-                        ObjectType::Flint => (Item::new(ItemType::Flint), 1),
-                        ObjectType::Tree1 => (Item::new(ItemType::Wood), 3),
-                        ObjectType::Tree2 => (Item::new(ItemType::Wood), 3),
-                        ObjectType::Tree3 => (Item::new(ItemType::Wood), 3),
-                    };
-                    object_changed = true;
-                    let remaining = inventory.add_item(item.clone(), quantity);
-                    if remaining > 0 {
-                        to_spawn_item_drop.push((Position2D(object.center()), item, remaining));
+                    let data = state.object_registry.get(&object._type).unwrap();
+                    let drops = roll_loot(state, &data.loot_table.clone());
+                    for (item, quantity) in drops {
+                        let remaining = inventory.add_item(item.clone(), quantity);
+                        if remaining > 0 {
+                            to_spawn_item_drop.push((Position2D(object.center()), item, remaining));
+                        }
                     }
+                    object_changed = true;
                 }
             }
         }
