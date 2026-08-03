@@ -20,7 +20,6 @@ use crate::{DEPTH_PLAYER, State};
 use crate::game::core::collision::{Collider, check_collision_with_object};
 use crate::game::entity::ai::Idle;
 use crate::game::entity::loot::LootTable;
-use crate::game::player::item::{Item, ItemType};
 use crate::game::player::movement::Player;
 use crate::game::utility::direction::Direction4;
 
@@ -39,7 +38,9 @@ pub type EnemyRegistry = HashMap<EnemyType, EnemyData>;
 #[derive(Deserialize, Clone)]
 pub struct EnemyData {
     pub transition_graph: TransitionGraph,
+    pub loot_table: LootTable,
     pub health: f32,
+    pub size: Vec2,
     pub texture_side: String,
     pub texture_front: Option<String>,
     pub texture_back: Option<String>,
@@ -120,24 +121,7 @@ pub fn system_manage_enemies(handle: &mut RainHandle, state: &mut State) {
 pub fn spawn_enemy(handle: &mut RainHandle, state: &mut State, position: Vec2, enemy: Enemy) {
     let enemy_data = state.enemy_registry.get(&enemy.0).unwrap().clone();
     let texture = handle.fetch_texture(&enemy_data.texture_side).unwrap();
-    let (loot_table, scale) = match enemy.0 {
-        EnemyType::Coati => {
-            ( LootTable { drops: vec![
-                (1.0, 1..=3, Item::new(ItemType::CoatiPelt)),
-                (1.0, 1..=3, Item::new(ItemType::SmallBone)),
-                (0.5, 1..=1, Item::new(ItemType::BonePlate))
-            ] },
-            Scale2D(Vec2::new(1.0, 1.0)) )
-        }
-        EnemyType::Squirrel => {
-            ( LootTable { drops: vec![
-                (1.0, 1..=3, Item::new(ItemType::SquirrelPelt)),
-                (0.5, 1..=2, Item::new(ItemType::SmallBone))
-            ] },
-            Scale2D(Vec2::new(0.6, 0.6)) )
-        }
-    };
-    let collider = Collider::from_center(position.x, position.y, scale.0.x * 0.8, scale.0.y * 0.8);
+    let collider = Collider::from_center(position.x, position.y, enemy_data.size.x * 0.8, enemy_data.size.y * 0.8);
 
     if check_collision_with_object(state, &collider).is_some() {
         return;
@@ -145,8 +129,8 @@ pub fn spawn_enemy(handle: &mut RainHandle, state: &mut State, position: Vec2, e
     state.enemy_count += 1;
 
     let e = handle.world.spawn((Sprite, Visible, enemy, Idle, Position2D(position), Velocity2D(Vec2::ZERO), Acceleration2D(Vec2::ZERO), 
-        texture, scale, DepthZ(DEPTH_PLAYER), Priority(1), Flip(false, false), Health::new(5.0), collider, HurtBox(collider)));
-    handle.world.insert(e, (Swimmable, loot_table, AnimationStateEnemy::None)).unwrap();
+        texture, Scale2D(enemy_data.size), DepthZ(DEPTH_PLAYER), Priority(1), Flip(false, false), Health::new(5.0), collider, HurtBox(collider)));
+    handle.world.insert(e, (Swimmable, AnimationStateEnemy::None)).unwrap();
 
     if let Some(current) = enemy_data.resource {
         let resource = Resource { current, max: enemy_data.max_resource };

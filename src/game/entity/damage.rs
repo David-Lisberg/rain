@@ -5,7 +5,7 @@ use rain::engine::core::RainHandle;
 use crate::State;
 use crate::game::core::collision::Collider;
 use crate::game::entity::enemy::Enemy;
-use crate::game::entity::loot::{LootTable, roll_loot};
+use crate::game::entity::loot::roll_loot;
 use crate::game::player::item::{Item, spawn_item_drop};
 use crate::game::player::movement::Player;
 use crate::game::utility::timer::Timer;
@@ -72,14 +72,11 @@ pub fn system_hitbox_hurtbox_collision(handle: &mut RainHandle, state: &mut Stat
         }
     }
     for e in to_kill {
-        if let Some((_, position, loot_table)) = handle.world.query_one::<(
-            &Enemy, &Position2D, Option<&LootTable>
-        )>(e).unwrap().get() {
-            if let Some(l) = loot_table {
-                let drops = roll_loot(state, l);
-                for (item, quantity) in drops {
-                    to_spawn.push((position.clone(), item, quantity));
-                }
+        if let Some((enemy, position)) = handle.world.query_one::<(&Enemy, &Position2D)>(e).unwrap().get() {
+            let data = state.enemy_registry.get(&enemy.0).unwrap();
+            let drops = roll_loot(state, &data.loot_table.clone());
+            for (item, quantity) in drops {
+                to_spawn.push((position.clone(), item, quantity));
             }
             state.enemy_count -= 1;
         }

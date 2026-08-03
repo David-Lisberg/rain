@@ -17,8 +17,9 @@ const ITEM_PICKUP_RANGE: f32 = 1.0;
 pub type ItemRegistry = HashMap<ItemType, ItemData>;
 pub struct TimerPickup(pub Timer);
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Deserialize)]
 pub struct Item {
+    #[serde(rename = "type")]
     pub _type: ItemType,
     pub category: ItemCategory,
 }
@@ -85,7 +86,8 @@ impl ToolType {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ItemCategory {
     Tool(ToolType, i32, i32, f32), /* type, break level, hit ticks, damage */
     Other,

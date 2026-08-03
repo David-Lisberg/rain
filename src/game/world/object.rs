@@ -13,7 +13,7 @@ use rain::engine::vertex::{ModelVertex, QUAD_INDICES};
 use serde::Deserialize;
 use wgpu::util::DeviceExt;
 
-use crate::{DEPTH_DIFFERENCE, DEPTH_PLAYER, DEPTH_SMALL_OBJECT, DEPTH_TREES, State};
+use crate::{DEPTH_DIFFERENCE, DEPTH_PLAYER, State};
 use crate::game::core::collision::Collider;
 use crate::game::core::physics::ADJACENT_I32;
 use crate::game::player::item::ToolType;
@@ -105,66 +105,6 @@ impl ObjectType {
             ObjectType::Stone => resource_manager.fetch_texture("object_stone").unwrap(),
             ObjectType::Flint => resource_manager.fetch_texture("object_flint").unwrap(),
         }
-    }
-}
-
-pub fn construct_object_defaul(_type: ObjectType, position: Vec2) -> Object {
-    match _type {
-        ObjectType::Tree1 => Object { 
-            _type, 
-            position, 
-            hit_ticks: 3,
-            break_level: 1,
-            required_tool: ToolType::Axe,
-            depth_z: DEPTH_TREES,
-            size: Vec2::new(1.0, 3.0), 
-            collider: Collider::new(position.x + 0.1, position.y, 0.8, 1.0),
-            collidable: true,
-            transparent: false,
-        },
-        ObjectType::Tree2 => Object { 
-            _type, 
-            position, 
-            hit_ticks: 3,
-            break_level: 1,
-            required_tool: ToolType::Axe,
-            depth_z: DEPTH_TREES,
-            size: Vec2::new(3.0, 3.0), 
-            collider: Collider::new(position.x + 1.1, position.y, 0.8, 1.0),
-            collidable: true,
-            transparent: false,
-        },
-        ObjectType::Tree3 => Object { 
-            _type, 
-            position, 
-            hit_ticks: 3,
-            break_level: 1,
-            required_tool: ToolType::Axe,
-            depth_z: DEPTH_TREES,
-            size: Vec2::new(3.0, 3.0), 
-            collider: Collider::new(position.x + 1.1, position.y, 0.8, 1.0),
-            collidable: true,
-            transparent: false,
-        },
-        ObjectType::Twig => object_small_default(_type, position),
-        ObjectType::Grass => object_small_default(_type, position),
-        ObjectType::Stone => object_small_default(_type, position),
-        ObjectType::Flint => object_small_default(_type, position),
-    }
-}
-
-fn object_small_default(_type: ObjectType, position: Vec2) -> Object {
-    Object { 
-        _type, 
-        position: Vec2::new(position.x + 0.2, position.y + 0.2), 
-        hit_ticks: 1,
-        break_level: 0,
-        required_tool: ToolType::None,
-        depth_z: DEPTH_SMALL_OBJECT,
-        size: Vec2::new(0.6, 0.6), 
-        collider: Collider::new(position.x + 0.2, position.y + 0.2, 0.6, 0.6),
-        collidable: false,
-        transparent: false,
     }
 }
 
