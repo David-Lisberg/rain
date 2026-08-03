@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use glam::Vec2;
@@ -13,7 +13,7 @@ use rain::engine::vertex::{ModelVertex, QUAD_INDICES};
 use serde::Deserialize;
 use wgpu::util::DeviceExt;
 
-use crate::{State, DEPTH_PLAYER, DEPTH_SMALL_OBJECT, DEPTH_TREES};
+use crate::{DEPTH_DIFFERENCE, DEPTH_PLAYER, DEPTH_SMALL_OBJECT, DEPTH_TREES, State};
 use crate::game::core::collision::Collider;
 use crate::game::core::physics::ADJACENT_I32;
 use crate::game::player::item::ToolType;
@@ -21,6 +21,22 @@ use crate::game::player::movement::Player;
 use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
 
 pub const OBJECT_GENERATION_DISTANCE: i32 = 5;
+
+pub type ObjectRegistry = HashMap<ObjectType, ObjectData>;
+
+#[derive(Deserialize)]
+pub struct ObjectData {
+    pub texture: String,
+    pub size: Vec2,
+    pub transparent: bool,
+    pub collidable: bool,
+    pub hit_ticks: Option<i32>,
+    pub break_level: Option<i32>,
+    pub required_tool: Option<ToolType>,
+    pub depth_layer: Option<i32>,
+    pub collider: Option<Collider>,
+    pub offset: Option<Vec2>,
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct Object {
@@ -37,12 +53,35 @@ pub struct Object {
 }
 
 impl Object {
+    pub fn from_data(_type: ObjectType, data: &ObjectData, mut position: Vec2) -> Self {
+        if let Some(offset) = data.offset {
+            position.x += offset.x;
+            position.y += offset.y;
+        }
+        let mut collider = data.collider.unwrap_or(Collider::new(0.0, 0.0, data.size.x, data.size.y));
+        collider.x += position.x;
+        collider.y += position.y;
+        Self {
+            _type,
+            position,
+            hit_ticks: data.hit_ticks.unwrap_or(1),
+            break_level: data.break_level.unwrap_or(1),
+            required_tool: data.required_tool.unwrap_or(ToolType::None),
+            depth_z: DEPTH_PLAYER + data.depth_layer.unwrap_or(0) as f32 * DEPTH_DIFFERENCE,
+            size: data.size,
+            collider,
+            collidable: data.collidable,
+            transparent: data.transparent,
+        }
+    }
+
     pub fn center(&self) -> Vec2 {
         self.position + self.size / 2.0
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 pub enum ObjectType {
     Tree1,
     Tree2,
@@ -69,7 +108,7 @@ impl ObjectType {
     }
 }
 
-pub fn construct_object_default(_type: ObjectType, position: Vec2) -> Object {
+pub fn construct_object_defaul(_type: ObjectType, position: Vec2) -> Object {
     match _type {
         ObjectType::Tree1 => Object { 
             _type, 

@@ -66,7 +66,8 @@ pub enum ItemType {
     WoodShovel,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ToolType {
     Axe,
     Pickaxe,

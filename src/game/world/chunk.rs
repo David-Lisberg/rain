@@ -18,7 +18,7 @@ use crate::game::utility::noise::{noise_normalize, octave_noise_2d};
 use crate::game::world::config::BiomeType;
 use crate::game::world::generation::CHUNK_GENERATION_DISTANCE;
 use crate::game::world::tile::{Tile, TileType};
-use crate::game::world::object::{Object, construct_object_default, reload_object_mesh};
+use crate::game::world::object::{Object, ObjectType, reload_object_mesh};
 use crate::game::player::movement::Player;
 use crate::game::world::tileset::{ChunkTileSet, UV_LOOKUP};
 
@@ -194,7 +194,7 @@ pub fn generate_chunk(chunk_position: ChunkPosition, state: &mut State) -> Chunk
             let x = (chunk_position.x * CHUNK_DIM as i32) as f64 + i as f64;
             let y = (chunk_position.y * CHUNK_DIM as i32) as f64 + j as f64;
 
-            let mut object: Option<Object> = None;
+            let mut object: Option<(ObjectType, Vec2)> = None;
 
             let mut noise_value = octave_noise_2d(x * NOISE_OBJECT_SCALE_FACTOR, y * NOISE_OBJECT_SCALE_FACTOR, 2, 0.5, &state.perlin[0]);
             let mut noise_density = octave_noise_2d(x * NOISE_DENSITY_SCALE_FACTOR, y * NOISE_DENSITY_SCALE_FACTOR, 2, 0.5, &state.perlin[0]);
@@ -209,7 +209,7 @@ pub fn generate_chunk(chunk_position: ChunkPosition, state: &mut State) -> Chunk
                     if noise_value >= *low && noise_value < *high && random_value <= *chance {
                         for tile_type in tile_types.iter() {
                             if tiles[i][j]._type == *tile_type {
-                                object = Some(construct_object_default(*object_type, position));
+                                object = Some((*object_type, position));
                                 break;
                             }
                         }
@@ -219,8 +219,11 @@ pub fn generate_chunk(chunk_position: ChunkPosition, state: &mut State) -> Chunk
                     }
                 }
             }
-            if let Some(o) = object {
-                objects.push(o);
+            if let Some((object_type, position)) = object {
+                let object_data = state.object_registry.get(&object_type).unwrap();
+                let object = Object::from_data(object_type, object_data, position);
+
+                objects.push(object);
             }
         }
     }
@@ -318,31 +321,31 @@ pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData, tileset:
             model_indices.extend(indices);
             num_indices += 4;
 
-            let transitions = &tileset.0[i][j];
-            if !transitions.is_empty() {
-                for (k, transition) in transitions.iter().enumerate() {
-                    let transition_texture = transition.0.fetch_tileset(&handle.resource_manager).unwrap();
-                    let tile_index = tileset_lookup[transition.1 as usize];
-                    let mut uv_rect = UV_LOOKUP[tile_index as usize];
-                    uv_rect[0] *= transition_texture.uv[0];
-                    uv_rect[1] *= transition_texture.uv[1];
-                    uv_rect[2] *= transition_texture.uv[0];
-                    uv_rect[3] *= transition_texture.uv[1];
+            // let transitions = &tileset.0[i][j];
+            // if !transitions.is_empty() {
+            //     for (k, transition) in transitions.iter().enumerate() {
+            //         let transition_texture = transition.0.fetch_tileset(&handle.resource_manager).unwrap();
+            //         let tile_index = tileset_lookup[transition.1 as usize];
+            //         let mut uv_rect = UV_LOOKUP[tile_index as usize];
+            //         uv_rect[0] *= transition_texture.uv[0];
+            //         uv_rect[1] *= transition_texture.uv[1];
+            //         uv_rect[2] *= transition_texture.uv[0];
+            //         uv_rect[3] *= transition_texture.uv[1];
                     
-                    let depth = TRANSITION_LAYER_DEPTH * (k as f32 + 1.0);
-                    let vertices = vec![
-                        ModelVertex { position: [x, y, depth], uv: [uv_rect[0], uv_rect[3]], color, layer: transition_texture.index },
-                        ModelVertex { position: [x + 1.0, y, depth], uv: [uv_rect[2], uv_rect[3]], color, layer: transition_texture.index },
-                        ModelVertex { position: [x + 1.0, y + 1.0, depth], uv: [uv_rect[2], uv_rect[1]], color, layer: transition_texture.index },
-                        ModelVertex { position: [x, y + 1.0, depth], uv: [uv_rect[0], uv_rect[1]], color, layer: transition_texture.index },
-                    ];
+            //         let depth = TRANSITION_LAYER_DEPTH * (k as f32 + 1.0);
+            //         let vertices = vec![
+            //             ModelVertex { position: [x, y, depth], uv: [uv_rect[0], uv_rect[3]], color, layer: transition_texture.index },
+            //             ModelVertex { position: [x + 1.0, y, depth], uv: [uv_rect[2], uv_rect[3]], color, layer: transition_texture.index },
+            //             ModelVertex { position: [x + 1.0, y + 1.0, depth], uv: [uv_rect[2], uv_rect[1]], color, layer: transition_texture.index },
+            //             ModelVertex { position: [x, y + 1.0, depth], uv: [uv_rect[0], uv_rect[1]], color, layer: transition_texture.index },
+            //         ];
 
-                    let indices: Vec<u32> = QUAD_INDICES.iter().map(|x| x + num_indices).collect();
-                    model_vertices.extend(vertices);
-                    model_indices.extend(indices);
-                    num_indices += 4;
-                }
-            }
+            //         let indices: Vec<u32> = QUAD_INDICES.iter().map(|x| x + num_indices).collect();
+            //         model_vertices.extend(vertices);
+            //         model_indices.extend(indices);
+            //         num_indices += 4;
+            //     }
+            // }
         }
     }
     

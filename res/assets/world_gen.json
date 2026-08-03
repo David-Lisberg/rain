@@ -9,13 +9,11 @@
             [[0.00, 1.75], "Grass"]
         ],
         "object_rule" : [
-            [[0.45, 1.0], 0.03, ["Grass", "Grass2"], "Tree1"],
-            [[0.45, 1.0], 0.02, ["Grass", "Grass2"], "Tree2"],
-            [[0.45, 1.0], 0.005, ["Grass", "Grass2"], "Tree3"],
-            [[0.4, 0.6], 0.05, ["Grass", "Grass2"], "Twig"],
-            [[0.25, 0.5], 0.07, ["Grass", "Grass2"], "Grass"],
-            [[0.2, 0.9], 0.05, ["Stone"], "Stone"],
-            [[0.1, 0.8], 0.02, ["Stone"], "Flint"]
+            [[0.45, 1.0], 0.03, ["Grass", "Grass2"], "tree1"],
+            [[0.4, 0.6], 0.05, ["Grass", "Grass2"], "twig"],
+            [[0.25, 0.5], 0.07, ["Grass", "Grass2"], "grass"],
+            [[0.2, 0.9], 0.05, ["Stone"], "stone"],
+            [[0.1, 0.8], 0.02, ["Stone"], "flint"]
         ],
         "default_tile": "Dirt"
     },

@@ -59,7 +59,6 @@ pub fn system_enemy_ai(handle: &mut RainHandle, state: &mut State) {
 }
 
 fn add_transition_state(handle: &mut RainHandle, entity: Entity, transition_state: TransitionState, context: TransitionStateContext) {
-    println!("{:?}", transition_state);
     match transition_state {
         TransitionState::AttackingDash => handle.world.insert_one(entity, AttackingDash(context.target, Timer::new(1.0), false)).unwrap(),
         TransitionState::AttackingProjectile => handle.world.insert_one(entity, AttackingProjectile(context.target, Timer::new(1.0))).unwrap(),

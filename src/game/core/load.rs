@@ -4,6 +4,7 @@ use crate::game::entity::enemy::EnemyRegistry;
 use crate::game::player::crafting::RecipeRegistry;
 use crate::game::player::item::ItemRegistry;
 use crate::game::world::config::WorldGenConfig;
+use crate::game::world::object::ObjectRegistry;
 
 type TextureRegistry = Vec<(String, String)>;
 type AnimationRegistry = Vec<(String, String)>;
@@ -51,6 +52,11 @@ pub fn load_recipe_registry(path: &str) -> RecipeRegistry {
 pub fn load_enemy_registry(path: &str) -> EnemyRegistry {
     let json = std::fs::read_to_string(path).expect("Error loading enemy registry.");
     serde_json::from_str(&json).expect("Error parsing enemy registry.")
+}
+
+pub fn load_object_registry(path: &str) -> ObjectRegistry {
+    let json = std::fs::read_to_string(path).expect("Error loading object registry.");
+    serde_json::from_str(&json).expect("Error parsing object registry.")
 }
 
 pub fn load_world_gen_config(path: &str) -> WorldGenConfig {

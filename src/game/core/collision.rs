@@ -1,4 +1,5 @@
 use glam::Vec2;
+use serde::Deserialize;
 
 use crate::State;
 use crate::game::core::physics::ADJACENT_I32;
@@ -6,7 +7,7 @@ use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
 use crate::game::world::object::Object;
 
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
 pub struct Collider {
     pub x: f32,
     pub y: f32,

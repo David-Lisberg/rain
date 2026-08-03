@@ -1,0 +1,49 @@
+{
+    "twig": {
+        "texture": "object_twig",
+        "size": [0.6, 0.6],
+        "depth_layer": -2,
+        "collidable": false,
+        "transparent": false,
+        "collider": [0.0, 0.0, 0.6, 0.6],
+        "offset": [0.2, 0.2]
+    },
+    "grass": {
+        "texture": "object_grass",
+        "size": [0.6, 0.6],
+        "depth_layer": -2,
+        "collidable": false,
+        "transparent": false,
+        "collider": [0.0, 0.0, 0.6, 0.6],
+        "offset": [0.2, 0.2]
+    },
+    "stone": {
+        "texture": "object_stone",
+        "size": [0.6, 0.6],
+        "depth_layer": -2,
+        "collidable": false,
+        "transparent": false,
+        "collider": [0.0, 0.0, 0.6, 0.6],
+        "offset": [0.2, 0.2]
+    },
+    "flint": {
+        "texture": "object_flint",
+        "size": [0.6, 0.6],
+        "depth_layer": -2,
+        "collidable": false,
+        "transparent": false,
+        "collider": [0.0, 0.0, 0.6, 0.6],
+        "offset": [0.2, 0.2]
+    },
+    "tree1": {
+        "texture": "object_tree1",
+        "size": [1.0, 3.0],
+        "depth_layer": 2,
+        "collidable": true,
+        "transparent": true,
+        "hit_ticks": 3,
+        "break_level": 1,
+        "required_tool": "axe",
+        "collider": [0.1, 0.0, 0.8, 1.0]
+    }
+}

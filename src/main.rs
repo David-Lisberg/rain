@@ -43,14 +43,14 @@ use crate::game::player::item::system_timer_pickup;
 use crate::game::player::movement::Player;
 use crate::game::player::movement::system_player_dash;
 use crate::game::player::movement::system_player_walk;
-use crate::game::core::load::{load_animations, load_enemy_registry, load_item_registry, load_recipe_registry, load_world_gen_config};
+use crate::game::core::load::{load_animations, load_enemy_registry, load_item_registry, load_object_registry, load_recipe_registry, load_world_gen_config};
 use crate::game::core::load::load_textures;
 use crate::game::world::chunk::ChunkData;
 use crate::game::world::chunk::ChunkPosition;
 use crate::game::world::chunk::system_manage_chunks;
 use crate::game::world::config::WorldGenConfig;
 use crate::game::world::generation::system_world_generation;
-use crate::game::world::object::system_object_transparency;
+use crate::game::world::object::{ObjectRegistry, system_object_transparency};
 use crate::game::world::reset::Persistent;
 use crate::game::world::reset::system_reset_world;
 use crate::game::world::tileset::generate_tileset_lookup;
@@ -126,6 +126,7 @@ pub struct State {
     item_registry: ItemRegistry,
     recipe_registry: RecipeRegistry,
     enemy_registry: EnemyRegistry,
+    object_registry: ObjectRegistry,
     tileset_lookup: [u8; 256],
 }
 
@@ -224,6 +225,7 @@ fn main() -> anyhow::Result<()> {
         item_registry: load_item_registry("res/assets/items.json"),
         recipe_registry: load_recipe_registry("res/assets/recipes.json"),
         enemy_registry: load_enemy_registry("res/assets/enemies.json"),
+        object_registry: load_object_registry("res/assets/objects.json"),
         tileset_lookup: generate_tileset_lookup(),
     };
     let _ = RainApp::new(state)
