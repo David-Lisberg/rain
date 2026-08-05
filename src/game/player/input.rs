@@ -136,7 +136,7 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
         item_attack(handle, state, direction);
     }
     if use_item {
-        item_use(handle);
+        item_use(handle, state);
     }
     if let Some(drop_all) = drop_item {
         drop_current_item(handle, state, drop_all);

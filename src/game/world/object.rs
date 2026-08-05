@@ -273,3 +273,7 @@ fn under_object(collider: &Collider, object: &Object) -> bool {
     };
     collider.aabb_collision(&object_collider)
 }
+
+pub fn world_position_to_object_position(world_position: Vec2) -> Vec2 {
+    Vec2::new(world_position.x.floor(), world_position.y.floor())
+}

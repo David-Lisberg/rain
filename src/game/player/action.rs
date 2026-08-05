@@ -11,14 +11,17 @@ use rain::engine::texture::Texture;
 use crate::State;
 use crate::game::core::animation::AnimationStateUpdated;
 use crate::game::core::collision::{Collider, check_collision_with_object};
+use crate::game::core::physics::ADJACENT_I32;
 use crate::game::entity::loot::roll_loot;
 use crate::game::entity::projectile::{ProjectileSpawn, spawn_projectile};
 use crate::game::player::inventory::Inventory;
 use crate::game::player::item::*;
 use crate::game::player::movement::Player;
 use crate::game::utility::direction::Direction4;
-use crate::game::world::object::{ObjectType, destroy_object, reload_object_mesh};
+use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
+use crate::game::world::object::{Object, destroy_object, reload_object_mesh, world_position_to_object_position};
 
+const PLAYER_REACH: f32 = 4.0;
 
 struct SlingHold(f32, usize);
 
@@ -80,8 +83,9 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
     }
 }
 
-pub fn item_use(handle: &mut RainHandle) {
+pub fn item_use(handle: &mut RainHandle, state: &mut State) {
     let mut pending_use: Option<(ItemType, Entity, usize)> = None;
+    place_object(handle, state);
     for (e, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
         let slot = inventory.slots.get(inventory.selected_hotbar).unwrap();
         if let Some(item) = &slot.item {
@@ -98,6 +102,46 @@ pub fn item_use(handle: &mut RainHandle) {
 
     if let Some((_type, e, slot)) = pending_use {
         handle.world.insert_one(e, SlingHold(0.0, slot)).unwrap();
+    }
+}
+
+fn place_object(handle: &mut RainHandle, state: &mut State) {
+    let mut updated = false;
+    let mouse_position = handle.screen_position_to_world_position(handle.mouse_position());
+    for (_, (_, position, collider, inventory)) in handle.world.query_mut::<(&Player, &Position2D, &Collider, &mut Inventory)>() {
+        let slot = inventory.slots.get(inventory.selected_hotbar).unwrap();
+        if let Some(item) = &slot.item {
+            let data = state.item_registry.get(&item._type).unwrap();
+            if let Some(placeable) = data.placeable {
+                let distance = (mouse_position - position.0).length();
+                let data = state.object_registry.get(&placeable).unwrap();
+                let object_position = world_position_to_object_position(mouse_position);
+                let object = Object::from_data(placeable, data, object_position);
+                if distance < PLAYER_REACH && !collider.aabb_collision(&object.collider) {
+                    let mut object_colliders: Vec<Collider> = Vec::new();
+                    let chunk_position = position_to_chunk_position(object_position.x, object_position.y);
+                    for adjacent in ADJACENT_I32 {
+                        let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
+                        if let Some(chunk) = state.chunks.get(&adjacent_position) {
+                            for other_object in &chunk.objects {
+                                object_colliders.push(other_object.collider.clone())
+                            }
+                        }
+                    }
+        
+                    if !object_colliders.iter().any(|object_collider| object_collider.aabb_collision(&object.collider)) {
+                        if let Some(chunk) = state.chunks.get_mut(&chunk_position) {
+                            chunk.objects.push(object);
+                            inventory.remove_item_from_slot(inventory.selected_hotbar, 1);
+                            updated = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if updated {
+        reload_object_mesh(handle, state);
     }
 }
 

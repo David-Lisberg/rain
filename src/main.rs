@@ -199,6 +199,8 @@ impl RainState for State {
 
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
             inventory.add_item(Item::new(ItemType::BoneHatchet), 1);
+            inventory.add_item(Item::new(ItemType::Sling), 1);
+            inventory.add_item(Item::new(ItemType::Stone), 10);
         }
 
         handle.renderer.camera.set_z(8.0);

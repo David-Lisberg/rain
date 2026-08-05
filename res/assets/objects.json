@@ -84,7 +84,7 @@
         "size": [1.0, 3.0],
         "depth_layer": 2,
         "collidable": true,
-        "transparent": true,
+        "transparent": false,
         "loot_table": [
             {
                 "chance": 1.0,

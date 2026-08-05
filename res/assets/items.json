@@ -1,15 +1,18 @@
 {
     "twig": {
         "name": "Twig",
-        "texture": "object_twig"
+        "texture": "object_twig",
+        "placeable": "twig"
     },
     "grass": {
         "name": "Grass",
-        "texture": "object_grass"
+        "texture": "object_grass",
+        "placeable": "grass"
     },
     "stone": {
         "name": "Stone",
-        "texture": "object_stone"
+        "texture": "object_stone",
+        "placeable": "stone"
     },
     "twine": {
         "name": "Twine",

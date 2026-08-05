@@ -6,6 +6,7 @@ use rain::engine::component::*;
 use rain::engine::core::RainHandle;
 use serde::Deserialize;
 
+use crate::game::world::object::ObjectType;
 use crate::{DEPTH_PLAYER, State};
 use crate::game::player::inventory::Inventory;
 use crate::game::player::movement::Player;
@@ -28,6 +29,7 @@ pub struct Item {
 pub struct ItemData {
     pub name: String,
     pub texture: String,
+    pub placeable: Option<ObjectType>
 }
 
 impl Item {
