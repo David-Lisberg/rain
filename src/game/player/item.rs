@@ -67,6 +67,7 @@ pub enum ItemType {
     BonePlate,
     BoneShovel,
     WoodShovel,
+    Barrel,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Deserialize)]

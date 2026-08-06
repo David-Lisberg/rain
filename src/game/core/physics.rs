@@ -31,8 +31,9 @@ pub fn system_physics_movement_2d(handle: &mut RainHandle, state: &mut State) {
                 let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
                 if let Some(chunk) = state.chunks.get(&adjacent_position) {
                     for object in &chunk.objects {
-                        if object.collidable {
-                            object_colliders.push(object.collider.clone());
+                        let object_data = state.object_registry.get(&object._type).unwrap();
+                        if object_data.collidable {
+                            object_colliders.push(object.real_collider(&object_data.collider).clone());
                         }
                     }
                 }

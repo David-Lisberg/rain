@@ -7,17 +7,18 @@ use rain::engine::color::Color;
 use rain::engine::component::{Position2D, Priority, Visible};
 use rain::engine::core::RainHandle;
 use rain::engine::mesh::ModelMesh;
-use rain::engine::resource::{ARRAY_512X512_ID, ResourceManager};
+use rain::engine::resource::ARRAY_512X512_ID;
 use rain::engine::texture::Texture;
 use rain::engine::vertex::{ModelVertex, QUAD_INDICES};
 use serde::Deserialize;
 use wgpu::util::DeviceExt;
 
 use crate::game::entity::loot::LootTable;
+use crate::game::world::complex::ComplexObject;
 use crate::{DEPTH_DIFFERENCE, DEPTH_PLAYER, State};
 use crate::game::core::collision::Collider;
 use crate::game::core::physics::ADJACENT_I32;
-use crate::game::player::item::ToolType;
+use crate::game::player::item::{Item, ToolType};
 use crate::game::player::movement::Player;
 use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
 
@@ -25,13 +26,13 @@ pub const OBJECT_GENERATION_DISTANCE: i32 = 5;
 
 pub type ObjectRegistry = HashMap<ObjectType, ObjectData>;
 
-#[derive(Deserialize)]
-pub struct ObjectData {
+#[derive(Deserialize, Clone)]
+pub struct ObjectDataRaw {
     pub texture: String,
     pub size: Vec2,
-    pub transparent: bool,
     pub collidable: bool,
-    pub loot_table: LootTable,
+    pub loot_table: Option<LootTable>,
+    pub drops: Option<Vec<(Item, i32)>>,
     pub hit_ticks: Option<i32>,
     pub break_level: Option<i32>,
     pub required_tool: Option<ToolType>,
@@ -40,45 +41,68 @@ pub struct ObjectData {
     pub offset: Option<Vec2>,
 }
 
+#[derive(Clone)]
+pub struct ObjectData {
+    pub texture: Arc<Texture>,
+    pub size: Vec2,
+    pub collidable: bool,
+    pub loot_table: LootTable,
+    pub drops: Vec<(Item, i32)>,
+    pub hit_ticks: i32,
+    pub break_level: i32,
+    pub required_tool: ToolType,
+    pub depth_z: f32,
+    pub collider: Collider,
+    pub offset: Vec2,
+}
+
+impl ObjectData {
+    pub fn from_raw(handle: &mut RainHandle, raw: ObjectDataRaw) -> Self {
+        let offset = raw.offset.unwrap_or(Vec2::ZERO);
+        let mut collider = raw.collider.unwrap_or(Collider::new(0.0, 0.0, raw.size.x, raw.size.y));
+        collider.x += offset.x;
+        collider.y += offset.y;
+        Self {
+            texture: handle.fetch_texture(&raw.texture).unwrap(),
+            size: raw.size,
+            collidable: raw.collidable,
+            loot_table: raw.loot_table.unwrap_or(LootTable(Vec::new())),
+            drops: raw.drops.unwrap_or(Vec::new()),
+            hit_ticks: raw.hit_ticks.unwrap_or(1),
+            break_level: raw.break_level.unwrap_or(1),
+            required_tool: raw.required_tool.unwrap_or(ToolType::None),
+            depth_z: DEPTH_PLAYER + raw.depth_layer.unwrap_or(0) as f32 * DEPTH_DIFFERENCE,
+            collider,
+            offset,
+        }
+    }
+
+    pub fn center(&self, position: Vec2) -> Vec2 {
+        position + self.size / 2.0
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct Object {
     pub _type: ObjectType,
     pub position: Vec2,
     pub hit_ticks: i32,
-    pub break_level: i32,
-    pub required_tool: ToolType,
-    pub depth_z: f32,
-    pub size: Vec2,
-    pub collider: Collider,
-    pub collidable: bool,
     pub transparent: bool,
 }
 
 impl Object {
     pub fn from_data(_type: ObjectType, data: &ObjectData, mut position: Vec2) -> Self {
-        if let Some(offset) = data.offset {
-            position.x += offset.x;
-            position.y += offset.y;
-        }
-        let mut collider = data.collider.unwrap_or(Collider::new(0.0, 0.0, data.size.x, data.size.y));
-        collider.x += position.x;
-        collider.y += position.y;
+        position += data.offset;
         Self {
             _type,
             position,
-            hit_ticks: data.hit_ticks.unwrap_or(1),
-            break_level: data.break_level.unwrap_or(1),
-            required_tool: data.required_tool.unwrap_or(ToolType::None),
-            depth_z: DEPTH_PLAYER + data.depth_layer.unwrap_or(0) as f32 * DEPTH_DIFFERENCE,
-            size: data.size,
-            collider,
-            collidable: data.collidable,
-            transparent: data.transparent,
+            hit_ticks: data.hit_ticks,
+            transparent: false,
         }
     }
 
-    pub fn center(&self) -> Vec2 {
-        self.position + self.size / 2.0
+    pub fn real_collider(&self, collider: &Collider) -> Collider {
+        Collider::new(self.position.x + collider.x, self.position.y + collider.y, collider.width, collider.height)
     }
 }
 
@@ -92,23 +116,10 @@ pub enum ObjectType {
     Grass,
     Stone,
     Flint,
+    Barrel,
 }
 
 pub struct ObjectMesh;
-
-impl ObjectType {
-    pub fn fetch_texture(&self, resource_manager: &ResourceManager) -> Arc<Texture> {
-        match self {
-            ObjectType::Tree1 => resource_manager.fetch_texture("object_tree1").unwrap(),
-            ObjectType::Tree2 => resource_manager.fetch_texture("object_tree2").unwrap(),
-            ObjectType::Tree3 => resource_manager.fetch_texture("object_tree3").unwrap(),
-            ObjectType::Twig => resource_manager.fetch_texture("object_twig").unwrap(),
-            ObjectType::Grass => resource_manager.fetch_texture("object_grass").unwrap(),
-            ObjectType::Stone => resource_manager.fetch_texture("object_stone").unwrap(),
-            ObjectType::Flint => resource_manager.fetch_texture("object_flint").unwrap(),
-        }
-    }
-}
 
 pub fn construct_object_mesh(handle: &mut RainHandle, state: &mut State) -> Vec<ModelMesh> {
     let mut model_vertices: Vec<Vec<ModelVertex>> = vec![Vec::new(); 2];
@@ -136,23 +147,23 @@ pub fn construct_object_mesh(handle: &mut RainHandle, state: &mut State) -> Vec<
     
     objects.sort_by(|a, b| a.position.y.partial_cmp(&b.position.y).unwrap());
     for object in objects.iter() {
-        let object_texture = object._type.fetch_texture(&handle.resource_manager);
+        let object_data = state.object_registry.get(&object._type).unwrap();
         let color = match object.transparent {
             true => Color::rain_color_to_array(&Color::from_f32(1.0, 1.0, 1.0, 0.5)),
             false => Color::rain_color_to_array(&Color::WHITE),
         };
 
         let vertices = vec![
-            ModelVertex { position: [object.position.x, object.position.y, object.depth_z], 
-                uv: [0.0, object_texture.uv[1]], color, layer: object_texture.index },
-            ModelVertex { position: [object.position.x + object.size.x, object.position.y, object.depth_z], 
-                uv: [object_texture.uv[0], object_texture.uv[1]], color, layer: object_texture.index },
-            ModelVertex { position: [object.position.x + object.size.x, object.position.y + object.size.y, object.depth_z], 
-                uv: [object_texture.uv[0], 0.0], color, layer: object_texture.index },
-            ModelVertex { position: [object.position.x, object.position.y + object.size.y, object.depth_z], 
-                uv: [0.0, 0.0], color, layer: object_texture.index },
+            ModelVertex { position: [object.position.x, object.position.y, object_data.depth_z], 
+                uv: [0.0, object_data.texture.uv[1]], color, layer: object_data.texture.index },
+            ModelVertex { position: [object.position.x + object_data.size.x, object.position.y, object_data.depth_z], 
+                uv: [object_data.texture.uv[0], object_data.texture.uv[1]], color, layer: object_data.texture.index },
+            ModelVertex { position: [object.position.x + object_data.size.x, object.position.y + object_data.size.y, object_data.depth_z], 
+                uv: [object_data.texture.uv[0], 0.0], color, layer: object_data.texture.index },
+            ModelVertex { position: [object.position.x, object.position.y + object_data.size.y, object_data.depth_z], 
+                uv: [0.0, 0.0], color, layer: object_data.texture.index },
         ];
-        let index = if object.depth_z < DEPTH_PLAYER {
+        let index = if object_data.depth_z < DEPTH_PLAYER {
             0
         } else {
             1
@@ -225,8 +236,9 @@ pub fn system_object_transparency(handle: &mut RainHandle, state: &mut State) {
         for chunk_position in std::mem::take(&mut state.transparent_object_chunks) {
             if let Some(chunk) = state.chunks.get_mut(&chunk_position) {
                 for object in &mut chunk.objects {
+                    let object_data = state.object_registry.get(&object._type).unwrap();
                     if object.transparent {
-                        if !under_object(collider, object) {
+                        if !under_object(collider, object_data, object) {
                             object.transparent = false;
                             updated = true;
                         } else {
@@ -241,7 +253,8 @@ pub fn system_object_transparency(handle: &mut RainHandle, state: &mut State) {
             let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
             if let Some(chunk) = state.chunks.get_mut(&adjacent_position) {
                 for object in &mut chunk.objects {
-                    if under_object(collider, object) {
+                    let object_data = state.object_registry.get(&object._type).unwrap();
+                    if under_object(collider, object_data, object) {
                         if !object.transparent {
                             updated = true;
                         }
@@ -264,10 +277,14 @@ pub fn system_object_transparency(handle: &mut RainHandle, state: &mut State) {
     }
 }
 
-fn under_object(collider: &Collider, object: &Object) -> bool {
+fn under_object(collider: &Collider, object_data: &ObjectData, object: &Object) -> bool {
+    let other_collider = object.real_collider(&object_data.collider);
     let object_collider = match object._type {
         ObjectType::Tree1 => Collider::new(
-            object.collider.x + 0.2, object.collider.y + 0.2, object.collider.width - 0.4, object.size.y - object.collider.y + object.position.y - 0.6
+            other_collider.x + 0.2, 
+            other_collider.y + 0.2, 
+            other_collider.width - 0.4, 
+            object_data.size.y - other_collider.y + object.position.y - 0.6
         ),
         _ => return false,
     };

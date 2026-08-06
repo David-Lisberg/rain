@@ -78,6 +78,7 @@ pub mod game {
         pub mod reset;
         pub mod water;
         pub mod tileset;
+        pub mod complex;
     }
     pub mod core {
         pub mod physics;
@@ -183,6 +184,8 @@ impl RainState for State {
         load_textures(handle);
         load_animations(handle);
 
+        self.object_registry = load_object_registry(handle, "res/assets/objects.json");
+
         let player_texture = handle.fetch_texture("player_front").unwrap();
         let player_collider = Collider::from_center(0.0, 0.0, 0.8, 0.8);
         let player_entity = handle.world.spawn((
@@ -227,7 +230,7 @@ fn main() -> anyhow::Result<()> {
         item_registry: load_item_registry("res/assets/items.json"),
         recipe_registry: load_recipe_registry("res/assets/recipes.json"),
         enemy_registry: load_enemy_registry("res/assets/enemies.json"),
-        object_registry: load_object_registry("res/assets/objects.json"),
+        object_registry: HashMap::new(),
         tileset_lookup: generate_tileset_lookup(),
     };
     let _ = RainApp::new(state)

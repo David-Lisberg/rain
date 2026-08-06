@@ -69,5 +69,10 @@
     "wood_shovel": {
         "name": "Wood Shovel",
         "texture": "item_wood_shovel"
+    },
+    "barrel": {
+        "name": "Barrel",
+        "texture": "object_barrel",
+        "placeable": "barrel"
     }
 }

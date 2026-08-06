@@ -57,14 +57,15 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
         to_add_updated.push(e);
         
         if let Some(object) = check_collision_with_object(state, &collider) {
-            if break_level >= object.break_level && tool_type.can_break(object.required_tool) {
+            let object_data = state.object_registry.get(&object._type).unwrap().clone();
+            if break_level >= object_data.break_level && tool_type.can_break(object_data.required_tool) {
                 if destroy_object(state, &object, hit_ticks) {
-                    let data = state.object_registry.get(&object._type).unwrap();
-                    let drops = roll_loot(state, &data.loot_table.clone());
+                    let mut drops = object_data.drops.clone();
+                    drops.extend(roll_loot(state, &object_data.loot_table.clone()));
                     for (item, quantity) in drops {
                         let remaining = inventory.add_item(item.clone(), quantity);
                         if remaining > 0 {
-                            to_spawn_item_drop.push((Position2D(object.center()), item, remaining));
+                            to_spawn_item_drop.push((Position2D(object_data.center(object.position)), item, remaining));
                         }
                     }
                     object_changed = true;
@@ -111,25 +112,27 @@ fn place_object(handle: &mut RainHandle, state: &mut State) {
     for (_, (_, position, collider, inventory)) in handle.world.query_mut::<(&Player, &Position2D, &Collider, &mut Inventory)>() {
         let slot = inventory.slots.get(inventory.selected_hotbar).unwrap();
         if let Some(item) = &slot.item {
-            let data = state.item_registry.get(&item._type).unwrap();
-            if let Some(placeable) = data.placeable {
+            let item_data = state.item_registry.get(&item._type).unwrap();
+            if let Some(placeable) = item_data.placeable {
                 let distance = (mouse_position - position.0).length();
-                let data = state.object_registry.get(&placeable).unwrap();
+                let object_data = state.object_registry.get(&placeable).unwrap();
                 let object_position = world_position_to_object_position(mouse_position);
-                let object = Object::from_data(placeable, data, object_position);
-                if distance < PLAYER_REACH && !collider.aabb_collision(&object.collider) {
+                let object = Object::from_data(placeable, object_data, object_position);
+                let object_collider = object.real_collider(&object_data.collider);
+                if distance < PLAYER_REACH && !collider.aabb_collision(&object_collider) {
                     let mut object_colliders: Vec<Collider> = Vec::new();
                     let chunk_position = position_to_chunk_position(object_position.x, object_position.y);
                     for adjacent in ADJACENT_I32 {
                         let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
                         if let Some(chunk) = state.chunks.get(&adjacent_position) {
                             for other_object in &chunk.objects {
-                                object_colliders.push(other_object.collider.clone())
+                                let other_object_data = state.object_registry.get(&other_object._type).unwrap();
+                                object_colliders.push(other_object.real_collider(&other_object_data.collider).clone())
                             }
                         }
                     }
         
-                    if !object_colliders.iter().any(|object_collider| object_collider.aabb_collision(&object.collider)) {
+                    if !object_colliders.iter().any(|object_collider| object_collider.aabb_collision(&object_collider)) {
                         if let Some(chunk) = state.chunks.get_mut(&chunk_position) {
                             chunk.objects.push(object);
                             inventory.remove_item_from_slot(inventory.selected_hotbar, 1);

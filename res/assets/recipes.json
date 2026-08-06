@@ -34,5 +34,9 @@
     {
         "input": [["wood_planks", 1]], 
         "output": ["twig", 2]
+    },
+    {
+        "input": [["wood_planks", 8]],
+        "output": ["barrel", 1]
     }
 ]

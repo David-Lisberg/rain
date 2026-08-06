@@ -5,17 +5,7 @@
         "depth_layer": -2,
         "collidable": false,
         "transparent": false,
-        "loot_table": [
-            {
-                "chance": 1.0,
-                "min": 1,
-                "max": 1,
-                "item": {
-                    "type": "twig",
-                    "category": "other"
-                }
-            }
-        ],
+        "drops": [[{ "type": "twig", "category": "other" }, 1]],
         "collider": [0.0, 0.0, 0.6, 0.6],
         "offset": [0.2, 0.2]
     },
@@ -25,17 +15,7 @@
         "depth_layer": -2,
         "collidable": false,
         "transparent": false,
-        "loot_table": [
-            {
-                "chance": 1.0,
-                "min": 1,
-                "max": 1,
-                "item": {
-                    "type": "grass",
-                    "category": "other"
-                }
-            }
-        ],
+        "drops": [[{ "type": "grass", "category": "other" }, 1]],
         "collider": [0.0, 0.0, 0.6, 0.6],
         "offset": [0.2, 0.2]
     },
@@ -45,17 +25,7 @@
         "depth_layer": -2,
         "collidable": false,
         "transparent": false,
-        "loot_table": [
-            {
-                "chance": 1.0,
-                "min": 1,
-                "max": 1,
-                "item": {
-                    "type": "stone",
-                    "category": "other"
-                }
-            }
-        ],
+        "drops": [[{ "type": "stone", "category": "other" }, 1]],
         "collider": [0.0, 0.0, 0.6, 0.6],
         "offset": [0.2, 0.2]
     },
@@ -65,17 +35,7 @@
         "depth_layer": -2,
         "collidable": false,
         "transparent": false,
-        "loot_table": [
-            {
-                "chance": 1.0,
-                "min": 1,
-                "max": 1,
-                "item": {
-                    "type": "flint",
-                    "category": "other"
-                }
-            }
-        ],
+        "drops": [[{ "type": "flint", "category": "other" }, 1]],
         "collider": [0.0, 0.0, 0.6, 0.6],
         "offset": [0.2, 0.2]
     },
@@ -85,20 +45,21 @@
         "depth_layer": 2,
         "collidable": true,
         "transparent": false,
-        "loot_table": [
-            {
-                "chance": 1.0,
-                "min": 3,
-                "max": 3,
-                "item": {
-                    "type": "wood",
-                    "category": "other"
-                }
-            }
-        ],
+        "drops": [[{ "type": "wood", "category": "other" }, 3]],
         "hit_ticks": 3,
         "break_level": 1,
         "required_tool": "axe",
         "collider": [0.1, 0.0, 0.8, 1.0]
+    },
+    "barrel": {
+        "texture": "object_barrel",
+        "size": [1.0, 1.0],
+        "depth_layer": 2,
+        "collidable": true,
+        "transparent": false,
+        "drops": [[{ "type": "barrel", "category": "other" }, 1]],
+        "required_tool": "axe",
+        "collider": [0.0, 0.0, 0.8, 0.8],
+        "offset": [0.1, 0.1]
     }
 }

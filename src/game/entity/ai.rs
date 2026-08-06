@@ -446,8 +446,9 @@ pub fn fetch_object_colliders(state: &mut State, position: Vec2) -> Vec<Collider
         let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
         if let Some(chunk) = state.chunks.get(&adjacent_position) {
             for object in &chunk.objects {
-                if object.collidable {
-                    object_colliders.push(object.collider.clone());
+                let object_data = state.object_registry.get(&object._type).unwrap();
+                if object_data.collidable {
+                    object_colliders.push(object.real_collider(&object_data.collider).clone());
                 }
             }
         }

@@ -13,7 +13,7 @@ pub struct LootTableEntry {
 }
 
 #[derive(Deserialize, Clone)]
-pub struct LootTable(Vec<LootTableEntry>);
+pub struct LootTable(pub Vec<LootTableEntry>);
 
 pub fn roll_loot(state: &mut State, loot_table: &LootTable) -> Vec<(Item, i32)> {
     let mut loot: Vec<(Item, i32)> = Vec::new();

@@ -81,7 +81,8 @@ pub fn check_collision_with_object(state: &mut State, collider: &Collider) -> Op
         let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
         if let Some(chunk) = state.chunks.get(&adjacent_position) {
             for object in chunk.objects.iter() {
-                if collider.aabb_collision(&object.collider) {
+                let object_data = state.object_registry.get(&object._type).unwrap();
+                if collider.aabb_collision(&object.real_collider(&object_data.collider)) {
                     collided.push(object.clone());
                 }
             }
@@ -95,7 +96,8 @@ pub fn check_collision_with_object(state: &mut State, collider: &Collider) -> Op
         let mut min_index = 0;
 
         for (i, object) in collided.iter().enumerate() {
-            let distance = (object.collider.center() - collider.center()).length();
+            let object_data = state.object_registry.get(&object._type).unwrap();
+            let distance = (object_data.center(object.position) - collider.center()).length();
             if distance < min_distance {
                 min_distance = distance;
                 min_index = i;
