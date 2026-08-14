@@ -6,7 +6,7 @@ use rain::engine::animation::{Animation, AnimationEvent, AnimationPool};
 use crate::game::core::collision::Collider;
 use crate::game::entity::damage::HitBox;
 use crate::game::player::input::Lock;
-use crate::game::player::inventory::Inventory;
+use crate::game::player::inventory::{Inventory, PlayerInventory};
 use crate::game::player::item::ItemCategory;
 
 pub struct AnimationStateUpdated;
@@ -117,8 +117,10 @@ pub fn system_manage_animation_events(handle: &mut RainHandle) {
         handle.world.insert_one(active_event.entity, active_event).unwrap();
     }
     for (e, mut hitbox) in to_add_hitbox {
-        if let Ok(mut q) = handle.world.query_one::<(Option<&Position2D>, Option<&Inventory>, Option<&Flip>)>(e) {
-            let (position, inventory, flip) = q.get().unwrap();
+        if let Ok(mut q) = handle.world.query_one::<(
+            Option<&Position2D>, Option<&Inventory>, Option<&PlayerInventory>, Option<&Flip>
+        )>(e) {
+            let (position, inventory, player_inventory, flip) = q.get().unwrap();
             if let Some(f) = flip {
                 if f.0 {
                     hitbox.collider.x *= -1.0;
@@ -131,8 +133,8 @@ pub fn system_manage_animation_events(handle: &mut RainHandle) {
                 hitbox.collider.x += p.0.x;
                 hitbox.collider.y += p.0.y;
             }
-            if let Some(i) = inventory {
-                let damage = if let Some(item) = &i.slots[i.selected_hotbar].item {
+            if let (Some(i), Some(i_p)) = (inventory, player_inventory) {
+                let damage = if let Some(item) = &i.slots[i_p.selected_hotbar].item {
                     match item.category {
                         ItemCategory::Tool(_, _, _, d) => d,
                         _ => 1.0,

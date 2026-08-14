@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use crate::game::world::object::ObjectType;
 use crate::{DEPTH_PLAYER, State};
-use crate::game::player::inventory::Inventory;
+use crate::game::player::inventory::{Inventory, InventorySelection, PlayerInventory};
 use crate::game::player::movement::Player;
 use crate::game::utility::timer::Timer;
 
@@ -139,7 +139,7 @@ pub fn system_item_drop_pickup(handle: &mut RainHandle) {
     for (e, (item_drop, position)) in handle.world.query::<(&ItemDrop, &Position2D)>().without::<&TimerPickup>().iter() {
         item_drops.push((e, item_drop.clone(), position.clone()));
     }
-    for (_, (_, inventory, position)) in handle.world.query_mut::<(&Player, &mut Inventory, &Position2D)>() {
+    for (_, (_, position, inventory)) in handle.world.query_mut::<(&Player, &Position2D, &mut Inventory)>() {
         for (e, item_drop, item_drop_position) in item_drops.iter() {
             let distance = (item_drop_position.0 - position.0).length();
             if distance <= ITEM_PICKUP_RANGE {
@@ -163,25 +163,31 @@ pub fn system_item_drop_pickup(handle: &mut RainHandle) {
 
 pub fn drop_current_item(handle: &mut RainHandle, state: &mut State, drop_all: bool) {
     let mut to_spawn: Vec<(Position2D, Item, i32)> = Vec::new();
-    for (_, (_, position, inventory)) in handle.world.query_mut::<(&Player, &Position2D, &mut Inventory)>() {
-        let index = if inventory.open {
-            if let Some(i) = inventory.selected.get(0) {
-                *i
-            } else {
-                return;
-            }
-        } else {
-            inventory.selected_hotbar
-        };
-        if let Some(item) = &inventory.slots[index].item {
-            let item = item.clone();
-            if drop_all {
-                let quantity = inventory.slots[index].quantity;
-                inventory.remove_item_from_slot(index, quantity);
-                to_spawn.push((position.clone(), item.clone(), quantity));
-            } else {
-                inventory.remove_item_from_slot(index, 1);
-                to_spawn.push((position.clone(), item.clone(), 1));
+    let mut inventory_selection: Option<(InventorySelection, Position2D)> = None;
+
+    for (e, (_, position, player_inventory)) in handle.world.query::<(&Player, &Position2D, &PlayerInventory)>().iter() {
+        if state.inventory_screen.panels.len() == 1 && state.inventory_screen.panels[0].inventory == e {
+            inventory_selection = Some((InventorySelection {
+                inventory: e,
+                slot: player_inventory.selected_hotbar,
+            }, position.clone()))
+        } else if state.inventory_screen.selection.len() == 1 {
+            inventory_selection = Some((state.inventory_screen.selection[0], position.clone()));
+        }
+    }
+
+    if let Some((selection, position)) = inventory_selection {
+        if let Ok(inventory) = handle.world.query_one_mut::<&mut Inventory>(selection.inventory) {
+            if let Some(item) = &inventory.slots[selection.slot].item {
+                let item = item.clone();
+                if drop_all {
+                    let quantity = inventory.slots[selection.slot].quantity;
+                    inventory.remove_item_from_slot(selection.slot, quantity);
+                    to_spawn.push((position, item.clone(), quantity));
+                } else {
+                    inventory.remove_item_from_slot(selection.slot, 1);
+                    to_spawn.push((position, item.clone(), 1));
+                }
             }
         }
     }

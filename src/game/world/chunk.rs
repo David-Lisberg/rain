@@ -119,7 +119,7 @@ fn evaluate_spline(spline: &[(f64, f64)], input: f64) -> f64 {
     y0 + (y1 - y0) * t
 }
 
-pub fn generate_chunk(chunk_position: ChunkPosition, state: &mut State) -> ChunkData {
+pub fn generate_chunk(handle: &mut RainHandle, state: &mut State, chunk_position: ChunkPosition) -> ChunkData {
     let mut objects: Vec<Object> = Vec::new();
     let chunk_info = generate_chunk_info(state, chunk_position);
 
@@ -221,7 +221,7 @@ pub fn generate_chunk(chunk_position: ChunkPosition, state: &mut State) -> Chunk
             }
             if let Some((object_type, position)) = object {
                 let object_data = state.object_registry.get(&object_type).unwrap();
-                let object = Object::from_data(object_type, object_data, position);
+                let object = Object::from_data(handle, object_data, position);
 
                 objects.push(object);
             }
@@ -416,7 +416,7 @@ pub fn system_manage_chunks(handle: &mut RainHandle, state: &mut State) {
             for ((x, y), (range_x, range_y), (padded_x, padded_y)) in ADJACENT_BORDER {
                 let position = ChunkPosition::new(chunk_position.x + x, chunk_position.y + y);
                 if !state.chunks.contains_key(&position) {
-                    let chunk = generate_chunk(position, state);
+                    let chunk = generate_chunk(handle, state, position);
                     handle.world.spawn((position,));
                     state.chunks.insert(position, chunk);
                 }

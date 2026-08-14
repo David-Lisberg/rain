@@ -14,7 +14,7 @@ use serde::Deserialize;
 use wgpu::util::DeviceExt;
 
 use crate::game::entity::loot::LootTable;
-use crate::game::world::complex::ComplexObject;
+use crate::game::world::object::ObjectBehavior::Inventory;
 use crate::{DEPTH_DIFFERENCE, DEPTH_PLAYER, State};
 use crate::game::core::collision::Collider;
 use crate::game::core::physics::ADJACENT_I32;
@@ -27,7 +27,14 @@ pub const OBJECT_GENERATION_DISTANCE: i32 = 5;
 pub type ObjectRegistry = HashMap<ObjectType, ObjectData>;
 
 #[derive(Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum ObjectBehavior {
+    Inventory(i32),
+}
+
+#[derive(Deserialize, Clone)]
 pub struct ObjectDataRaw {
+    pub object_type: ObjectType,
     pub texture: String,
     pub size: Vec2,
     pub collidable: bool,
@@ -39,10 +46,12 @@ pub struct ObjectDataRaw {
     pub depth_layer: Option<i32>,
     pub collider: Option<Collider>,
     pub offset: Option<Vec2>,
+    pub behaviors: Option<Vec<ObjectBehavior>>,
 }
 
 #[derive(Clone)]
 pub struct ObjectData {
+    pub object_type: ObjectType,
     pub texture: Arc<Texture>,
     pub size: Vec2,
     pub collidable: bool,
@@ -54,6 +63,7 @@ pub struct ObjectData {
     pub depth_z: f32,
     pub collider: Collider,
     pub offset: Vec2,
+    pub behaviors: Vec<ObjectBehavior>,
 }
 
 impl ObjectData {
@@ -63,6 +73,7 @@ impl ObjectData {
         collider.x += offset.x;
         collider.y += offset.y;
         Self {
+            object_type: raw.object_type,
             texture: handle.fetch_texture(&raw.texture).unwrap(),
             size: raw.size,
             collidable: raw.collidable,
@@ -74,6 +85,7 @@ impl ObjectData {
             depth_z: DEPTH_PLAYER + raw.depth_layer.unwrap_or(0) as f32 * DEPTH_DIFFERENCE,
             collider,
             offset,
+            behaviors: raw.behaviors.unwrap_or(Vec::new()),
         }
     }
 
@@ -88,22 +100,35 @@ pub struct Object {
     pub position: Vec2,
     pub hit_ticks: i32,
     pub transparent: bool,
+    pub entity: Option<Entity>,
 }
 
 impl Object {
-    pub fn from_data(_type: ObjectType, data: &ObjectData, mut position: Vec2) -> Self {
+    pub fn from_data(handle: &mut RainHandle, data: &ObjectData, mut position: Vec2) -> Self {
         position += data.offset;
+        let entity: Option<Entity> = if data.behaviors.is_empty() {
+            None
+        } else {
+            let e = handle.world.spawn(());
+            for behavior in &data.behaviors {
+                match behavior {
+                    ObjectBehavior::Inventory(slots) => handle.world.insert_one(e, Inventory(*slots)).unwrap()
+                }
+            }
+            Some(e)
+        };
         Self {
-            _type,
+            _type: data.object_type,
             position,
             hit_ticks: data.hit_ticks,
             transparent: false,
+            entity,
         }
     }
 
-    pub fn real_collider(&self, collider: &Collider) -> Collider {
-        Collider::new(self.position.x + collider.x, self.position.y + collider.y, collider.width, collider.height)
-    }
+    // pub fn real_collider(&self, collider: &Collider) -> Collider {
+    //     Collider::new(self.position.x + collider.x, self.position.y + collider.y, collider.width, collider.height)
+    // }
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Hash)]
@@ -278,7 +303,7 @@ pub fn system_object_transparency(handle: &mut RainHandle, state: &mut State) {
 }
 
 fn under_object(collider: &Collider, object_data: &ObjectData, object: &Object) -> bool {
-    let other_collider = object.real_collider(&object_data.collider);
+    let other_collider = object_data.collider.add_vec2(object.position);
     let object_collider = match object._type {
         ObjectType::Tree1 => Collider::new(
             other_collider.x + 0.2, 

@@ -448,7 +448,7 @@ pub fn fetch_object_colliders(state: &mut State, position: Vec2) -> Vec<Collider
             for object in &chunk.objects {
                 let object_data = state.object_registry.get(&object._type).unwrap();
                 if object_data.collidable {
-                    object_colliders.push(object.real_collider(&object_data.collider).clone());
+                    object_colliders.push(object_data.collider.add_vec2(object.position));
                 }
             }
         }

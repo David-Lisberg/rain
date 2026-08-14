@@ -14,12 +14,12 @@ use crate::game::core::collision::{Collider, check_collision_with_object};
 use crate::game::core::physics::ADJACENT_I32;
 use crate::game::entity::loot::roll_loot;
 use crate::game::entity::projectile::{ProjectileSpawn, spawn_projectile};
-use crate::game::player::inventory::Inventory;
+use crate::game::player::inventory::{Inventory, PlayerInventory};
 use crate::game::player::item::*;
 use crate::game::player::movement::Player;
 use crate::game::utility::direction::Direction4;
 use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
-use crate::game::world::object::{Object, destroy_object, reload_object_mesh, world_position_to_object_position};
+use crate::game::world::object::{Object, ObjectData, destroy_object, reload_object_mesh, world_position_to_object_position};
 
 const PLAYER_REACH: f32 = 4.0;
 
@@ -37,14 +37,14 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
     let mut to_add_updated: Vec<Entity> = Vec::new();
     let mut to_spawn_item_drop: Vec<(Position2D, Item, i32)> = Vec::new();
     
-    for (e, (_, position, inventory, player_direction, animation_state)) in handle.world.query_mut::<(
-        &Player, &Position2D, &mut Inventory, &mut Direction, &mut AnimationStatePlayer
+    for (e, (_, position, player_direction, inventory, player_inventory, animation_state)) in handle.world.query_mut::<(
+        &Player, &Position2D, &mut Direction, &mut Inventory, &PlayerInventory, &mut AnimationStatePlayer
     )>() {
         let collider_position = position.0 + direction;
         let collider = Collider::from_center(collider_position.x, collider_position.y, 1.0, 1.0);
         let direction4 = Direction4::from_vec2(direction);
         
-        let (tool_type, break_level, hit_ticks) = if let Some(item) = &inventory.slots[inventory.selected_hotbar].item {
+        let (tool_type, break_level, hit_ticks) = if let Some(item) = &inventory.slots[player_inventory.selected_hotbar].item {
             match item.category {
                 ItemCategory::Tool(t, b, h, _) => (t, b, h),
                 _ => (ToolType::None, 0, 1),
@@ -53,7 +53,7 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
             (ToolType::None, 0, 1)
         };
         *player_direction = Direction(direction);
-        *animation_state = AnimationStatePlayer::Attacking(direction4, inventory.slots[inventory.selected_hotbar].item.clone());
+        *animation_state = AnimationStatePlayer::Attacking(direction4, inventory.slots[player_inventory.selected_hotbar].item.clone());
         to_add_updated.push(e);
         
         if let Some(object) = check_collision_with_object(state, &collider) {
@@ -87,13 +87,13 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
 pub fn item_use(handle: &mut RainHandle, state: &mut State) {
     let mut pending_use: Option<(ItemType, Entity, usize)> = None;
     place_object(handle, state);
-    for (e, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
-        let slot = inventory.slots.get(inventory.selected_hotbar).unwrap();
+    for (e, (_, inventory, player_inventory)) in handle.world.query_mut::<(&Player, &mut Inventory, &PlayerInventory)>() {
+        let slot = inventory.slots.get(player_inventory.selected_hotbar).unwrap();
         if let Some(item) = &slot.item {
             match item._type {
                 ItemType::Sling => {
                     if inventory.search_item(ItemType::Stone, 1).is_some() {
-                        pending_use = Some((ItemType::Sling, e, inventory.selected_hotbar));
+                        pending_use = Some((ItemType::Sling, e, player_inventory.selected_hotbar));
                     }
                 }
                 _ => {}
@@ -108,17 +108,21 @@ pub fn item_use(handle: &mut RainHandle, state: &mut State) {
 
 fn place_object(handle: &mut RainHandle, state: &mut State) {
     let mut updated = false;
+    let mut object_to_place: Option<(ObjectData, Vec2, ChunkPosition)> = None;
     let mouse_position = handle.screen_position_to_world_position(handle.mouse_position());
-    for (_, (_, position, collider, inventory)) in handle.world.query_mut::<(&Player, &Position2D, &Collider, &mut Inventory)>() {
-        let slot = inventory.slots.get(inventory.selected_hotbar).unwrap();
+    
+    for (_, (_, position, collider, inventory, player_inventory)) in handle.world.query_mut::<(
+        &Player, &Position2D, &Collider, &mut Inventory, &PlayerInventory
+    )>() {
+        let slot = inventory.slots.get(player_inventory.selected_hotbar).unwrap();
         if let Some(item) = &slot.item {
             let item_data = state.item_registry.get(&item._type).unwrap();
             if let Some(placeable) = item_data.placeable {
                 let distance = (mouse_position - position.0).length();
                 let object_data = state.object_registry.get(&placeable).unwrap();
                 let object_position = world_position_to_object_position(mouse_position);
-                let object = Object::from_data(placeable, object_data, object_position);
-                let object_collider = object.real_collider(&object_data.collider);
+                let object_collider = object_data.collider.add_vec2(object_position);
+
                 if distance < PLAYER_REACH && !collider.aabb_collision(&object_collider) {
                     let mut object_colliders: Vec<Collider> = Vec::new();
                     let chunk_position = position_to_chunk_position(object_position.x, object_position.y);
@@ -127,20 +131,24 @@ fn place_object(handle: &mut RainHandle, state: &mut State) {
                         if let Some(chunk) = state.chunks.get(&adjacent_position) {
                             for other_object in &chunk.objects {
                                 let other_object_data = state.object_registry.get(&other_object._type).unwrap();
-                                object_colliders.push(other_object.real_collider(&other_object_data.collider).clone())
+                                object_colliders.push(other_object_data.collider.add_vec2(other_object.position))
                             }
                         }
                     }
-        
-                    if !object_colliders.iter().any(|object_collider| object_collider.aabb_collision(&object_collider)) {
-                        if let Some(chunk) = state.chunks.get_mut(&chunk_position) {
-                            chunk.objects.push(object);
-                            inventory.remove_item_from_slot(inventory.selected_hotbar, 1);
-                            updated = true;
-                        }
+                    
+                    if !object_colliders.iter().any(|other_collider| object_collider.aabb_collision(&other_collider)) {
+                        object_to_place = Some((object_data.clone(), object_position, chunk_position));
+                        inventory.remove_item_from_slot(player_inventory.selected_hotbar, 1);
                     }
                 }
             }
+        }
+    }
+    if let Some((object_data, position, chunk_position)) = object_to_place {
+        if let Some(chunk) = state.chunks.get_mut(&chunk_position) {
+            let object = Object::from_data(handle, &object_data, position);
+            chunk.objects.push(object);
+            updated = true;
         }
     }
     if updated {
@@ -265,9 +273,11 @@ fn system_player_sling(handle: &mut RainHandle) {
     let mut sling_cancel: Option<Entity> = None;
     let mut player_entity: Option<Entity> = None;
 
-    for (e, (_, inventory, position, sling_hold)) in handle.world.query_mut::<(&Player, &mut Inventory, &Position2D, &mut SlingHold)>() {
+    for (e, (_, position, sling_hold, inventory, player_inventory)) in handle.world.query_mut::<(
+        &Player, &Position2D, &mut SlingHold, &mut Inventory, &PlayerInventory
+    )>() {
         player_entity = Some(e);
-        if inventory.selected_hotbar != sling_hold.1 || inventory.open {
+        if player_inventory.selected_hotbar != sling_hold.1 || player_inventory.open {
             sling_cancel = Some(e);
             break;
         }

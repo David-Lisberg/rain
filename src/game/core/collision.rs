@@ -29,6 +29,15 @@ impl Collider {
         Self::new(x - width / 2.0, y - height / 2.0, width, height)
     }
 
+    pub fn add_vec2(&self, rhs: Vec2) -> Self {
+        Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            width: self.width,
+            height: self.height
+        }
+    }
+
     pub fn aabb_collision(&self, other: &Collider) -> bool {
         self.x < other.x + other.width &&
         self.x + self.width > other.x &&
@@ -82,7 +91,7 @@ pub fn check_collision_with_object(state: &mut State, collider: &Collider) -> Op
         if let Some(chunk) = state.chunks.get(&adjacent_position) {
             for object in chunk.objects.iter() {
                 let object_data = state.object_registry.get(&object._type).unwrap();
-                if collider.aabb_collision(&object.real_collider(&object_data.collider)) {
+                if collider.aabb_collision(&object_data.collider.add_vec2(object.position)) {
                     collided.push(object.clone());
                 }
             }

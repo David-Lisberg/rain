@@ -33,7 +33,7 @@ pub fn system_physics_movement_2d(handle: &mut RainHandle, state: &mut State) {
                     for object in &chunk.objects {
                         let object_data = state.object_registry.get(&object._type).unwrap();
                         if object_data.collidable {
-                            object_colliders.push(object.real_collider(&object_data.collider).clone());
+                            object_colliders.push(object_data.collider.add_vec2(object.position));
                         }
                     }
                 }

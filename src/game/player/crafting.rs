@@ -5,6 +5,7 @@ use crate::game::player::inventory::Inventory;
 use crate::game::player::item::{Item, ItemType};
 
 pub type RecipeRegistry = Vec<Recipe>;
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct Recipe {
     pub input: Vec<(ItemType, i32)>,

@@ -1,5 +1,6 @@
 {
     "twig": {
+        "object_type": "twig",
         "texture": "object_twig",
         "size": [0.6, 0.6],
         "depth_layer": -2,
@@ -10,6 +11,7 @@
         "offset": [0.2, 0.2]
     },
     "grass": {
+        "object_type": "grass",
         "texture": "object_grass",
         "size": [0.6, 0.6],
         "depth_layer": -2,
@@ -20,6 +22,7 @@
         "offset": [0.2, 0.2]
     },
     "stone": {
+        "object_type": "stone",
         "texture": "object_stone",
         "size": [0.6, 0.6],
         "depth_layer": -2,
@@ -30,6 +33,7 @@
         "offset": [0.2, 0.2]
     },
     "flint": {
+        "object_type": "flint",
         "texture": "object_flint",
         "size": [0.6, 0.6],
         "depth_layer": -2,
@@ -40,6 +44,7 @@
         "offset": [0.2, 0.2]
     },
     "tree1": {
+        "object_type": "tree1",
         "texture": "object_tree1",
         "size": [1.0, 3.0],
         "depth_layer": 2,
@@ -52,6 +57,10 @@
         "collider": [0.1, 0.0, 0.8, 1.0]
     },
     "barrel": {
+        "object_type": "barrel",
+        "behaviors": [
+            {"inventory":10}
+        ],
         "texture": "object_barrel",
         "size": [1.0, 1.0],
         "depth_layer": 2,

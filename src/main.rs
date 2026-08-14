@@ -34,7 +34,7 @@ use crate::game::player::action::system_update_player_animation;
 use crate::game::player::action::system_update_player_texture;
 use crate::game::player::crafting::RecipeRegistry;
 use crate::game::player::input::*;
-use crate::game::player::inventory::Inventory;
+use crate::game::player::inventory::{Inventory, InventoryScreen, PlayerInventory, setup_inventory_ui};
 use crate::game::player::inventory::system_inventory_interface;
 use crate::game::player::item::{Item, ItemRegistry};
 use crate::game::player::item::ItemType;
@@ -129,6 +129,7 @@ pub struct State {
     enemy_registry: EnemyRegistry,
     object_registry: ObjectRegistry,
     tileset_lookup: [u8; 256],
+    inventory_screen: InventoryScreen,
 }
 
 impl RainState for State {
@@ -197,8 +198,10 @@ impl RainState for State {
         ));
         handle.world.insert(player_entity, (
             Health::new(100.0), HurtBox(Collider::from_center(0.0, 0.0, 0.8, 0.8)), Persistent, Swimmable, AnimationPool::new(),
-            AnimationStatePlayer::None,
+            AnimationStatePlayer::None, PlayerInventory::new(),
         )).unwrap();
+
+        setup_inventory_ui(self, player_entity);
 
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
             inventory.add_item(Item::new(ItemType::BoneHatchet), 1);
@@ -232,6 +235,7 @@ fn main() -> anyhow::Result<()> {
         enemy_registry: load_enemy_registry("res/assets/enemies.json"),
         object_registry: HashMap::new(),
         tileset_lookup: generate_tileset_lookup(),
+        inventory_screen: InventoryScreen::new(),
     };
     let _ = RainApp::new(state)
         .size(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32)
