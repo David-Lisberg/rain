@@ -6,8 +6,7 @@ use rain::engine::component::*;
 use rain::engine::core::RainHandle;
 
 use crate::game::entity::damage::{Health, HealthBar};
-use crate::game::player::crafting::Recipe;
-use crate::game::player::inventory::{CraftHover, INVENTORY_SLOTS_HOTBAR, INVENTORY_SLOTS_INVENTORY, INVENTORY_SLOTS_WIDTH, Inventory, InventoryHover, InventorySelection, PlayerInventory};
+use crate::game::player::inventory::{CraftHover, Inventory, InventoryHover, InventorySelection, PlayerInventory};
 use crate::game::player::item::Item;
 use crate::game::player::movement::Player;
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, State};
@@ -159,6 +158,27 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
             }
             element.sub_element_ex(|| recipe_element.build());
         }
+    }
+
+    if let Some(health) = handle.world.query_one::<&Health>(player_entity).unwrap().get() {
+        element.sub_element_ex(||
+            EBuilder::new((SCREEN_WIDTH - HEALTH_BAR_WIDTH) / 2.0, HEALTH_BAR_HEIGHT)
+                .rect(HEALTH_BAR_WIDTH, HEALTH_BAR_WIDTH / 24.0)
+                .texture(handle.fetch_texture("health_bar_background").unwrap())
+                .build()
+        );
+        element.sub_element_ex(||
+            EBuilder::new((SCREEN_WIDTH - HEALTH_BAR_WIDTH * 188.0 / 192.0) / 2.0, HEALTH_BAR_HEIGHT + HEALTH_BAR_WIDTH / 96.0)
+                .rect(HEALTH_BAR_WIDTH * 188.0 / 192.0 * health.current / health.max, HEALTH_BAR_WIDTH / 48.0)
+                .color(Color::RED.into())
+                .build()
+        );
+        element.sub_element_ex(||
+            EBuilder::new((SCREEN_WIDTH - HEALTH_BAR_WIDTH) / 2.0, HEALTH_BAR_HEIGHT)
+                .rect(HEALTH_BAR_WIDTH, HEALTH_BAR_WIDTH / 24.0)
+                .texture(handle.fetch_texture("health_bar_frame").unwrap())
+                .build()
+        );
     }
 
     state.gui.element_immediate(handle, element.build());
