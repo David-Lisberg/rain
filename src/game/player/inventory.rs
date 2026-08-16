@@ -327,8 +327,16 @@ pub fn system_inventory_interface(handle: &mut RainHandle, state: &mut State) {
                 if state.inventory_screen.selection.len() == 1 {
                     let selected = state.inventory_screen.selection[0];
                     state.inventory_screen.selection[0] = selection;
-                    if let Ok(inventory) = handle.world.query_one_mut::<&mut Inventory>(selection.inventory) {
-                        inventory.slots.swap(selected.slot, selection.slot);
+                    if selected.inventory == selection.inventory {
+                        if let Ok(inventory) = handle.world.query_one_mut::<&mut Inventory>(selection.inventory) {
+                            inventory.slots.swap(selected.slot, selection.slot);
+                        }
+                    } else {
+                        let [inventory1, inventory2] = handle.world
+                            .query_many_mut::<&mut Inventory, 2>([selection.inventory, selected.inventory]);
+                        let (inventory1, inventory2) = (inventory1.unwrap(), inventory2.unwrap());
+
+                        std::mem::swap(&mut inventory1.slots[selection.slot], &mut inventory2.slots[selected.slot]);
                     }
                 }
             }
