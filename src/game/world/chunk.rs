@@ -95,7 +95,7 @@ pub fn generate_chunk_info(state: &mut State, chunk_position: ChunkPosition) -> 
             let river_noise = octave_noise_2d(x * SCALE_RIVER, y * SCALE_RIVER, 4, 0.5, &state.perlin[2]);
 
             if river_noise.abs() < RIVER_THRESHOLD {
-                height = 0.0f64.max(height + (RIVER_THRESHOLD - river_noise.abs()) * -12.5);
+                height = 0.0f64.max(height + (RIVER_THRESHOLD - river_noise.abs()).powf(0.95) * -12.5);
                 if biome != BiomeType::Ocean && height < 1.0 {
                     biome = BiomeType::River;
                 }
