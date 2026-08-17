@@ -1,4 +1,5 @@
 use glam::Vec2;
+use hecs::Entity;
 use rain::engine::core::RainHandle;
 use rain::engine::resource::ResourceManager;
 use rain::engine::texture::Texture;
@@ -10,7 +11,9 @@ use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::sync::Arc;
 
-use crate::game::world::chunk::CHUNK_DIM;
+use crate::game::player::action::PLAYER_REACH;
+use crate::game::player::movement::Player;
+use crate::game::world::chunk::{CHUNK_DIM, position_to_chunk_position};
 
 pub struct Tile {
     pub _type: TileType, 
@@ -47,6 +50,8 @@ pub struct TileJSON {
     pub size: Vec2JSON,
     pub color: Color,
 }
+
+pub struct TileHighlight;
 
 impl TileType {
     pub fn fetch_texture(&self, resource_manager: &ResourceManager) -> Arc<Texture> {
@@ -112,4 +117,31 @@ pub fn read_tile(handle: &mut RainHandle, file: &mut File) {
     let tile_json: TileJSON = serde_json::from_str(&buffer).expect("Error: Failed to parse tile json.");
     handle.world.spawn((Sprite, Visible, Position2D(Vec2::new(tile_json.position.x, tile_json.position.y)),
         Scale2D(Vec2::new(tile_json.size.x, tile_json.size.y)), tile_json.color));
+}
+
+pub fn system_tile_highlight(handle: &mut RainHandle) {
+    let mouse_position = handle.screen_position_to_world_position(handle.mouse_position());
+    let player_position = handle.world.query::<(&Player, &Position2D)>().iter().next().unwrap().1.1.0;
+    let mut to_remove_visible: Option<Entity> = None;
+    let mut to_add_visible: Option<Entity> = None;
+
+    for (e, (_, position, visible)) in handle.world.query_mut::<(&TileHighlight, &mut Position2D, Option<&Visible>)>() {
+        let distance = (mouse_position - player_position).length();
+        if distance > PLAYER_REACH && visible.is_some() {
+            to_remove_visible = Some(e);
+        } else if distance <= PLAYER_REACH && visible.is_none() {
+            to_add_visible = Some(e);
+        }
+        let chunk_position = position_to_chunk_position(mouse_position.x, mouse_position.y);
+        let tile_position = Vec2::new((chunk_position.x + mouse_position.x as i32 % CHUNK_DIM as i32) as f32, 
+            (chunk_position.y + mouse_position.y as i32 % CHUNK_DIM as i32) as f32) + 0.5;
+        position.0 = tile_position;
+    }
+
+    if let Some(e) = to_remove_visible {
+        handle.world.remove_one::<Visible>(e).unwrap();
+    }
+    if let Some(e) = to_add_visible {
+        handle.world.insert_one(e, Visible).unwrap();
+    }
 }

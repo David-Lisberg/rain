@@ -53,6 +53,7 @@ use crate::game::world::generation::system_world_generation;
 use crate::game::world::object::{ObjectRegistry, system_object_transparency};
 use crate::game::world::reset::Persistent;
 use crate::game::world::reset::system_reset_world;
+use crate::game::world::tile::{TileHighlight, system_tile_highlight};
 use crate::game::world::tileset::generate_tileset_lookup;
 use crate::game::world::water::Swimmable;
 use crate::game::world::water::system_swimming;
@@ -63,10 +64,11 @@ pub const SCREEN_HEIGHT: f32 = 600.0;
 const DEPTH_DIFFERENCE: f32 = -0.00001;
 
 pub const DEPTH_PLAYER: f32 = 0.01;
-pub const DEPTH_TREES: f32 = DEPTH_PLAYER + DEPTH_DIFFERENCE * 2.0;
 pub const DEPTH_FLIGHT: f32 = DEPTH_PLAYER + DEPTH_DIFFERENCE * 3.0;
+pub const DEPTH_TREES: f32 = DEPTH_PLAYER + DEPTH_DIFFERENCE * 2.0;
 pub const DEPTH_PROJECTILE: f32 = DEPTH_PLAYER + DEPTH_DIFFERENCE;
 pub const DEPTH_SMALL_OBJECT: f32 = DEPTH_PLAYER - DEPTH_DIFFERENCE * 2.0;
+pub const DEPTH_HIGHLIGHT: f32 = DEPTH_PLAYER - DEPTH_DIFFERENCE * 5.0;
 
 pub mod game {
     pub mod world {
@@ -171,6 +173,7 @@ impl RainState for State {
         system_camera_controller(handle, self);
         system_camera_tracker(handle);
         system_camera_zoom(handle, self);
+        system_tile_highlight(handle);
 
         system_reset_world(handle, self);
 
@@ -201,6 +204,8 @@ impl RainState for State {
             Health::new(100.0), HurtBox(Collider::from_center(0.0, 0.0, 0.8, 0.8)), Persistent, Swimmable, AnimationPool::new(),
             AnimationStatePlayer::None, PlayerInventory::new(),
         )).unwrap();
+        handle.world.spawn((TileHighlight, Sprite, Position2D(Vec2::ZERO), Scale2D(Vec2::new(1.0, 1.0)), Color::WHITE.a(0.07), 
+            Priority(1), DepthZ(0.001)));
 
         setup_inventory_ui(self, player_entity);
 

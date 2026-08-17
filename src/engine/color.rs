@@ -49,6 +49,15 @@ impl Color {
         glyphon::Color::rgba(color.r, color.g, color.b, color.a)
     }
 
+    pub fn a(&self, a: f32) -> Self {
+        Self {
+            r: self.r,
+            g: self.g,
+            b: self.b,
+            a: (a * 255.0) as u8,
+        }
+    }
+
     fn srgb_to_linear(color: f32) -> f32 {
         if color <= 0.04045 {
             color / 12.92

@@ -21,7 +21,7 @@ use crate::game::utility::direction::Direction4;
 use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
 use crate::game::world::object::{Object, ObjectBehavior, ObjectType, destroy_object, reload_object_mesh, world_position_to_object_position};
 
-const PLAYER_REACH: f32 = 4.0;
+pub const PLAYER_REACH: f32 = 4.0;
 
 struct SlingHold(f32, usize);
 
