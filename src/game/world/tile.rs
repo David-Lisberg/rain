@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use rain::engine::color::Color;
 use rain::engine::component::*;
 
+use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::sync::Arc;
@@ -14,6 +15,14 @@ use std::sync::Arc;
 use crate::game::player::action::PLAYER_REACH;
 use crate::game::player::movement::Player;
 use crate::game::world::chunk::{CHUNK_DIM, position_to_chunk_position};
+
+pub type TileRegistry = HashMap<TileType, TileData>;
+
+#[derive(Deserialize)]
+pub struct TileData {
+    pub tile_type: TileType,
+    pub texture: String,
+}
 
 pub struct Tile {
     pub _type: TileType, 
@@ -26,7 +35,8 @@ pub fn position_to_tile_position(x: f32, y: f32) -> TilePosition {
 }
 
 #[repr(u8)]
-#[derive(PartialEq, Clone, Deserialize, PartialOrd, Copy, Ord, Eq, Debug)]
+#[derive(PartialEq, Clone, Deserialize, PartialOrd, Copy, Ord, Eq, Debug, Hash)]
+#[serde(rename_all = "snake_case")]
 pub enum TileType {
     Water = 0,
     Clay = 1,
@@ -54,20 +64,6 @@ pub struct TileJSON {
 pub struct TileHighlight;
 
 impl TileType {
-    pub fn fetch_texture(&self, resource_manager: &ResourceManager) -> Arc<Texture> {
-        match self {
-            TileType::Dirt => resource_manager.fetch_texture("tile_dirt").unwrap(),
-            TileType::Grass => resource_manager.fetch_texture("tile_grass").unwrap(),
-            TileType::Grass2 => resource_manager.fetch_texture("tile_grass2").unwrap(),
-            TileType::Stone => resource_manager.fetch_texture("tile_stone").unwrap(),
-            TileType::Cobblestone => resource_manager.fetch_texture("tile_cobblestone").unwrap(),
-            TileType::Water => resource_manager.fetch_texture("tile_water").unwrap(),
-            TileType::Sand => resource_manager.fetch_texture("tile_sand").unwrap(),
-            TileType::Clay => resource_manager.fetch_texture("tile_clay").unwrap(),
-            TileType::Mud => resource_manager.fetch_texture("tile_mud").unwrap(),
-        }
-    }
-
     pub fn fetch_tileset(&self, resource_manager: &ResourceManager) -> Option<Arc<Texture>> {
         match self {
             TileType::Grass => Some(resource_manager.fetch_texture("tile_grass_tileset").unwrap()),

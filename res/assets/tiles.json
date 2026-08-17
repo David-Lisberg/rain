@@ -1,0 +1,38 @@
+{
+    "water": {
+        "tile_type": "water",
+        "texture": "tile_water"
+    },
+    "clay": {
+        "tile_type": "clay",
+        "texture": "tile_clay"
+    },
+    "sand": {
+        "tile_type": "sand",
+        "texture": "tile_sand"
+    },
+    "mud": {
+        "tile_type": "mud",
+        "texture": "tile_mud"
+    },
+    "grass": {
+        "tile_type": "grass",
+        "texture": "tile_grass"
+    },
+    "grass2": {
+        "tile_type": "grass2",
+        "texture": "tile_grass2"
+    },
+    "dirt": {
+        "tile_type": "dirt",
+        "texture": "tile_dirt"
+    },
+    "stone": {
+        "tile_type": "stone",
+        "texture": "tile_stone"
+    },
+    "cobblestone": {
+        "tile_type": "cobblestone",
+        "texture": "tile_cobblestone"
+    }
+}

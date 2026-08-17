@@ -43,7 +43,7 @@ use crate::game::player::item::system_timer_pickup;
 use crate::game::player::movement::Player;
 use crate::game::player::movement::system_player_dash;
 use crate::game::player::movement::system_player_walk;
-use crate::game::core::load::{load_animations, load_enemy_registry, load_inventory_registry, load_item_registry, load_object_registry, load_recipe_registry, load_world_gen_config};
+use crate::game::core::load::{load_animations, load_enemy_registry, load_inventory_registry, load_item_registry, load_object_registry, load_recipe_registry, load_tile_registry, load_world_gen_config};
 use crate::game::core::load::load_textures;
 use crate::game::world::chunk::ChunkData;
 use crate::game::world::chunk::ChunkPosition;
@@ -53,7 +53,7 @@ use crate::game::world::generation::system_world_generation;
 use crate::game::world::object::{ObjectRegistry, system_object_transparency};
 use crate::game::world::reset::Persistent;
 use crate::game::world::reset::system_reset_world;
-use crate::game::world::tile::{TileHighlight, system_tile_highlight};
+use crate::game::world::tile::{TileHighlight, TileRegistry, system_tile_highlight};
 use crate::game::world::tileset::generate_tileset_lookup;
 use crate::game::world::water::Swimmable;
 use crate::game::world::water::system_swimming;
@@ -130,6 +130,7 @@ pub struct State {
     recipe_registry: RecipeRegistry,
     enemy_registry: EnemyRegistry,
     inventory_registry: InventoryRegistry,
+    tile_registry: TileRegistry,
     object_registry: ObjectRegistry,
     tileset_lookup: [u8; 256],
     inventory_screen: InventoryScreen,
@@ -241,6 +242,7 @@ fn main() -> anyhow::Result<()> {
         recipe_registry: load_recipe_registry("res/assets/recipes.json"),
         enemy_registry: load_enemy_registry("res/assets/enemies.json"),
         inventory_registry: load_inventory_registry("res/assets/inventory.json"),
+        tile_registry: load_tile_registry("res/assets/tiles.json"),
         object_registry: HashMap::new(),
         tileset_lookup: generate_tileset_lookup(),
         inventory_screen: InventoryScreen::new(),

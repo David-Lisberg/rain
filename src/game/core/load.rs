@@ -8,6 +8,7 @@ use crate::game::player::inventory::InventoryRegistry;
 use crate::game::player::item::ItemRegistry;
 use crate::game::world::config::WorldGenConfig;
 use crate::game::world::object::{ObjectData, ObjectDataRaw, ObjectRegistry, ObjectType};
+use crate::game::world::tile::TileRegistry;
 
 type TextureRegistry = Vec<(String, String)>;
 type AnimationRegistry = Vec<(String, String)>;
@@ -60,6 +61,11 @@ pub fn load_enemy_registry(path: &str) -> EnemyRegistry {
 pub fn load_inventory_registry(path: &str) -> InventoryRegistry {
     let json = std::fs::read_to_string(path).expect("Error loading inventory registry.");
     serde_json::from_str(&json).expect("Error parsing inventory registry.")
+}
+
+pub fn load_tile_registry(path: &str) -> TileRegistry {
+    let json = std::fs::read_to_string(path).expect("Error loading tile registry.");
+    serde_json::from_str(&json).expect("Error parsing tile registry.")
 }
 
 pub fn load_object_registry(handle: &mut RainHandle, path: &str) -> ObjectRegistry {

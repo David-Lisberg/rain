@@ -2,43 +2,43 @@
     {
         "type": "Forest",
         "tile_rule": [
-            [[2.5, 3.0], "Cobblestone"],
-            [[2.15, 2.5], "Stone"],
-            [[2.0, 2.15], "Dirt"],
-            [[1.75, 2.0], "Grass2"],
-            [[0.00, 1.75], "Grass"]
+            [[2.5, 3.0], "cobblestone"],
+            [[2.15, 2.5], "stone"],
+            [[2.0, 2.15], "dirt"],
+            [[1.75, 2.0], "grass2"],
+            [[0.00, 1.75], "grass"]
         ],
         "object_rule" : [
-            [[0.45, 1.0], 0.03, ["Grass", "Grass2"], "tree1"],
-            [[0.4, 0.6], 0.05, ["Grass", "Grass2"], "twig"],
-            [[0.25, 0.5], 0.07, ["Grass", "Grass2"], "grass"],
-            [[0.2, 0.9], 0.05, ["Stone"], "stone"],
-            [[0.1, 0.8], 0.02, ["Stone"], "flint"]
+            [[0.45, 1.0], 0.03, ["grass", "grass2"], "tree1"],
+            [[0.4, 0.6], 0.05, ["grass", "grass2"], "twig"],
+            [[0.25, 0.5], 0.07, ["grass", "grass2"], "grass"],
+            [[0.2, 0.9], 0.05, ["stone"], "stone"],
+            [[0.1, 0.8], 0.02, ["stone"], "flint"]
         ],
-        "default_tile": "Dirt"
+        "default_tile": "dirt"
     },
     {
         "type": "River",
         "tile_rule": [],
         "object_rule": [],
-        "default_tile": "Water"
+        "default_tile": "water"
     },
     {
         "type": "Ocean",
         "tile_rule": [],
         "object_rule": [],
-        "default_tile": "Water"
+        "default_tile": "water"
     },
     {
         "type": "Coast",
         "tile_rule": [],
         "object_rule": [],
-        "default_tile": "Sand"
+        "default_tile": "sand"
     },
     {
         "type": "None",
         "tile_rule": [],
         "object_rule": [],
-        "default_tile": "Water"
+        "default_tile": "water"
     }
 ]

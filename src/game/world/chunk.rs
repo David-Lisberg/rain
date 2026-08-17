@@ -17,7 +17,7 @@ use crate::game::core::collision::Collider;
 use crate::game::utility::noise::{noise_normalize, octave_noise_2d};
 use crate::game::world::config::BiomeType;
 use crate::game::world::generation::CHUNK_GENERATION_DISTANCE;
-use crate::game::world::tile::{Tile, TileType};
+use crate::game::world::tile::{Tile, TileRegistry, TileType};
 use crate::game::world::object::{Object, ObjectType, reload_object_mesh};
 use crate::game::player::movement::Player;
 use crate::game::world::tileset::{ChunkTileSet, UV_LOOKUP};
@@ -296,7 +296,7 @@ fn increment(mut value: (usize, usize), max: usize) -> (usize, usize) {
 
 const TRANSITION_LAYER_DEPTH: f32 = 0.0001;
 
-pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData, tileset: &ChunkTileSet, tileset_lookup: &[u8; 256]) -> ModelMesh {
+pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData, tile_registry: &TileRegistry, tileset: &ChunkTileSet, tileset_lookup: &[u8; 256]) -> ModelMesh {
     let mut model_vertices: Vec<ModelVertex> = Vec::new();
     let mut model_indices: Vec<u32> = Vec::new();
 
@@ -305,7 +305,8 @@ pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData, tileset:
 
     for i in 0..CHUNK_DIM {
         for j in 0..CHUNK_DIM {
-            let tile_texture = chunk.tiles[i][j]._type.fetch_texture(&handle.resource_manager);
+            let tile_data = tile_registry.get(&chunk.tiles[i][j]._type).unwrap();
+            let tile_texture = handle.fetch_texture(&tile_data.texture).unwrap();
             let x = (chunk.position.x * CHUNK_DIM as i32) as f32 + i as f32;
             let y = (chunk.position.y * CHUNK_DIM as i32) as f32 + j as f32;
             
@@ -429,7 +430,7 @@ pub fn system_manage_chunks(handle: &mut RainHandle, state: &mut State) {
             construct_chunk_tileset(padded)
         };
         if let Some(chunk) = state.chunks.get(&chunk_position) {
-            let mesh = construct_chunk_mesh(handle, chunk, &tileset, &state.tileset_lookup);
+            let mesh = construct_chunk_mesh(handle, chunk, &state.tile_registry, &tileset, &state.tileset_lookup);
             handle.world.insert(e, (mesh, Visible, tileset)).unwrap();
         }
     }
