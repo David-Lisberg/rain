@@ -130,3 +130,15 @@ pub fn collect_object_colliders(state: &mut State, position: Vec2) -> Vec<Collid
     }
     object_colliders
 }
+
+pub fn collect_water_colliders(state: &mut State, position: Vec2) -> Vec<Collider> {
+    let mut water_colliders: Vec<Collider> = Vec::new();
+    let chunk_position = position_to_chunk_position(position.x, position.y);
+    for adjacent in ADJACENT_I32 {
+        let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
+        if let Some(chunk) = state.chunks.get(&adjacent_position) {
+            water_colliders.extend(chunk.water_colliders.clone());
+        }
+    }
+    water_colliders
+}

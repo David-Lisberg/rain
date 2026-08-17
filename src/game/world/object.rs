@@ -47,6 +47,7 @@ pub struct ObjectDataRaw {
     pub collider: Option<Collider>,
     pub offset: Option<Vec2>,
     pub behaviors: Option<Vec<ObjectBehavior>>,
+    pub placeable_on_water: Option<bool>,
 }
 
 #[derive(Clone)]
@@ -64,6 +65,7 @@ pub struct ObjectData {
     pub collider: Collider,
     pub offset: Vec2,
     pub behaviors: Vec<ObjectBehavior>,
+    pub placeable_on_water: bool,
 }
 
 impl ObjectData {
@@ -86,6 +88,7 @@ impl ObjectData {
             collider,
             offset,
             behaviors: raw.behaviors.unwrap_or(Vec::new()),
+            placeable_on_water: raw.placeable_on_water.unwrap_or(false),
         }
     }
 

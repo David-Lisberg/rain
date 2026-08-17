@@ -10,8 +10,16 @@ use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::sync::Arc;
 
+use crate::game::world::chunk::CHUNK_DIM;
+
 pub struct Tile {
     pub _type: TileType, 
+}
+
+pub struct TilePosition(pub usize);
+
+pub fn position_to_tile_position(x: f32, y: f32) -> TilePosition {
+    TilePosition((y as usize % CHUNK_DIM) * CHUNK_DIM + x as usize % CHUNK_DIM)
 }
 
 #[repr(u8)]

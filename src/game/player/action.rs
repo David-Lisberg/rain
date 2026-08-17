@@ -10,7 +10,7 @@ use rain::engine::texture::Texture;
 
 use crate::State;
 use crate::game::core::animation::AnimationStateUpdated;
-use crate::game::core::collision::{Collider, check_collision_with_object};
+use crate::game::core::collision::{Collider, check_collision_with_object, collect_object_colliders, collect_water_colliders};
 use crate::game::core::physics::ADJACENT_I32;
 use crate::game::entity::loot::roll_loot;
 use crate::game::entity::projectile::{ProjectileSpawn, spawn_projectile};
@@ -116,7 +116,6 @@ pub fn item_use(handle: &mut RainHandle, state: &mut State) {
     if player_interact_world(handle, state) {
         return;
     }
-    place_object(handle, state);
     for (e, (_, inventory, player_inventory)) in handle.world.query_mut::<(&Player, &mut Inventory, &PlayerInventory)>() {
         let slot = inventory.slots.get(player_inventory.selected_hotbar).unwrap();
         if let Some(item) = &slot.item {
@@ -145,6 +144,9 @@ fn player_interact_world(handle: &mut RainHandle, state: &mut State) -> bool {
         }        
     }
     if player_interact_object(handle, state, mouse_position) {
+        return true;
+    }
+    if player_place_object(handle, state, mouse_position) {
         return true;
     }
 
@@ -190,35 +192,28 @@ fn player_interact_object(handle: &mut RainHandle, state: &mut State, mouse_posi
     false
 }
 
-fn place_object(handle: &mut RainHandle, state: &mut State) {
+fn player_place_object(handle: &mut RainHandle, state: &mut State, mouse_position: Vec2) -> bool {
     let mut updated = false;
     let mut object_to_place: Option<(ObjectType, Vec2, ChunkPosition)> = None;
-    let mouse_position = handle.screen_position_to_world_position(handle.mouse_position());
     
-    for (_, (_, position, collider, inventory, player_inventory)) in handle.world.query_mut::<(
-        &Player, &Position2D, &Collider, &mut Inventory, &PlayerInventory
+    for (_, (_, collider, inventory, player_inventory)) in handle.world.query_mut::<(
+        &Player, &Collider, &mut Inventory, &PlayerInventory
     )>() {
         let slot = inventory.slots.get(player_inventory.selected_hotbar).unwrap();
         if let Some(item) = &slot.item {
             let item_data = state.item_registry.get(&item._type).unwrap();
             if let Some(placeable) = item_data.placeable {
-                let distance = (mouse_position - position.0).length();
                 let object_data = state.object_registry.get(&placeable).unwrap();
                 let object_position = world_position_to_object_position(mouse_position);
                 let object_collider = object_data.collider.add_vec2(object_position);
 
-                if distance < PLAYER_REACH && !collider.aabb_collision(&object_collider) {
+                if !collider.aabb_collision(&object_collider) {
                     let mut object_colliders: Vec<Collider> = Vec::new();
-                    let chunk_position = position_to_chunk_position(object_position.x, object_position.y);
-                    for adjacent in ADJACENT_I32 {
-                        let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
-                        if let Some(chunk) = state.chunks.get(&adjacent_position) {
-                            for other_object in &chunk.objects {
-                                let other_object_data = state.object_registry.get(&other_object._type).unwrap();
-                                object_colliders.push(other_object_data.collider.add_vec2(other_object.position))
-                            }
-                        }
+                    if !object_data.placeable_on_water {
+                        object_colliders.extend(collect_water_colliders(state, object_position));
                     }
+                    object_colliders.extend(collect_object_colliders(state, mouse_position));
+                    let chunk_position = position_to_chunk_position(object_position.x, object_position.y);
                     
                     if !object_colliders.iter().any(|other_collider| object_collider.aabb_collision(&other_collider)) {
                         object_to_place = Some((placeable, object_position, chunk_position));
@@ -237,7 +232,9 @@ fn place_object(handle: &mut RainHandle, state: &mut State) {
     }
     if updated {
         reload_object_mesh(handle, state);
+        return true;
     }
+    false
 }
 
 pub fn system_update_player_texture(handle: &mut RainHandle) {

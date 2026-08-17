@@ -3,9 +3,7 @@ use rain::engine::component::Position2D;
 use rain::engine::core::RainHandle;
 
 use crate::State;
-use crate::game::core::collision::Collider;
-use crate::game::core::physics::ADJACENT_I32;
-use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
+use crate::game::core::collision::{Collider, collect_water_colliders};
 
 
 pub struct Swimmable;
@@ -16,14 +14,7 @@ pub fn system_swimming(handle: &mut RainHandle, state: &mut State) {
     let mut to_remove_swimming: Vec<Entity> = Vec::new();
 
     for (e, (_, position, collider, swimming)) in handle.world.query::<(&Swimmable, &Position2D, &Collider, Option<&Swimming>)>().iter() {
-        let mut colliders: Vec<Collider> = Vec::new();
-        let chunk_position = position_to_chunk_position(position.0.x, position.0.y);
-        for adjacent in ADJACENT_I32 {
-            let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
-            if let Some(chunk) = state.chunks.get(&adjacent_position) {
-                colliders.extend(chunk.water_colliders.clone());
-            }
-        }
+        let colliders: Vec<Collider> = collect_water_colliders(state, position.0);
 
         let mut collided = false;
         let collider_center = collider.center();
