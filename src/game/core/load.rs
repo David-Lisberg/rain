@@ -4,6 +4,7 @@ use rain::engine::core::RainHandle;
 
 use crate::game::entity::enemy::EnemyRegistry;
 use crate::game::player::crafting::RecipeRegistry;
+use crate::game::player::inventory::InventoryRegistry;
 use crate::game::player::item::ItemRegistry;
 use crate::game::world::config::WorldGenConfig;
 use crate::game::world::object::{ObjectData, ObjectDataRaw, ObjectRegistry, ObjectType};
@@ -54,6 +55,11 @@ pub fn load_recipe_registry(path: &str) -> RecipeRegistry {
 pub fn load_enemy_registry(path: &str) -> EnemyRegistry {
     let json = std::fs::read_to_string(path).expect("Error loading enemy registry.");
     serde_json::from_str(&json).expect("Error parsing enemy registry.")
+}
+
+pub fn load_inventory_registry(path: &str) -> InventoryRegistry {
+    let json = std::fs::read_to_string(path).expect("Error loading inventory registry.");
+    serde_json::from_str(&json).expect("Error parsing inventory registry.")
 }
 
 pub fn load_object_registry(handle: &mut RainHandle, path: &str) -> ObjectRegistry {

@@ -14,7 +14,7 @@ use serde::Deserialize;
 use wgpu::util::DeviceExt;
 
 use crate::game::entity::loot::LootTable;
-use crate::game::world::object::ObjectBehavior::Inventory;
+use crate::game::player::inventory::Inventory;
 use crate::{DEPTH_DIFFERENCE, DEPTH_PLAYER, State};
 use crate::game::core::collision::Collider;
 use crate::game::core::physics::ADJACENT_I32;
@@ -29,7 +29,7 @@ pub type ObjectRegistry = HashMap<ObjectType, ObjectData>;
 #[derive(Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum ObjectBehavior {
-    Inventory(i32),
+    Inventory(String),
 }
 
 #[derive(Deserialize, Clone)]
@@ -104,7 +104,8 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn from_data(handle: &mut RainHandle, data: &ObjectData, mut position: Vec2) -> Self {
+    pub fn from_data(handle: &mut RainHandle, state: &mut State, object_type: ObjectType, mut position: Vec2) -> Self {
+        let data = state.object_registry.get(&object_type).unwrap();
         position += data.offset;
         let entity: Option<Entity> = if data.behaviors.is_empty() {
             None
@@ -112,7 +113,10 @@ impl Object {
             let e = handle.world.spawn(());
             for behavior in &data.behaviors {
                 match behavior {
-                    ObjectBehavior::Inventory(slots) => handle.world.insert_one(e, Inventory(*slots)).unwrap()
+                    ObjectBehavior::Inventory(ui) => {
+                        let inventory_data = state.inventory_registry.get(ui).unwrap();
+                        handle.world.insert_one(e, Inventory::new((inventory_data.ui.rows * inventory_data.ui.columns) as usize)).unwrap();
+                    }
                 }
             }
             Some(e)

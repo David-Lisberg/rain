@@ -34,7 +34,7 @@ use crate::game::player::action::system_update_player_animation;
 use crate::game::player::action::system_update_player_texture;
 use crate::game::player::crafting::RecipeRegistry;
 use crate::game::player::input::*;
-use crate::game::player::inventory::{Inventory, InventoryScreen, PlayerInventory, setup_inventory_ui};
+use crate::game::player::inventory::{Inventory, InventoryRegistry, InventoryScreen, PlayerInventory, setup_inventory_ui};
 use crate::game::player::inventory::system_inventory_interface;
 use crate::game::player::item::{Item, ItemRegistry};
 use crate::game::player::item::ItemType;
@@ -43,7 +43,7 @@ use crate::game::player::item::system_timer_pickup;
 use crate::game::player::movement::Player;
 use crate::game::player::movement::system_player_dash;
 use crate::game::player::movement::system_player_walk;
-use crate::game::core::load::{load_animations, load_enemy_registry, load_item_registry, load_object_registry, load_recipe_registry, load_world_gen_config};
+use crate::game::core::load::{load_animations, load_enemy_registry, load_inventory_registry, load_item_registry, load_object_registry, load_recipe_registry, load_world_gen_config};
 use crate::game::core::load::load_textures;
 use crate::game::world::chunk::ChunkData;
 use crate::game::world::chunk::ChunkPosition;
@@ -127,6 +127,7 @@ pub struct State {
     item_registry: ItemRegistry,
     recipe_registry: RecipeRegistry,
     enemy_registry: EnemyRegistry,
+    inventory_registry: InventoryRegistry,
     object_registry: ObjectRegistry,
     tileset_lookup: [u8; 256],
     inventory_screen: InventoryScreen,
@@ -207,6 +208,7 @@ impl RainState for State {
             inventory.add_item(Item::new(ItemType::BoneHatchet), 1);
             inventory.add_item(Item::new(ItemType::Sling), 1);
             inventory.add_item(Item::new(ItemType::Stone), 10);
+            inventory.add_item(Item::new(ItemType::Barrel), 1);
         }
 
         handle.renderer.camera.set_z(8.0);
@@ -233,6 +235,7 @@ fn main() -> anyhow::Result<()> {
         item_registry: load_item_registry("res/assets/items.json"),
         recipe_registry: load_recipe_registry("res/assets/recipes.json"),
         enemy_registry: load_enemy_registry("res/assets/enemies.json"),
+        inventory_registry: load_inventory_registry("res/assets/inventory.json"),
         object_registry: HashMap::new(),
         tileset_lookup: generate_tileset_lookup(),
         inventory_screen: InventoryScreen::new(),

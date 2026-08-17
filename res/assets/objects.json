@@ -59,7 +59,7 @@
     "barrel": {
         "object_type": "barrel",
         "behaviors": [
-            {"inventory":10}
+            {"inventory":"inventory_barrel"}
         ],
         "texture": "object_barrel",
         "size": [1.0, 1.0],

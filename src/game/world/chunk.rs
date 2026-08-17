@@ -220,8 +220,7 @@ pub fn generate_chunk(handle: &mut RainHandle, state: &mut State, chunk_position
                 }
             }
             if let Some((object_type, position)) = object {
-                let object_data = state.object_registry.get(&object_type).unwrap();
-                let object = Object::from_data(handle, object_data, position);
+                let object = Object::from_data(handle, state, object_type, position);
 
                 objects.push(object);
             }

@@ -4,6 +4,7 @@ use hecs::Entity;
 use lgui::element::{EBuilder, Scale};
 use rain::engine::core::RainHandle;
 use rain::engine::input::{KeyboardKey, MouseButton};
+use serde::Deserialize;
 
 use crate::game::player::movement::Player;
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH, State};
@@ -17,26 +18,28 @@ pub const INVENTORY_SLOTS_WIDTH: usize = 9;
 pub const INVENTORY_SLOTS_HOTBAR: Range<usize> = 0..9;
 pub const INVENTORY_SLOTS_INVENTORY: Range<usize> = 9..36;
 
-pub const UI_INVENTORY_MAIN: InventoryUI = InventoryUI {
-    rows: 3,
-    columns: 9,
-    row_gap: INVENTORY_SLOT_GAP,
-    column_gap: INVENTORY_SLOT_GAP,
-    slot_size: INVENTORY_SLOT_SIZE,
-    slot_texture: "inventory_slot",
-    background_texture: None,
-    background_gap: None,
-};
-pub const UI_INVENTORY_HOTBAR: InventoryUI = InventoryUI {
-    rows: 1,
-    columns: 9,
-    row_gap: INVENTORY_SLOT_GAP,
-    column_gap: INVENTORY_SLOT_GAP,
-    slot_size: INVENTORY_SLOT_SIZE,
-    slot_texture: "inventory_slot",
-    background_texture: None,
-    background_gap: None,
-};
+// pub const UI_INVENTORY_MAIN: InventoryUI = InventoryUI {
+//     rows: 3,
+//     columns: 9,
+//     row_gap: INVENTORY_SLOT_GAP,
+//     column_gap: INVENTORY_SLOT_GAP,
+//     slot_size: INVENTORY_SLOT_SIZE,
+//     slot_texture: String::from("inventory_slot"),
+//     background_texture: None,
+//     background_gap: None,
+// };
+// pub const UI_INVENTORY_HOTBAR: InventoryUI = InventoryUI {
+//     rows: 1,
+//     columns: 9,
+//     row_gap: INVENTORY_SLOT_GAP,
+//     column_gap: INVENTORY_SLOT_GAP,
+//     slot_size: INVENTORY_SLOT_SIZE,
+//     slot_texture: String::from("inventory_slot"),
+//     background_texture: None,
+//     background_gap: None,
+// };
+
+pub type InventoryRegistry = HashMap<String, InventoryPanelData>;
 
 pub struct Inventory {
     pub slots: Vec<InventorySlot>,
@@ -56,6 +59,13 @@ impl InventoryScreen {
     }
 }
 
+#[derive(Deserialize)]
+pub struct InventoryPanelData {
+    pub slots: Option<Range<usize>>,
+    pub gap: f32,
+    pub ui: InventoryUI,
+}
+
 pub struct InventoryPanel {
     pub inventory: Entity,
     pub slots: Option<Range<usize>>,
@@ -63,14 +73,26 @@ pub struct InventoryPanel {
     pub ui: InventoryUI,
 }
 
+impl InventoryPanel {
+    pub fn from_data(data: &InventoryPanelData, inventory: Entity) -> Self {
+        Self {
+            inventory,
+            slots: data.slots.clone(),
+            gap: data.gap,
+            ui: data.ui.clone(),
+        }
+    }
+}
+
+#[derive(Deserialize, Clone)]
 pub struct InventoryUI {
     pub rows: i32,
     pub columns: i32,
     pub row_gap: f32,
     pub column_gap: f32,
     pub slot_size: f32,
-    pub slot_texture: &'static str,
-    pub background_texture: Option<&'static str>,
+    pub slot_texture: String,
+    pub background_texture: Option<String>,
     pub background_gap: Option<f32>,
 }
 
@@ -294,7 +316,7 @@ pub fn system_inventory_interface(handle: &mut RainHandle, state: &mut State) {
             let slots_width = panel.ui.columns as f32 * panel.ui.slot_size + (panel.ui.columns - 1) as f32 * panel.ui.column_gap;
             let x_pointer = (SCREEN_WIDTH - slots_width) / 2.0;
     
-            let range = panel.slots.clone().unwrap();
+            let range = panel.slots.clone().unwrap_or(0..((panel.ui.rows * panel.ui.columns) as usize));
             let slots = 0..(range.end - range.start);
             for i in slots {
                 if state.gui.button(point, EBuilder::new(0.0, 0.0)
@@ -411,6 +433,15 @@ pub fn setup_inventory_ui(state: &mut State, player_entity: Entity) {
         inventory: player_entity,
         slots: Some(0..9),
         gap: 0.0,
-        ui: UI_INVENTORY_HOTBAR,
+        ui: InventoryUI {
+            rows: 1,
+            columns: 9,
+            row_gap: INVENTORY_SLOT_GAP,
+            column_gap: INVENTORY_SLOT_GAP,
+            slot_size: INVENTORY_SLOT_SIZE,
+            slot_texture: String::from("inventory_slot"),
+            background_texture: None,
+            background_gap: None,
+        },
     });
 } 

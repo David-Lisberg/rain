@@ -14,12 +14,12 @@ use crate::game::core::collision::{Collider, check_collision_with_object};
 use crate::game::core::physics::ADJACENT_I32;
 use crate::game::entity::loot::roll_loot;
 use crate::game::entity::projectile::{ProjectileSpawn, spawn_projectile};
-use crate::game::player::inventory::{Inventory, PlayerInventory};
+use crate::game::player::inventory::{Inventory, InventoryPanel, PlayerInventory};
 use crate::game::player::item::*;
 use crate::game::player::movement::Player;
 use crate::game::utility::direction::Direction4;
 use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
-use crate::game::world::object::{Object, ObjectData, destroy_object, reload_object_mesh, world_position_to_object_position};
+use crate::game::world::object::{Object, ObjectBehavior, ObjectType, destroy_object, reload_object_mesh, world_position_to_object_position};
 
 const PLAYER_REACH: f32 = 4.0;
 
@@ -35,6 +35,7 @@ pub enum AnimationStatePlayer {
 pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) {
     let mut object_changed = false;
     let mut to_add_updated: Vec<Entity> = Vec::new();
+    let mut to_destroy: Vec<Object> = Vec::new();
     let mut to_spawn_item_drop: Vec<(Position2D, Item, i32)> = Vec::new();
     
     for (e, (_, position, player_direction, inventory, player_inventory, animation_state)) in handle.world.query_mut::<(
@@ -60,17 +61,43 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
             let object_data = state.object_registry.get(&object._type).unwrap().clone();
             if break_level >= object_data.break_level && tool_type.can_break(object_data.required_tool) {
                 if destroy_object(state, &object, hit_ticks) {
-                    let mut drops = object_data.drops.clone();
-                    drops.extend(roll_loot(state, &object_data.loot_table.clone()));
-                    for (item, quantity) in drops {
-                        let remaining = inventory.add_item(item.clone(), quantity);
-                        if remaining > 0 {
-                            to_spawn_item_drop.push((Position2D(object_data.center(object.position)), item, remaining));
-                        }
-                    }
-                    object_changed = true;
+                    to_destroy.push(object);
                 }
             }
+        }
+    }
+    let player_entity = handle.world.query::<&Player>().iter().next().unwrap().0;
+    for object in to_destroy {
+        let object_data = state.object_registry.get(&object._type).unwrap().clone();
+        let mut drops = object_data.drops.clone();
+        drops.extend(roll_loot(state, &object_data.loot_table.clone()));
+        for behavior in object_data.behaviors.iter() {
+            match behavior {
+                ObjectBehavior::Inventory(_) => {
+                    if let Some(inventory) = handle.world.query_one::<&Inventory>(object.entity.unwrap()).unwrap().get() {
+                        /* IMPORTANT: If items have unique values this will return the default values, fix this if items can have unique values */
+                        drops.extend(inventory.collect_items(Vec::new()).iter().map(|x| (Item::new(x.0.clone()), x.1)));
+                    }
+                    state.inventory_screen.panels.clear();
+                    state.inventory_screen.panels.push(InventoryPanel::from_data(state.inventory_registry.get("inventory_hotbar").unwrap(), player_entity));
+                    if let Ok(inventory) = handle.world.query_one_mut::<&mut PlayerInventory>(player_entity) {
+                        inventory.open = false;
+                    }
+                }
+            }
+        }
+
+        if let Ok(inventory) = handle.world.query_one_mut::<&mut Inventory>(player_entity) {
+            for (item, quantity) in drops {
+                let remaining = inventory.add_item(item.clone(), quantity);
+                if remaining > 0 {
+                    to_spawn_item_drop.push((Position2D(object_data.center(object.position)), item, remaining));
+                }
+            }
+        }
+        object_changed = true;
+        if let Some(e) = object.entity {
+            handle.world.despawn(e).unwrap();
         }
     }
     for (position, item, quantity) in to_spawn_item_drop {
@@ -86,6 +113,9 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
 
 pub fn item_use(handle: &mut RainHandle, state: &mut State) {
     let mut pending_use: Option<(ItemType, Entity, usize)> = None;
+    if player_interact_world(handle, state) {
+        return;
+    }
     place_object(handle, state);
     for (e, (_, inventory, player_inventory)) in handle.world.query_mut::<(&Player, &mut Inventory, &PlayerInventory)>() {
         let slot = inventory.slots.get(player_inventory.selected_hotbar).unwrap();
@@ -106,9 +136,63 @@ pub fn item_use(handle: &mut RainHandle, state: &mut State) {
     }
 }
 
+fn player_interact_world(handle: &mut RainHandle, state: &mut State) -> bool {
+    let mouse_position = handle.screen_position_to_world_position(handle.mouse_position());
+    for (_, (_, position)) in handle.world.query::<(&Player, &Position2D)>().iter() {
+        let distance = (mouse_position - position.0).length();
+        if distance > PLAYER_REACH {
+            return false;
+        }        
+    }
+    if player_interact_object(handle, state, mouse_position) {
+        return true;
+    }
+
+    false
+}
+
+fn player_interact_object(handle: &mut RainHandle, state: &mut State, mouse_position: Vec2) -> bool {
+    let mut target_object: Option<Object> = None;
+    let chunk_position = position_to_chunk_position(mouse_position.x, mouse_position.y);
+    for adjacent in ADJACENT_I32 {
+        let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
+        if let Some(chunk) = state.chunks.get(&adjacent_position) {
+            for object in &chunk.objects {
+                let object_data = state.object_registry.get(&object._type).unwrap();
+                let object_collider = object_data.collider.add_vec2(object.position);
+
+                if object_collider.aabb_collision_point(&mouse_position) {
+                    target_object = Some(object.clone());
+                }
+            }
+        } 
+    }
+
+    let player_entity = handle.world.query::<&Player>().iter().next().unwrap().0;
+    if let Some(object) = target_object {
+        let object_data = state.object_registry.get(&object._type).unwrap();
+        for behavior in object_data.behaviors.iter() {
+            match behavior {
+                ObjectBehavior::Inventory(ui) => {
+                    let mut inventory_main = InventoryPanel::from_data(state.inventory_registry.get("inventory_main").unwrap(), player_entity);
+                    inventory_main.gap = 50.0;
+                    state.inventory_screen.panels.push(inventory_main);
+                    state.inventory_screen.panels.push(InventoryPanel::from_data(state.inventory_registry.get(ui).unwrap(), object.entity.unwrap()));
+                    if let Ok(inventory) = handle.world.query_one_mut::<&mut PlayerInventory>(player_entity) {
+                        inventory.open = true;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    false
+}
+
 fn place_object(handle: &mut RainHandle, state: &mut State) {
     let mut updated = false;
-    let mut object_to_place: Option<(ObjectData, Vec2, ChunkPosition)> = None;
+    let mut object_to_place: Option<(ObjectType, Vec2, ChunkPosition)> = None;
     let mouse_position = handle.screen_position_to_world_position(handle.mouse_position());
     
     for (_, (_, position, collider, inventory, player_inventory)) in handle.world.query_mut::<(
@@ -137,16 +221,16 @@ fn place_object(handle: &mut RainHandle, state: &mut State) {
                     }
                     
                     if !object_colliders.iter().any(|other_collider| object_collider.aabb_collision(&other_collider)) {
-                        object_to_place = Some((object_data.clone(), object_position, chunk_position));
+                        object_to_place = Some((placeable, object_position, chunk_position));
                         inventory.remove_item_from_slot(player_inventory.selected_hotbar, 1);
                     }
                 }
             }
         }
     }
-    if let Some((object_data, position, chunk_position)) = object_to_place {
+    if let Some((object_type, position, chunk_position)) = object_to_place {
+        let object = Object::from_data(handle, state, object_type, position);
         if let Some(chunk) = state.chunks.get_mut(&chunk_position) {
-            let object = Object::from_data(handle, &object_data, position);
             chunk.objects.push(object);
             updated = true;
         }

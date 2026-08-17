@@ -115,3 +115,18 @@ pub fn check_collision_with_object(state: &mut State, collider: &Collider) -> Op
         Some(collided[min_index])
     }
 }
+
+pub fn collect_object_colliders(state: &mut State, position: Vec2) -> Vec<Collider> {
+    let mut object_colliders: Vec<Collider> = Vec::new();
+    let chunk_position = position_to_chunk_position(position.x, position.y);
+    for adjacent in ADJACENT_I32 {
+        let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
+        if let Some(chunk) = state.chunks.get(&adjacent_position) {
+            for object in &chunk.objects {
+                let object_data = state.object_registry.get(&object._type).unwrap();
+                object_colliders.push(object_data.collider.add_vec2(object.position))
+            }
+        }
+    }
+    object_colliders
+}

@@ -5,9 +5,8 @@ use rain::engine::component::*;
 use rain::engine::input::{KeyboardKey, MouseButton};
 
 use crate::State;
-use crate::game::core::ui::INVENTORY_GAP;
 use crate::game::player::action::{item_attack, item_use};
-use crate::game::player::inventory::{InventoryPanel, PlayerInventory, UI_INVENTORY_MAIN};
+use crate::game::player::inventory::{InventoryPanel, PlayerInventory};
 use crate::game::player::item::drop_current_item;
 use crate::game::player::movement::Player;
 use crate::game::core::load::{reload_animations, reload_textures};
@@ -119,17 +118,13 @@ pub fn system_player_input(handle: &mut RainHandle, state: &mut State) {
             inventory.open = !inventory.open;
             if !inventory.open {
                 state.inventory_screen.selection.clear();
-                state.inventory_screen.panels.pop();
+                state.inventory_screen.panels.clear();
+                state.inventory_screen.panels.push(InventoryPanel::from_data(state.inventory_registry.get("inventory_hotbar").unwrap(), e));
                 inventory.display_recipes = false;
             } else {
                 inventory.just_opened = true;
                 inventory.display_recipes = true;
-                state.inventory_screen.panels.push(InventoryPanel {
-                    inventory: e,
-                    slots: Some(9..36),
-                    gap: INVENTORY_GAP,
-                    ui: UI_INVENTORY_MAIN,
-                })
+                state.inventory_screen.panels.push(InventoryPanel::from_data(state.inventory_registry.get("inventory_main").unwrap(), e));
             }
         }
     }

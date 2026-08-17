@@ -93,14 +93,14 @@ fn render_inventory(handle: &mut RainHandle, state: &mut State) {
             let slots_width = panel.ui.columns as f32 * panel.ui.slot_size + (panel.ui.columns - 1) as f32 * panel.ui.column_gap;
             let x_pointer = (SCREEN_WIDTH - slots_width) / 2.0;
 
-            let range = panel.slots.clone().unwrap();
+            let range = panel.slots.clone().unwrap_or(0..inventory.slots.len());
             let slots = 0..(range.end - range.start);
             for i in slots {
                 let mut slot_element = EBuilder::new(
                     x_pointer + (i as i32 % panel.ui.columns) as f32 * (panel.ui.slot_size + panel.ui.column_gap), 
                     y_pointer - (i as i32 / panel.ui.columns) as f32 * (panel.ui.slot_size + panel.ui.row_gap)
                 ).rect(panel.ui.slot_size, panel.ui.slot_size)
-                    .texture(handle.fetch_texture(panel.ui.slot_texture).unwrap());
+                    .texture(handle.fetch_texture(&panel.ui.slot_texture).unwrap());
                 if let Some(item) = &inventory.slots[i + range.start].item {
                     let item_data = state.item_registry.get(&item._type).unwrap();
                     slot_element.sub_element_ex(||
