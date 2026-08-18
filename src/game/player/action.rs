@@ -18,8 +18,9 @@ use crate::game::player::inventory::{Inventory, InventoryPanel, PlayerInventory}
 use crate::game::player::item::*;
 use crate::game::player::movement::Player;
 use crate::game::utility::direction::Direction4;
-use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
+use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position, reload_chunk};
 use crate::game::world::object::{Object, ObjectBehavior, ObjectType, destroy_object, reload_object_mesh, world_position_to_object_position};
+use crate::game::world::tile::{Tile, position_to_tile_position};
 
 pub const PLAYER_REACH: f32 = 4.0;
 
@@ -194,6 +195,7 @@ fn player_interact_object(handle: &mut RainHandle, state: &mut State, mouse_posi
 
 fn player_place_object(handle: &mut RainHandle, state: &mut State, mouse_position: Vec2) -> bool {
     let mut updated = false;
+    let mut to_reload: Option<ChunkPosition> = None;
     let mut object_to_place: Option<(ObjectType, Vec2, ChunkPosition)> = None;
     
     for (_, (_, collider, inventory, player_inventory)) in handle.world.query_mut::<(
@@ -220,6 +222,15 @@ fn player_place_object(handle: &mut RainHandle, state: &mut State, mouse_positio
                         inventory.remove_item_from_slot(player_inventory.selected_hotbar, 1);
                     }
                 }
+            } else if let Some(placeable_tile) = item_data.placeable_tile {
+                let tile_position = position_to_tile_position(mouse_position.x, mouse_position.y);
+                println!("{} {}, {} {}", mouse_position.x, mouse_position.y, tile_position.x, tile_position.y);
+                let chunk_position = position_to_chunk_position(mouse_position.x, mouse_position.y);
+                if let Some(chunk) = state.chunks.get_mut(&chunk_position) {
+                    chunk.tiles[tile_position.x][tile_position.y] = Tile { _type: placeable_tile };
+                    inventory.remove_item_from_slot(player_inventory.selected_hotbar, 1);
+                    to_reload = Some(chunk_position);
+                }
             }
         }
     }
@@ -229,6 +240,10 @@ fn player_place_object(handle: &mut RainHandle, state: &mut State, mouse_positio
             chunk.objects.push(object);
             updated = true;
         }
+    }
+    if let Some(chunk_position) = to_reload {
+        let chunk_entity = handle.world.query::<&ChunkPosition>().iter().find(|x| *x.1 == chunk_position).unwrap().0;
+        reload_chunk(handle, state, chunk_entity, chunk_position);
     }
     if updated {
         reload_object_mesh(handle, state);

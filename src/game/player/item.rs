@@ -7,6 +7,7 @@ use rain::engine::core::RainHandle;
 use serde::Deserialize;
 
 use crate::game::world::object::ObjectType;
+use crate::game::world::tile::TileType;
 use crate::{DEPTH_PLAYER, State};
 use crate::game::player::inventory::{Inventory, InventorySelection, PlayerInventory};
 use crate::game::player::movement::Player;
@@ -29,7 +30,8 @@ pub struct Item {
 pub struct ItemData {
     pub name: String,
     pub texture: String,
-    pub placeable: Option<ObjectType>
+    pub placeable: Option<ObjectType>,
+    pub placeable_tile: Option<TileType>,
 }
 
 impl Item {
@@ -61,6 +63,7 @@ pub enum ItemType {
     StonePickaxe,
     Wood,
     WoodPlanks,
+    WoodFloor,
     CoatiPelt,
     SquirrelPelt,
     SmallBone,

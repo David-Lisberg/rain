@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 use crate::game::player::action::PLAYER_REACH;
 use crate::game::player::movement::Player;
-use crate::game::world::chunk::{CHUNK_DIM, position_to_chunk_position};
+use crate::game::world::chunk::CHUNK_DIM;
 
 pub type TileRegistry = HashMap<TileType, TileData>;
 
@@ -28,10 +28,16 @@ pub struct Tile {
     pub _type: TileType, 
 }
 
-pub struct TilePosition(pub usize);
+pub struct TilePosition {
+    pub x: usize,
+    pub y: usize,
+}
 
 pub fn position_to_tile_position(x: f32, y: f32) -> TilePosition {
-    TilePosition((y as usize % CHUNK_DIM) * CHUNK_DIM + x as usize % CHUNK_DIM)
+    TilePosition {
+        x: (x.floor() as i32).rem_euclid(CHUNK_DIM as i32) as usize,
+        y: (y.floor() as i32).rem_euclid(CHUNK_DIM as i32) as usize,
+    }
 }
 
 #[repr(u8)]
@@ -47,6 +53,7 @@ pub enum TileType {
     Dirt = 6,
     Stone = 7,
     Cobblestone = 8,
+    WoodFloor = 9,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -128,9 +135,7 @@ pub fn system_tile_highlight(handle: &mut RainHandle) {
         } else if distance <= PLAYER_REACH && visible.is_none() {
             to_add_visible = Some(e);
         }
-        let chunk_position = position_to_chunk_position(mouse_position.x, mouse_position.y);
-        let tile_position = Vec2::new((chunk_position.x + mouse_position.x as i32 % CHUNK_DIM as i32) as f32, 
-            (chunk_position.y + mouse_position.y as i32 % CHUNK_DIM as i32) as f32) + 0.5;
+        let tile_position = Vec2::new(mouse_position.x.floor() + 0.5, mouse_position.y.floor() + 0.5);
         position.0 = tile_position;
     }
 

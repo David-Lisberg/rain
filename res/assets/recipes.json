@@ -38,5 +38,9 @@
     {
         "input": [["wood_planks", 8]],
         "output": ["barrel", 1]
+    },
+    {
+        "input": [["wood_planks", 2]],
+        "output": ["wood_floor", 1]
     }
 ]

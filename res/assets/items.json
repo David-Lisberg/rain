@@ -74,5 +74,10 @@
         "name": "Barrel",
         "texture": "object_barrel",
         "placeable": "barrel"
+    },
+    "wood_floor": {
+        "name": "Wood Floor",
+        "texture": "tile_wood_floor",
+        "placeable_tile": "wood_floor"
     }
 }

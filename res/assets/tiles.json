@@ -34,5 +34,9 @@
     "cobblestone": {
         "tile_type": "cobblestone",
         "texture": "tile_cobblestone"
+    },
+    "wood_floor": {
+        "tile_type": "wood_floor",
+        "texture": "tile_wood_floor"
     }
 }

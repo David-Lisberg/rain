@@ -402,40 +402,44 @@ pub fn system_manage_chunks(handle: &mut RainHandle, state: &mut State) {
     }
     for (e, chunk_position) in to_load {
         updated = true;
-        let tileset = if let Ok(t) = handle.world.remove_one::<ChunkTileSet>(e) {
-            t
-        } else {
-            let mut padded: [[TileType; CHUNK_DIM + 2]; CHUNK_DIM + 2] = [[TileType::Water; CHUNK_DIM + 2]; CHUNK_DIM + 2];
-            if let Some(chunk) = state.chunks.get(&chunk_position) {
-                for x in 0..CHUNK_DIM {
-                    for y in 0..CHUNK_DIM {
-                        padded[x + 1][y + 1] = chunk.tiles[x][y]._type;
-                    }
-                }
-            }
-            for ((x, y), (range_x, range_y), (padded_x, padded_y)) in ADJACENT_BORDER {
-                let position = ChunkPosition::new(chunk_position.x + x, chunk_position.y + y);
-                if !state.chunks.contains_key(&position) {
-                    let chunk = generate_chunk(handle, state, position);
-                    handle.world.spawn((position,));
-                    state.chunks.insert(position, chunk);
-                }
-                let chunk = state.chunks.get(&position).unwrap();
-                for (i, padded_i) in range_x.zip(padded_x) {
-                    for (j, padded_j) in range_y.clone().zip(padded_y.clone()) {
-                        padded[padded_i][padded_j] = chunk.tiles[i][j]._type;
-                    }
-                }
-            }
-            construct_chunk_tileset(padded)
-        };
-        if let Some(chunk) = state.chunks.get(&chunk_position) {
-            let mesh = construct_chunk_mesh(handle, chunk, &state.tile_registry, &tileset, &state.tileset_lookup);
-            handle.world.insert(e, (mesh, Visible, tileset)).unwrap();
-        }
+        reload_chunk(handle, state, e, chunk_position);
     }
     if updated {
         reload_object_mesh(handle, state);
+    }
+}
+
+pub fn reload_chunk(handle: &mut RainHandle, state: &mut State, e: Entity, chunk_position: ChunkPosition) {
+    let tileset = if let Ok(t) = handle.world.remove_one::<ChunkTileSet>(e) {
+        t
+    } else {
+        let mut padded: [[TileType; CHUNK_DIM + 2]; CHUNK_DIM + 2] = [[TileType::Water; CHUNK_DIM + 2]; CHUNK_DIM + 2];
+        if let Some(chunk) = state.chunks.get(&chunk_position) {
+            for x in 0..CHUNK_DIM {
+                for y in 0..CHUNK_DIM {
+                    padded[x + 1][y + 1] = chunk.tiles[x][y]._type;
+                }
+            }
+        }
+        for ((x, y), (range_x, range_y), (padded_x, padded_y)) in ADJACENT_BORDER {
+            let position = ChunkPosition::new(chunk_position.x + x, chunk_position.y + y);
+            if !state.chunks.contains_key(&position) {
+                let chunk = generate_chunk(handle, state, position);
+                handle.world.spawn((position,));
+                state.chunks.insert(position, chunk);
+            }
+            let chunk = state.chunks.get(&position).unwrap();
+            for (i, padded_i) in range_x.zip(padded_x) {
+                for (j, padded_j) in range_y.clone().zip(padded_y.clone()) {
+                    padded[padded_i][padded_j] = chunk.tiles[i][j]._type;
+                }
+            }
+        }
+        construct_chunk_tileset(padded)
+    };
+    if let Some(chunk) = state.chunks.get(&chunk_position) {
+        let mesh = construct_chunk_mesh(handle, chunk, &state.tile_registry, &tileset, &state.tileset_lookup);
+        handle.world.insert(e, (mesh, Visible, tileset)).unwrap();
     }
 }
 
