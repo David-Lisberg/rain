@@ -38,6 +38,8 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
     let mut to_add_updated: Vec<Entity> = Vec::new();
     let mut to_destroy: Vec<Object> = Vec::new();
     let mut to_spawn_item_drop: Vec<(Position2D, Item, i32)> = Vec::new();
+    let mut drops: Vec<(Item, i32, Vec2)> = Vec::new();
+    let mut to_reload: Option<ChunkPosition> = None;
     
     for (e, (_, position, player_direction, inventory, player_inventory, animation_state)) in handle.world.query_mut::<(
         &Player, &Position2D, &mut Direction, &mut Inventory, &PlayerInventory, &mut AnimationStatePlayer
@@ -58,6 +60,7 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
         *animation_state = AnimationStatePlayer::Attacking(direction4, inventory.slots[player_inventory.selected_hotbar].item.clone());
         to_add_updated.push(e);
         
+        let chunk_position = position_to_chunk_position(collider_position.x, collider_position.y);
         if let Some(object) = check_collision_with_object(state, &collider) {
             let object_data = state.object_registry.get(&object._type).unwrap().clone();
             if break_level >= object_data.break_level && tool_type.can_break(object_data.required_tool) {
@@ -65,19 +68,36 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
                     to_destroy.push(object);
                 }
             }
+        } else if let Some(chunk) = state.chunks.get_mut(&chunk_position) {
+            let tile_position = position_to_tile_position(collider_position.x, collider_position.y);
+            if let Some(tile) = &chunk.base[tile_position.x][tile_position.y] {
+                let tile_data = state.tile_registry.get(&tile._type).unwrap();
+                if let Some(tile_break_level) = tile_data.break_level {
+                    if break_level >= tile_break_level && tool_type.can_break(tile_data.required_tool.unwrap_or(ToolType::None)) {
+                        if let Some(tile_drops) = &tile_data.drops {
+                            drops.extend(tile_drops.iter().map(|x| (x.0.clone(), x.1, collider_position)))
+                        }
+                        chunk.base[tile_position.x][tile_position.y] = None;
+                        to_reload = Some(chunk_position);
+                    }
+                }
+            }
         }
+
     }
     let player_entity = handle.world.query::<&Player>().iter().next().unwrap().0;
     for object in to_destroy {
         let object_data = state.object_registry.get(&object._type).unwrap().clone();
-        let mut drops = object_data.drops.clone();
-        drops.extend(roll_loot(state, &object_data.loot_table.clone()));
+        drops.extend(object_data.drops.iter().map(|x| (x.0.clone(), x.1, object_data.center(object.position))));
+        drops.extend(roll_loot(state, &object_data.loot_table).iter().map(|x| (x.0.clone(), x.1, object_data.center(object.position))));
         for behavior in object_data.behaviors.iter() {
             match behavior {
                 ObjectBehavior::Inventory(_) => {
                     if let Some(inventory) = handle.world.query_one::<&Inventory>(object.entity.unwrap()).unwrap().get() {
                         /* IMPORTANT: If items have unique values this will return the default values, fix this if items can have unique values */
-                        drops.extend(inventory.collect_items(Vec::new()).iter().map(|x| (Item::new(x.0.clone()), x.1)));
+                        drops.extend(inventory.collect_items(Vec::new()).iter().map(|x| (
+                            Item::new(x.0.clone()), x.1, object_data.center(object.position)
+                        )));
                     }
                     state.inventory_screen.panels.clear();
                     state.inventory_screen.panels.push(InventoryPanel::from_data(state.inventory_registry.get("inventory_hotbar").unwrap(), player_entity));
@@ -88,21 +108,25 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
             }
         }
 
-        if let Ok(inventory) = handle.world.query_one_mut::<&mut Inventory>(player_entity) {
-            for (item, quantity) in drops {
-                let remaining = inventory.add_item(item.clone(), quantity);
-                if remaining > 0 {
-                    to_spawn_item_drop.push((Position2D(object_data.center(object.position)), item, remaining));
-                }
-            }
-        }
         object_changed = true;
         if let Some(e) = object.entity {
             handle.world.despawn(e).unwrap();
         }
     }
+    if let Ok(inventory) = handle.world.query_one_mut::<&mut Inventory>(player_entity) {
+        for (item, quantity, position) in drops {
+            let remaining = inventory.add_item(item.clone(), quantity);
+            if remaining > 0 {
+                to_spawn_item_drop.push((Position2D(position), item, remaining));
+            }
+        }
+    }
     for (position, item, quantity) in to_spawn_item_drop {
         spawn_item_drop(handle, state, position, item, quantity);
+    }
+    if let Some(chunk_position) = to_reload {
+        let chunk_entity = handle.world.query::<&ChunkPosition>().iter().find(|x| *x.1 == chunk_position).unwrap().0;
+        reload_chunk(handle, state, chunk_entity, chunk_position);
     }
     if object_changed {
         reload_object_mesh(handle, state);
@@ -224,12 +248,13 @@ fn player_place_object(handle: &mut RainHandle, state: &mut State, mouse_positio
                 }
             } else if let Some(placeable_tile) = item_data.placeable_tile {
                 let tile_position = position_to_tile_position(mouse_position.x, mouse_position.y);
-                println!("{} {}, {} {}", mouse_position.x, mouse_position.y, tile_position.x, tile_position.y);
                 let chunk_position = position_to_chunk_position(mouse_position.x, mouse_position.y);
                 if let Some(chunk) = state.chunks.get_mut(&chunk_position) {
-                    chunk.tiles[tile_position.x][tile_position.y] = Tile { _type: placeable_tile };
-                    inventory.remove_item_from_slot(player_inventory.selected_hotbar, 1);
-                    to_reload = Some(chunk_position);
+                    if chunk.base[tile_position.x][tile_position.y].is_none() {
+                        chunk.base[tile_position.x][tile_position.y] = Some(Tile { _type: placeable_tile });
+                        inventory.remove_item_from_slot(player_inventory.selected_hotbar, 1);
+                        to_reload = Some(chunk_position);
+                    }
                 }
             }
         }

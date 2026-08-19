@@ -50,7 +50,8 @@ pub fn position_to_chunk_position(x: f32, y: f32) -> ChunkPosition {
 
 pub struct ChunkData {
     pub position: ChunkPosition,
-    pub tiles: [[Tile; CHUNK_DIM]; CHUNK_DIM],
+    pub ground: [[Tile; CHUNK_DIM]; CHUNK_DIM],
+    pub base: [[Option<Tile>; CHUNK_DIM]; CHUNK_DIM],
     pub objects: Vec<Object>,
     pub water_colliders: Vec<Collider>,
 }
@@ -279,7 +280,8 @@ pub fn generate_chunk(handle: &mut RainHandle, state: &mut State, chunk_position
     
     ChunkData {
         position: chunk_position,
-        tiles,
+        ground: tiles,
+        base: std::array::from_fn(|_| std::array::from_fn(|_| None)),
         objects,
         water_colliders,
     }
@@ -303,49 +305,61 @@ pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData, tile_reg
     let color = Color::rain_color_to_array(&Color::WHITE);
     let mut num_indices = 0;
 
-    for i in 0..CHUNK_DIM {
-        for j in 0..CHUNK_DIM {
-            let tile_data = tile_registry.get(&chunk.tiles[i][j]._type).unwrap();
-            let tile_texture = handle.fetch_texture(&tile_data.texture).unwrap();
-            let x = (chunk.position.x * CHUNK_DIM as i32) as f32 + i as f32;
-            let y = (chunk.position.y * CHUNK_DIM as i32) as f32 + j as f32;
-            
-            let vertices = vec![
-                ModelVertex { position: [x, y, 0.0], uv: [0.0, tile_texture.uv[1]], color, layer: tile_texture.index },
-                ModelVertex { position: [x + 1.0, y, 0.0], uv: [tile_texture.uv[0], tile_texture.uv[1]], color, layer: tile_texture.index },
-                ModelVertex { position: [x + 1.0, y + 1.0, 0.0], uv: [tile_texture.uv[0], 0.0], color, layer: tile_texture.index },
-                ModelVertex { position: [x, y + 1.0, 0.0], uv: [0.0, 0.0], color, layer: tile_texture.index },
-            ];
-            let indices: Vec<u32> = QUAD_INDICES.iter().map(|x| x + num_indices).collect();
-            model_vertices.extend(vertices);
-            model_indices.extend(indices);
-            num_indices += 4;
-
-            // let transitions = &tileset.0[i][j];
-            // if !transitions.is_empty() {
-            //     for (k, transition) in transitions.iter().enumerate() {
-            //         let transition_texture = transition.0.fetch_tileset(&handle.resource_manager).unwrap();
-            //         let tile_index = tileset_lookup[transition.1 as usize];
-            //         let mut uv_rect = UV_LOOKUP[tile_index as usize];
-            //         uv_rect[0] *= transition_texture.uv[0];
-            //         uv_rect[1] *= transition_texture.uv[1];
-            //         uv_rect[2] *= transition_texture.uv[0];
-            //         uv_rect[3] *= transition_texture.uv[1];
-                    
-            //         let depth = TRANSITION_LAYER_DEPTH * (k as f32 + 1.0);
-            //         let vertices = vec![
-            //             ModelVertex { position: [x, y, depth], uv: [uv_rect[0], uv_rect[3]], color, layer: transition_texture.index },
-            //             ModelVertex { position: [x + 1.0, y, depth], uv: [uv_rect[2], uv_rect[3]], color, layer: transition_texture.index },
-            //             ModelVertex { position: [x + 1.0, y + 1.0, depth], uv: [uv_rect[2], uv_rect[1]], color, layer: transition_texture.index },
-            //             ModelVertex { position: [x, y + 1.0, depth], uv: [uv_rect[0], uv_rect[1]], color, layer: transition_texture.index },
-            //         ];
-
-            //         let indices: Vec<u32> = QUAD_INDICES.iter().map(|x| x + num_indices).collect();
-            //         model_vertices.extend(vertices);
-            //         model_indices.extend(indices);
-            //         num_indices += 4;
-            //     }
-            // }
+    for tile_index in 0..2 {
+        for i in 0..CHUNK_DIM {
+            for j in 0..CHUNK_DIM {
+                let tile_data = match tile_index {
+                    0 => tile_registry.get(&chunk.ground[i][j]._type).unwrap(),
+                    1 => {
+                        if let Some(tile) = &chunk.base[i][j] {
+                            tile_registry.get(&tile._type).unwrap()
+                        } else {
+                            continue;
+                        }
+                    }
+                    _ => continue,
+                };
+                let tile_texture = handle.fetch_texture(&tile_data.texture).unwrap();
+                let x = (chunk.position.x * CHUNK_DIM as i32) as f32 + i as f32;
+                let y = (chunk.position.y * CHUNK_DIM as i32) as f32 + j as f32;
+                
+                let vertices = vec![
+                    ModelVertex { position: [x, y, TRANSITION_LAYER_DEPTH * tile_index as f32], uv: [0.0, tile_texture.uv[1]], color, layer: tile_texture.index },
+                    ModelVertex { position: [x + 1.0, y, TRANSITION_LAYER_DEPTH * tile_index as f32], uv: [tile_texture.uv[0], tile_texture.uv[1]], color, layer: tile_texture.index },
+                    ModelVertex { position: [x + 1.0, y + 1.0, TRANSITION_LAYER_DEPTH * tile_index as f32], uv: [tile_texture.uv[0], 0.0], color, layer: tile_texture.index },
+                    ModelVertex { position: [x, y + 1.0, TRANSITION_LAYER_DEPTH * tile_index as f32], uv: [0.0, 0.0], color, layer: tile_texture.index },
+                ];
+                let indices: Vec<u32> = QUAD_INDICES.iter().map(|x| x + num_indices).collect();
+                model_vertices.extend(vertices);
+                model_indices.extend(indices);
+                num_indices += 4;
+    
+                // let transitions = &tileset.0[i][j];
+                // if !transitions.is_empty() {
+                //     for (k, transition) in transitions.iter().enumerate() {
+                //         let transition_texture = transition.0.fetch_tileset(&handle.resource_manager).unwrap();
+                //         let tile_index = tileset_lookup[transition.1 as usize];
+                //         let mut uv_rect = UV_LOOKUP[tile_index as usize];
+                //         uv_rect[0] *= transition_texture.uv[0];
+                //         uv_rect[1] *= transition_texture.uv[1];
+                //         uv_rect[2] *= transition_texture.uv[0];
+                //         uv_rect[3] *= transition_texture.uv[1];
+                        
+                //         let depth = TRANSITION_LAYER_DEPTH * (k as f32 + 1.0);
+                //         let vertices = vec![
+                //             ModelVertex { position: [x, y, depth], uv: [uv_rect[0], uv_rect[3]], color, layer: transition_texture.index },
+                //             ModelVertex { position: [x + 1.0, y, depth], uv: [uv_rect[2], uv_rect[3]], color, layer: transition_texture.index },
+                //             ModelVertex { position: [x + 1.0, y + 1.0, depth], uv: [uv_rect[2], uv_rect[1]], color, layer: transition_texture.index },
+                //             ModelVertex { position: [x, y + 1.0, depth], uv: [uv_rect[0], uv_rect[1]], color, layer: transition_texture.index },
+                //         ];
+    
+                //         let indices: Vec<u32> = QUAD_INDICES.iter().map(|x| x + num_indices).collect();
+                //         model_vertices.extend(vertices);
+                //         model_indices.extend(indices);
+                //         num_indices += 4;
+                //     }
+                // }
+            }
         }
     }
     
@@ -417,7 +431,7 @@ pub fn reload_chunk(handle: &mut RainHandle, state: &mut State, e: Entity, chunk
         if let Some(chunk) = state.chunks.get(&chunk_position) {
             for x in 0..CHUNK_DIM {
                 for y in 0..CHUNK_DIM {
-                    padded[x + 1][y + 1] = chunk.tiles[x][y]._type;
+                    padded[x + 1][y + 1] = chunk.ground[x][y]._type;
                 }
             }
         }
@@ -431,7 +445,7 @@ pub fn reload_chunk(handle: &mut RainHandle, state: &mut State, e: Entity, chunk
             let chunk = state.chunks.get(&position).unwrap();
             for (i, padded_i) in range_x.zip(padded_x) {
                 for (j, padded_j) in range_y.clone().zip(padded_y.clone()) {
-                    padded[padded_i][padded_j] = chunk.tiles[i][j]._type;
+                    padded[padded_i][padded_j] = chunk.ground[i][j]._type;
                 }
             }
         }

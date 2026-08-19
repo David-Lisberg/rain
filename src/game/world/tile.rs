@@ -13,6 +13,7 @@ use std::io::{Read, Write};
 use std::sync::Arc;
 
 use crate::game::player::action::PLAYER_REACH;
+use crate::game::player::item::{Item, ToolType};
 use crate::game::player::movement::Player;
 use crate::game::world::chunk::CHUNK_DIM;
 
@@ -22,6 +23,9 @@ pub type TileRegistry = HashMap<TileType, TileData>;
 pub struct TileData {
     pub tile_type: TileType,
     pub texture: String,
+    pub break_level: Option<i32>,
+    pub required_tool: Option<ToolType>,
+    pub drops: Option<Vec<(Item, i32)>>
 }
 
 pub struct Tile {

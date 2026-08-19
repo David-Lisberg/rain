@@ -37,6 +37,9 @@
     },
     "wood_floor": {
         "tile_type": "wood_floor",
-        "texture": "tile_wood_floor"
+        "texture": "tile_wood_floor",
+        "break_level": 1,
+        "required_tool": "axe",
+        "drops": [[{ "type": "wood_floor", "category": "other" }, 1]]
     }
 }
