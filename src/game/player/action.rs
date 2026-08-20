@@ -39,7 +39,7 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
     let mut to_destroy: Vec<Object> = Vec::new();
     let mut to_spawn_item_drop: Vec<(Position2D, Item, i32)> = Vec::new();
     let mut drops: Vec<(Item, i32, Vec2)> = Vec::new();
-    let mut to_reload: Option<ChunkPosition> = None;
+    let mut to_reload: Option<(ChunkPosition, bool)> = None;
     
     for (e, (_, position, player_direction, inventory, player_inventory, animation_state)) in handle.world.query_mut::<(
         &Player, &Position2D, &mut Direction, &mut Inventory, &PlayerInventory, &mut AnimationStatePlayer
@@ -78,7 +78,7 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
                             drops.extend(tile_drops.iter().map(|x| (x.0.clone(), x.1, collider_position)))
                         }
                         chunk.base[tile_position.x][tile_position.y] = None;
-                        to_reload = Some(chunk_position);
+                        to_reload = Some((chunk_position, tile_data.tileset.is_some()));
                     }
                 }
             }
@@ -124,9 +124,9 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
     for (position, item, quantity) in to_spawn_item_drop {
         spawn_item_drop(handle, state, position, item, quantity);
     }
-    if let Some(chunk_position) = to_reload {
+    if let Some((chunk_position, reload_tileset)) = to_reload {
         let chunk_entity = handle.world.query::<&ChunkPosition>().iter().find(|x| *x.1 == chunk_position).unwrap().0;
-        reload_chunk(handle, state, chunk_entity, chunk_position);
+        reload_chunk(handle, state, chunk_entity, chunk_position, reload_tileset);
     }
     if object_changed {
         reload_object_mesh(handle, state);
@@ -219,7 +219,7 @@ fn player_interact_object(handle: &mut RainHandle, state: &mut State, mouse_posi
 
 fn player_place_object(handle: &mut RainHandle, state: &mut State, mouse_position: Vec2) -> bool {
     let mut updated = false;
-    let mut to_reload: Option<ChunkPosition> = None;
+    let mut to_reload: Option<(ChunkPosition, bool)> = None;
     let mut object_to_place: Option<(ObjectType, Vec2, ChunkPosition)> = None;
     
     for (_, (_, collider, inventory, player_inventory)) in handle.world.query_mut::<(
@@ -253,7 +253,8 @@ fn player_place_object(handle: &mut RainHandle, state: &mut State, mouse_positio
                     if chunk.base[tile_position.x][tile_position.y].is_none() {
                         chunk.base[tile_position.x][tile_position.y] = Some(Tile { _type: placeable_tile });
                         inventory.remove_item_from_slot(player_inventory.selected_hotbar, 1);
-                        to_reload = Some(chunk_position);
+                        let tile_data = state.tile_registry.get(&placeable_tile).unwrap();
+                        to_reload = Some((chunk_position, tile_data.tileset.is_some()));
                     }
                 }
             }
@@ -266,9 +267,9 @@ fn player_place_object(handle: &mut RainHandle, state: &mut State, mouse_positio
             updated = true;
         }
     }
-    if let Some(chunk_position) = to_reload {
+    if let Some((chunk_position, reload_tileset)) = to_reload {
         let chunk_entity = handle.world.query::<&ChunkPosition>().iter().find(|x| *x.1 == chunk_position).unwrap().0;
-        reload_chunk(handle, state, chunk_entity, chunk_position);
+        reload_chunk(handle, state, chunk_entity, chunk_position, reload_tileset);
     }
     if updated {
         reload_object_mesh(handle, state);

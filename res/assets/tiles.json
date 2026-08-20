@@ -41,5 +41,13 @@
         "break_level": 1,
         "required_tool": "axe",
         "drops": [[{ "type": "wood_floor", "category": "other" }, 1]]
+    },
+    "wood_wall": {
+        "tile_type": "wood_wall",
+        "texture": "tile_wood_wall",
+        "tileset": "tile_wood_wall_tileset",
+        "break_level": 1,
+        "required_tool": "axe",
+        "drops": [[{ "type": "wood_wall", "category": "other" }, 1]]
     }
 }

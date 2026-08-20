@@ -1,7 +1,10 @@
 use crate::game::world::chunk::CHUNK_DIM;
-use crate::game::world::tile::TileType;
 
-pub struct ChunkTileSet(pub [[Vec<(TileType, u8)>; CHUNK_DIM]; CHUNK_DIM]);
+// Used for tile masks
+//
+// pub struct ChunkTileSet(pub [[Vec<(TileType, u8)>; CHUNK_DIM]; CHUNK_DIM]);
+
+pub type ChunkTileSet = [[Option<u8>; CHUNK_DIM]; CHUNK_DIM];
 
 const MASK_TO_TILE: [(u8, u8); 47] = [
     (0, 0),

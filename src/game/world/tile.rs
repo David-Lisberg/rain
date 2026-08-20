@@ -1,8 +1,6 @@
 use glam::Vec2;
 use hecs::Entity;
 use rain::engine::core::RainHandle;
-use rain::engine::resource::ResourceManager;
-use rain::engine::texture::Texture;
 use serde::{Deserialize, Serialize};
 use rain::engine::color::Color;
 use rain::engine::component::*;
@@ -10,7 +8,6 @@ use rain::engine::component::*;
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
-use std::sync::Arc;
 
 use crate::game::player::action::PLAYER_REACH;
 use crate::game::player::item::{Item, ToolType};
@@ -23,11 +20,13 @@ pub type TileRegistry = HashMap<TileType, TileData>;
 pub struct TileData {
     pub tile_type: TileType,
     pub texture: String,
+    pub tileset: Option<String>,
     pub break_level: Option<i32>,
     pub required_tool: Option<ToolType>,
     pub drops: Option<Vec<(Item, i32)>>
 }
 
+#[derive(Clone, Copy)]
 pub struct Tile {
     pub _type: TileType, 
 }
@@ -58,6 +57,7 @@ pub enum TileType {
     Stone = 7,
     Cobblestone = 8,
     WoodFloor = 9,
+    WoodWall = 10,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -73,34 +73,6 @@ pub struct TileJSON {
 }
 
 pub struct TileHighlight;
-
-impl TileType {
-    pub fn fetch_tileset(&self, resource_manager: &ResourceManager) -> Option<Arc<Texture>> {
-        match self {
-            TileType::Grass => Some(resource_manager.fetch_texture("tile_grass_tileset").unwrap()),
-            TileType::Grass2 => Some(resource_manager.fetch_texture("tile_grass2_tileset").unwrap()),
-            TileType::Dirt => Some(resource_manager.fetch_texture("tile_dirt_tileset").unwrap()),
-            TileType::Stone => Some(resource_manager.fetch_texture("tile_stone_tileset").unwrap()),
-            TileType::Sand => Some(resource_manager.fetch_texture("tile_sand_tileset").unwrap()),
-            TileType::Mud => Some(resource_manager.fetch_texture("tile_mud_tileset").unwrap()),
-            TileType::Clay => Some(resource_manager.fetch_texture("tile_clay_tileset").unwrap()),
-            _ => None,
-        }
-    }
-
-    pub fn has_tileset(&self) -> bool {
-        match self {
-            TileType::Grass => true,
-            TileType::Grass2 => true,
-            TileType::Dirt => true,
-            TileType::Stone => true,
-            TileType::Sand => true,
-            TileType::Mud => true,
-            TileType::Clay => true,
-            _ => false,
-        }
-    }
-}
 
 pub fn write_tile() {
     let tile = TileJSON {

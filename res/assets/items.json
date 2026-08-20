@@ -79,5 +79,10 @@
         "name": "Wood Floor",
         "texture": "tile_wood_floor",
         "placeable_tile": "wood_floor"
+    },
+    "wood_wall": {
+        "name": "Wood Wall",
+        "texture": "tile_wood_wall",
+        "placeable_tile": "wood_wall"
     }
 }

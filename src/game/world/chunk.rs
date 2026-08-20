@@ -298,7 +298,7 @@ fn increment(mut value: (usize, usize), max: usize) -> (usize, usize) {
 
 const TRANSITION_LAYER_DEPTH: f32 = 0.0001;
 
-pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData, tile_registry: &TileRegistry, tileset: &ChunkTileSet, tileset_lookup: &[u8; 256]) -> ModelMesh {
+pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData, tile_registry: &TileRegistry, tileset: &[ChunkTileSet; 2], tileset_lookup: &[u8; 256]) -> ModelMesh {
     let mut model_vertices: Vec<ModelVertex> = Vec::new();
     let mut model_indices: Vec<u32> = Vec::new();
 
@@ -319,21 +319,37 @@ pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData, tile_reg
                     }
                     _ => continue,
                 };
-                let tile_texture = handle.fetch_texture(&tile_data.texture).unwrap();
+
+                let (tile_texture, uv_rect) = if let Some(mask) = tileset[tile_index][i][j] {
+                    let texture = handle.fetch_texture(tile_data.tileset.as_ref().unwrap()).unwrap();
+                    let tile_index = tileset_lookup[mask as usize];
+                    let mut uv_rect = UV_LOOKUP[tile_index as usize];
+                    uv_rect[0] *= texture.uv[0];
+                    uv_rect[1] *= texture.uv[1];
+                    uv_rect[2] *= texture.uv[0];
+                    uv_rect[3] *= texture.uv[1];
+                    (texture, uv_rect)
+                } else {
+                    let texture = handle.fetch_texture(&tile_data.texture).unwrap();
+                    let uv_rect = [0.0, 0.0, texture.uv[0], texture.uv[1]];
+                    (texture, uv_rect)
+                };
                 let x = (chunk.position.x * CHUNK_DIM as i32) as f32 + i as f32;
                 let y = (chunk.position.y * CHUNK_DIM as i32) as f32 + j as f32;
                 
                 let vertices = vec![
-                    ModelVertex { position: [x, y, TRANSITION_LAYER_DEPTH * tile_index as f32], uv: [0.0, tile_texture.uv[1]], color, layer: tile_texture.index },
-                    ModelVertex { position: [x + 1.0, y, TRANSITION_LAYER_DEPTH * tile_index as f32], uv: [tile_texture.uv[0], tile_texture.uv[1]], color, layer: tile_texture.index },
-                    ModelVertex { position: [x + 1.0, y + 1.0, TRANSITION_LAYER_DEPTH * tile_index as f32], uv: [tile_texture.uv[0], 0.0], color, layer: tile_texture.index },
-                    ModelVertex { position: [x, y + 1.0, TRANSITION_LAYER_DEPTH * tile_index as f32], uv: [0.0, 0.0], color, layer: tile_texture.index },
+                    ModelVertex { position: [x, y, TRANSITION_LAYER_DEPTH * tile_index as f32], uv: [uv_rect[0], uv_rect[3]], color, layer: tile_texture.index },
+                    ModelVertex { position: [x + 1.0, y, TRANSITION_LAYER_DEPTH * tile_index as f32], uv: [uv_rect[2], uv_rect[3]], color, layer: tile_texture.index },
+                    ModelVertex { position: [x + 1.0, y + 1.0, TRANSITION_LAYER_DEPTH * tile_index as f32], uv: [uv_rect[2], uv_rect[1]], color, layer: tile_texture.index },
+                    ModelVertex { position: [x, y + 1.0, TRANSITION_LAYER_DEPTH * tile_index as f32], uv: [uv_rect[0], uv_rect[1]], color, layer: tile_texture.index },
                 ];
                 let indices: Vec<u32> = QUAD_INDICES.iter().map(|x| x + num_indices).collect();
                 model_vertices.extend(vertices);
                 model_indices.extend(indices);
                 num_indices += 4;
     
+                // Used for tile masks
+                //
                 // let transitions = &tileset.0[i][j];
                 // if !transitions.is_empty() {
                 //     for (k, transition) in transitions.iter().enumerate() {
@@ -416,40 +432,22 @@ pub fn system_manage_chunks(handle: &mut RainHandle, state: &mut State) {
     }
     for (e, chunk_position) in to_load {
         updated = true;
-        reload_chunk(handle, state, e, chunk_position);
+        reload_chunk(handle, state, e, chunk_position, false);
     }
     if updated {
         reload_object_mesh(handle, state);
     }
 }
 
-pub fn reload_chunk(handle: &mut RainHandle, state: &mut State, e: Entity, chunk_position: ChunkPosition) {
-    let tileset = if let Ok(t) = handle.world.remove_one::<ChunkTileSet>(e) {
-        t
+pub fn reload_chunk(handle: &mut RainHandle, state: &mut State, e: Entity, chunk_position: ChunkPosition, reload_tileset: bool) {
+    let tileset = if !reload_tileset {
+        if let Ok(t) = handle.world.remove_one::<[ChunkTileSet; 2]>(e) {
+            t
+        } else {
+            generate_chunk_tileset(handle, state, chunk_position)
+        }
     } else {
-        let mut padded: [[TileType; CHUNK_DIM + 2]; CHUNK_DIM + 2] = [[TileType::Water; CHUNK_DIM + 2]; CHUNK_DIM + 2];
-        if let Some(chunk) = state.chunks.get(&chunk_position) {
-            for x in 0..CHUNK_DIM {
-                for y in 0..CHUNK_DIM {
-                    padded[x + 1][y + 1] = chunk.ground[x][y]._type;
-                }
-            }
-        }
-        for ((x, y), (range_x, range_y), (padded_x, padded_y)) in ADJACENT_BORDER {
-            let position = ChunkPosition::new(chunk_position.x + x, chunk_position.y + y);
-            if !state.chunks.contains_key(&position) {
-                let chunk = generate_chunk(handle, state, position);
-                handle.world.spawn((position,));
-                state.chunks.insert(position, chunk);
-            }
-            let chunk = state.chunks.get(&position).unwrap();
-            for (i, padded_i) in range_x.zip(padded_x) {
-                for (j, padded_j) in range_y.clone().zip(padded_y.clone()) {
-                    padded[padded_i][padded_j] = chunk.ground[i][j]._type;
-                }
-            }
-        }
-        construct_chunk_tileset(padded)
+        generate_chunk_tileset(handle, state, chunk_position)
     };
     if let Some(chunk) = state.chunks.get(&chunk_position) {
         let mesh = construct_chunk_mesh(handle, chunk, &state.tile_registry, &tileset, &state.tileset_lookup);
@@ -467,29 +465,94 @@ const ADJACENT_BORDER: [((i32, i32), (Range<usize>, Range<usize>), (Range<usize>
     ((-1, 0), ((CHUNK_DIM - 1)..CHUNK_DIM, 0..CHUNK_DIM), (0..1, 1..(CHUNK_DIM + 1))),
     ((-1, 1), ((CHUNK_DIM - 1)..CHUNK_DIM, 0..1), (0..1, (CHUNK_DIM + 1)..(CHUNK_DIM + 2)))
 ];
-const BLOB_TILESET: [((i32, i32), u8); 8] = [((0, 1), 199), ((1, 1), 2), ((1, 0), 31), ((1, -1), 8), ((0, -1), 124), ((-1, -1), 32), ((-1, 0), 241), ((-1, 1), 128)];
+const BLOB_TILESET: [((i32, i32), u8); 8] = [((0, 1), 1), ((1, 1), 2), ((1, 0), 4), ((1, -1), 8), ((0, -1), 16), ((-1, -1), 32), ((-1, 0), 64), ((-1, 1), 128)];
 
-fn construct_chunk_tileset(padded: [[TileType; CHUNK_DIM + 2]; CHUNK_DIM + 2]) -> ChunkTileSet {
-    let mut tileset_masks: [[Vec<(TileType, u8)>; CHUNK_DIM]; CHUNK_DIM] = std::array::from_fn(|_| std::array::from_fn(|_| Vec::new()));
+// Used for tile masks
+//
+// const BLOB_TILESET: [((i32, i32), u8); 8] = [((0, 1), 199), ((1, 1), 2), ((1, 0), 31), ((1, -1), 8), ((0, -1), 124), ((-1, -1), 32), ((-1, 0), 241), ((-1, 1), 128)];
+//
+// fn construct_chunk_tileset(padded: [[TileType; CHUNK_DIM + 2]; CHUNK_DIM + 2]) -> ChunkTileSet {
+//     let mut tileset_masks: [[Vec<(TileType, u8)>; CHUNK_DIM]; CHUNK_DIM] = std::array::from_fn(|_| std::array::from_fn(|_| Vec::new()));
+
+//     for x in 0..CHUNK_DIM {
+//         for y in 0..CHUNK_DIM {
+//             let tile_type = padded[x + 1][y + 1];
+//             let mut masks: Vec<(TileType, u8)> = Vec::new();
+//             for ((x_offset, y_offset), weight) in BLOB_TILESET {
+//                 let adjacent = (x as i32 + x_offset, y as i32 + y_offset);
+//                 let adjacent_tile_type = padded[(adjacent.0 + 1) as usize][(adjacent.1 + 1) as usize];
+//                 if adjacent_tile_type.has_tileset() && adjacent_tile_type > tile_type {
+//                     if let Some(mask) = masks.iter_mut().find(|(x, _)| *x == adjacent_tile_type) {
+//                         mask.1 |= weight;
+//                     } else {
+//                         masks.push((adjacent_tile_type, weight));
+//                     }
+//                 }
+//             }
+//             masks.sort_by_key(|(i, _)| *i);
+//             tileset_masks[x][y] = masks;
+//         }
+//     }
+//     ChunkTileSet(tileset_masks)
+// }
+
+fn generate_chunk_tileset(handle: &mut RainHandle, state: &mut State, chunk_position: ChunkPosition) -> [ChunkTileSet; 2] {
+    let mut tileset: [ChunkTileSet; 2] = [[[None; CHUNK_DIM]; CHUNK_DIM]; 2];
+    for index in 0..2 {
+        let mut padded: [[TileType; CHUNK_DIM + 2]; CHUNK_DIM + 2] = [[TileType::Water; CHUNK_DIM + 2]; CHUNK_DIM + 2];
+        if let Some(chunk) = state.chunks.get(&chunk_position) {
+            for x in 0..CHUNK_DIM {
+                for y in 0..CHUNK_DIM {
+                    padded[x + 1][y + 1] = match index {
+                        0 => chunk.ground[x][y]._type,
+                        1 => chunk.base[x][y].map_or(TileType::Water, |tile| tile._type),
+                        _ => continue,
+                    }
+                }
+            }
+        }
+        for ((x, y), (range_x, range_y), (padded_x, padded_y)) in ADJACENT_BORDER {
+            let position = ChunkPosition::new(chunk_position.x + x, chunk_position.y + y);
+            if !state.chunks.contains_key(&position) {
+                let chunk = generate_chunk(handle, state, position);
+                handle.world.spawn((position,));
+                state.chunks.insert(position, chunk);
+            }
+            let chunk = state.chunks.get(&position).unwrap();
+            for (i, padded_i) in range_x.zip(padded_x) {
+                for (j, padded_j) in range_y.clone().zip(padded_y.clone()) {
+                    padded[padded_i][padded_j] = match index {
+                        0 => chunk.ground[i][j]._type,
+                        1 => chunk.base[i][j].map_or(TileType::Water, |tile| tile._type),
+                        _ => continue,
+                    }
+                }
+            }
+        }
+        tileset[index] = construct_chunk_tileset(state, padded);
+    }
+    tileset
+}
+
+fn construct_chunk_tileset(state: &mut State, padded: [[TileType; CHUNK_DIM + 2]; CHUNK_DIM + 2]) -> ChunkTileSet {
+    let mut tileset_masks: ChunkTileSet = std::array::from_fn(|_| std::array::from_fn(|_| None));
 
     for x in 0..CHUNK_DIM {
         for y in 0..CHUNK_DIM {
             let tile_type = padded[x + 1][y + 1];
-            let mut masks: Vec<(TileType, u8)> = Vec::new();
-            for ((x_offset, y_offset), weight) in BLOB_TILESET {
-                let adjacent = (x as i32 + x_offset, y as i32 + y_offset);
-                let adjacent_tile_type = padded[(adjacent.0 + 1) as usize][(adjacent.1 + 1) as usize];
-                if adjacent_tile_type.has_tileset() && adjacent_tile_type > tile_type {
-                    if let Some(mask) = masks.iter_mut().find(|(x, _)| *x == adjacent_tile_type) {
-                        mask.1 |= weight;
-                    } else {
-                        masks.push((adjacent_tile_type, weight));
+            let tile_data = state.tile_registry.get(&tile_type).unwrap();
+            if tile_data.tileset.is_some() {
+                let mut mask: u8 = 0;
+                for ((x_offset, y_offset), weight) in BLOB_TILESET {
+                    let adjacent = (x as i32 + x_offset, y as i32 + y_offset);
+                    let adjacent_tile_type = padded[(adjacent.0 + 1) as usize][(adjacent.1 + 1) as usize];
+                    if adjacent_tile_type == tile_type {
+                        mask |= weight;
                     }
                 }
+                tileset_masks[x][y] = Some(mask);
             }
-            masks.sort_by_key(|(i, _)| *i);
-            tileset_masks[x][y] = masks;
         }
     }
-    ChunkTileSet(tileset_masks)
+    tileset_masks
 }

@@ -54,5 +54,7 @@
     ["tile_mud_tileset", "res/texture/tile_mud_tileset.png"],
     ["tile_clay_tileset", "res/texture/tile_clay_tileset.png"],
     ["object_barrel", "res/texture/barrel.png"],
-    ["tile_wood_floor", "res/texture/tile_wood_floor.png"]
+    ["tile_wood_floor", "res/texture/tile_wood_floor.png"],
+    ["tile_wood_wall", "res/texture/tile_wood_wall.png"],
+    ["tile_wood_wall_tileset", "res/texture/tile_wood_wall_tileset.png"]
 ]

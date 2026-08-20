@@ -64,6 +64,7 @@ pub enum ItemType {
     Wood,
     WoodPlanks,
     WoodFloor,
+    WoodWall,
     CoatiPelt,
     SquirrelPelt,
     SmallBone,

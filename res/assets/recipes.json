@@ -42,5 +42,9 @@
     {
         "input": [["wood_planks", 2]],
         "output": ["wood_floor", 1]
+    },
+    {
+        "input": [["wood_planks", 3]],
+        "output": ["wood_wall", 1]
     }
 ]
