@@ -1,9 +1,56 @@
-- enemy ai
-- item drop animation
-- animating literally anything 
-- swimming
-- better spawn checking
-- improved visuals
-    - 2.5d shadows?
+- bugs:
+    - ignoring hits on chunk border ex: breaking a tree won't break if on chunk border
+    - sometimes transparent trees don't go untransparent when the player leaves
 
-- maybe change render backend from wgpu to vulkan (long term)
+
+- passive enemies
+    - deer
+- new tiles/objects
+    - wood path
+- fix tilesets across chunks (reloading?)
+- object connected textures
+- new biomes
+    - snowy biome
+    - desert biome
+- multithreading
+    - seperate thread for chunk loading
+- sound engine
+- day night cycle
+    - lighting
+- add spawn checking
+    - player
+    - enemies
+- object preview (like waila)
+- implement basic machine
+    - has inventory
+    - takes in items and ouptuts items
+    - kiln
+    - forge
+- implement basic pipes
+    - transports items between inventories
+    - pipe recipes
+        - canals
+        - clay piping
+- better inventory
+    - minecraft like inventory shortcuts
+        - shift clicking
+        - splitting stacks
+        - placing single items
+- metal deposits
+    - ores in rock fields
+    - panning in rivers
+- clear water
+    - clay deposits under water
+- rework render engine depth sorting
+    - layered draw calls based on depth/transparency
+        - collect all meshes/sprites into a draw call based on depth
+    - get rid of priority
+- plants
+    - saplings which grow
+    - flowers
+    - crops?
+- seperate object instances from chunks
+    - if searching 9 chunks for collisions becomes too expensive
+- fix breaking objects with no item
+- convert _ types into strings
+- tile placement on water
