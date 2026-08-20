@@ -323,6 +323,7 @@ pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData, tile_reg
                 let (tile_texture, uv_rect) = if let Some(mask) = tileset[tile_index][i][j] {
                     let texture = handle.fetch_texture(tile_data.tileset.as_ref().unwrap()).unwrap();
                     let tile_index = tileset_lookup[mask as usize];
+                    
                     let mut uv_rect = UV_LOOKUP[tile_index as usize];
                     uv_rect[0] *= texture.uv[0];
                     uv_rect[1] *= texture.uv[1];
@@ -550,6 +551,7 @@ fn construct_chunk_tileset(state: &mut State, padded: [[TileType; CHUNK_DIM + 2]
                         mask |= weight;
                     }
                 }
+                
                 tileset_masks[x][y] = Some(mask);
             }
         }

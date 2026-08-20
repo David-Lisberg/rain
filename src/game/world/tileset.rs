@@ -111,7 +111,7 @@ pub const UV_LOOKUP: [[f32; 4]; 47] = [
 pub fn generate_tileset_lookup() -> [u8; 256] {
     let mut tile_lookup: [u8; 256] = [0; 256];
 
-    for i in 0..255 {
+    for i in 0..=255 {
         let effective_mask = get_effective_mask(i);
         for (mask, tile) in MASK_TO_TILE {
             if effective_mask == mask {
