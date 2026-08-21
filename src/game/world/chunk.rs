@@ -17,7 +17,7 @@ use crate::game::core::collision::Collider;
 use crate::game::utility::noise::{noise_normalize, octave_noise_2d};
 use crate::game::world::config::BiomeType;
 use crate::game::world::generation::CHUNK_GENERATION_DISTANCE;
-use crate::game::world::tile::{Tile, TileRegistry, TileType};
+use crate::game::world::tile::{Tile, TilePosition, TileRegistry, TileType};
 use crate::game::world::object::{Object, ObjectType, reload_object_mesh};
 use crate::game::player::movement::Player;
 use crate::game::world::tileset::{ChunkTileSet, UV_LOOKUP};
@@ -423,6 +423,11 @@ pub fn system_manage_chunks(handle: &mut RainHandle, state: &mut State) {
         }
     }
 
+    for chunk_position in state.chunks_to_reload.iter() {
+        let chunk_entity = handle.world.query::<&ChunkPosition>().iter().find(|x| *x.1 == *chunk_position).unwrap().0;
+        to_load.push((chunk_entity, *chunk_position));
+    }
+
     if !to_deload.is_empty() || !to_load.is_empty() {
         reload_object_mesh(handle, state);
     }
@@ -433,20 +438,16 @@ pub fn system_manage_chunks(handle: &mut RainHandle, state: &mut State) {
     }
     for (e, chunk_position) in to_load {
         updated = true;
-        reload_chunk(handle, state, e, chunk_position, false);
+        reload_chunk(handle, state, e, chunk_position);
     }
     if updated {
         reload_object_mesh(handle, state);
     }
 }
 
-pub fn reload_chunk(handle: &mut RainHandle, state: &mut State, e: Entity, chunk_position: ChunkPosition, reload_tileset: bool) {
-    let tileset = if !reload_tileset {
-        if let Ok(t) = handle.world.remove_one::<[ChunkTileSet; 2]>(e) {
-            t
-        } else {
-            generate_chunk_tileset(handle, state, chunk_position)
-        }
+pub fn reload_chunk(handle: &mut RainHandle, state: &mut State, e: Entity, chunk_position: ChunkPosition) {
+    let tileset = if let Ok(t) = handle.world.remove_one::<[ChunkTileSet; 2]>(e) {
+        t
     } else {
         generate_chunk_tileset(handle, state, chunk_position)
     };
@@ -466,7 +467,7 @@ const ADJACENT_BORDER: [((i32, i32), (Range<usize>, Range<usize>), (Range<usize>
     ((-1, 0), ((CHUNK_DIM - 1)..CHUNK_DIM, 0..CHUNK_DIM), (0..1, 1..(CHUNK_DIM + 1))),
     ((-1, 1), ((CHUNK_DIM - 1)..CHUNK_DIM, 0..1), (0..1, (CHUNK_DIM + 1)..(CHUNK_DIM + 2)))
 ];
-const BLOB_TILESET: [((i32, i32), u8); 8] = [((0, 1), 1), ((1, 1), 2), ((1, 0), 4), ((1, -1), 8), ((0, -1), 16), ((-1, -1), 32), ((-1, 0), 64), ((-1, 1), 128)];
+pub const BLOB_TILESET: [((i32, i32), u8); 8] = [((0, 1), 1), ((1, 1), 2), ((1, 0), 4), ((1, -1), 8), ((0, -1), 16), ((-1, -1), 32), ((-1, 0), 64), ((-1, 1), 128)];
 
 // Used for tile masks
 //
@@ -558,3 +559,77 @@ fn construct_chunk_tileset(state: &mut State, padded: [[TileType; CHUNK_DIM + 2]
     }
     tileset_masks
 }
+
+// pub fn update_tileset(handle: &mut RainHandle, state: &mut State, chunk_position: ChunkPosition, tile_position: TilePosition) {
+//     let chunk_entity = handle.world.query::<&ChunkPosition>().iter().find(|x| *x.1 == chunk_position).unwrap().0;
+//     let mut to_update: Vec<(ChunkPosition, TilePosition)> = Vec::new();
+
+//     if let Ok(mut t) = handle.world.remove_one::<[ChunkTileSet; 2]>(chunk_entity) {
+//         if let Some(chunk) = state.chunks.get(&chunk_position) {
+//             let tile_type = chunk.base[tile_position.x][tile_position.y].unwrap()._type;
+//             let tile_data = state.tile_registry.get(&tile_type).unwrap();
+//             if tile_data.tileset.is_some() {
+//                 let old_mask = t[1][tile_position.x][tile_position.y].unwrap_or(0);
+//                 let mut mask: u8 = 0;
+//                 for ((x_offset, y_offset), weight) in BLOB_TILESET {
+//                     let (adjacent_chunk_position, adjacent_tile_position) = get_adjacent_chunk_position_tile_position(
+//                         tile_position, chunk_position, x_offset, y_offset
+//                     );
+//                     let adjacent_tile_type = if let Some(adjacent_chunk) = state.chunks.get(&adjacent_chunk_position) {
+//                         if let Some(tile) = adjacent_chunk.base[adjacent_tile_position.x][adjacent_tile_position.y] {
+//                             tile._type
+//                         } else {
+//                             continue;
+//                         }
+//                     } else {
+//                         continue;
+//                     };
+//                     if adjacent_tile_type == tile_type {
+//                         mask |= weight;
+//                     }
+
+//                     if adjacent_chunk_position != chunk_position {
+//                         if (old_mask & mask) & weight != 0 {
+//                             to_update.push((adjacent_chunk_position, adjacent_tile_position));
+//                         }                        
+//                     }
+//                 }
+                
+//                 t[1][tile_position.x][tile_position.y] = Some(mask);
+//             }
+//         }
+//         handle.world.insert_one(chunk_entity, t).unwrap();
+//     }
+
+//     for (chunk_position, tile_position) in to_update {
+//         let chunk_entity = handle.world.query::<&ChunkPosition>().iter().find(|x| *x.1 == chunk_position).unwrap().0;
+//         if let Ok(mut t) = handle.world.remove_one::<[ChunkTileSet; 2]>(chunk_entity) {
+//             if let Some(chunk) = state.chunks.get(&chunk_position) {
+//                 let tile_type = chunk.base[tile_position.x][tile_position.y].unwrap()._type;
+//                 let tile_data = state.tile_registry.get(&tile_type).unwrap();
+//                 if tile_data.tileset.is_some() {
+//                     let mut mask: u8 = 0;
+//                     for ((x_offset, y_offset), weight) in BLOB_TILESET {
+//                         let (adjacent_chunk_position, adjacent_tile_position) = get_adjacent_chunk_position_tile_position(
+//                             tile_position, chunk_position, x_offset, y_offset
+//                         );
+//                         let adjacent_tile_type = if let Some(adjacent_chunk) = state.chunks.get(&adjacent_chunk_position) {
+//                             if let Some(tile) = adjacent_chunk.base[adjacent_tile_position.x][adjacent_tile_position.y] {
+//                                 tile._type
+//                             } else {
+//                                 continue;
+//                             }
+//                         } else {
+//                             continue;
+//                         };
+//                         if adjacent_tile_type == tile_type {
+//                             mask |= weight;
+//                         }
+//                     }
+//                     t[1][tile_position.x][tile_position.y] = Some(mask);
+//                 }
+//             }
+//             handle.world.insert_one(chunk_entity, t);
+//         }
+//     }
+// }

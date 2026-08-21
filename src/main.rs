@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use lgui::manager::GUI;
 use noise::Perlin;
@@ -54,7 +54,7 @@ use crate::game::world::object::{ObjectRegistry, system_object_transparency};
 use crate::game::world::reset::Persistent;
 use crate::game::world::reset::system_reset_world;
 use crate::game::world::tile::{TileHighlight, TileRegistry, system_tile_highlight};
-use crate::game::world::tileset::generate_tileset_lookup;
+use crate::game::world::tileset::{TileQueue, generate_tileset_lookup, system_update_tiles};
 use crate::game::world::water::Swimmable;
 use crate::game::world::water::system_swimming;
 
@@ -134,6 +134,8 @@ pub struct State {
     object_registry: ObjectRegistry,
     tileset_lookup: [u8; 256],
     inventory_screen: InventoryScreen,
+    tile_queue: TileQueue,
+    chunks_to_reload: HashSet<ChunkPosition>,
 }
 
 impl RainState for State {
@@ -175,6 +177,7 @@ impl RainState for State {
         system_camera_tracker(handle);
         system_camera_zoom(handle, self);
         system_tile_highlight(handle);
+        system_update_tiles(handle, self);
 
         system_reset_world(handle, self);
 
@@ -246,6 +249,8 @@ fn main() -> anyhow::Result<()> {
         object_registry: HashMap::new(),
         tileset_lookup: generate_tileset_lookup(),
         inventory_screen: InventoryScreen::new(),
+        tile_queue: TileQueue::new(),
+        chunks_to_reload: HashSet::new(),
     };
     let _ = RainApp::new(state)
         .size(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32)

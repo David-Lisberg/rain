@@ -31,9 +31,19 @@ pub struct Tile {
     pub _type: TileType, 
 }
 
+#[derive(Clone, Copy, PartialEq)]
 pub struct TilePosition {
     pub x: usize,
     pub y: usize,
+}
+
+impl TilePosition {
+    pub fn new(x: usize, y: usize) -> Self {
+        Self {
+            x,
+            y,
+        }
+    }
 }
 
 pub fn position_to_tile_position(x: f32, y: f32) -> TilePosition {
