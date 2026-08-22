@@ -25,7 +25,7 @@ pub fn system_physics_movement_2d(handle: &mut RainHandle, state: &mut State) {
         if let Some(c) = collider {
             let new_collider = Collider::new(c.x + position_delta.x, c.y + position_delta.y, c.width, c.height);
             let chunk_position: ChunkPosition = position_to_chunk_position(new_collider.x, new_collider.y);
-            let mut object_colliders: Vec<Collider> = Vec::new();
+            let mut other_colliders: Vec<Collider> = Vec::new();
 
             for adjacent in ADJACENT_I32 {
                 let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
@@ -33,13 +33,14 @@ pub fn system_physics_movement_2d(handle: &mut RainHandle, state: &mut State) {
                     for object in &chunk.objects {
                         let object_data = state.object_registry.get(&object._type).unwrap();
                         if object_data.collidable {
-                            object_colliders.push(object_data.collider.add_vec2(object.position));
+                            other_colliders.push(object_data.collider.add_vec2(object.position));
                         }
                     }
+                    other_colliders.extend(&chunk.tile_colliders);
                 }
             }
 
-            let object_colliders: Vec<(Option<Entity>, Collider)> = object_colliders.iter()
+            let object_colliders: Vec<(Option<Entity>, Collider)> = other_colliders.iter()
                 .map(|c| (None, c.clone()))
                 .collect();
 

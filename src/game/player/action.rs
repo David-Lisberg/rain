@@ -20,7 +20,7 @@ use crate::game::player::movement::Player;
 use crate::game::utility::direction::Direction4;
 use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
 use crate::game::world::object::{Object, ObjectBehavior, ObjectType, destroy_object, reload_object_mesh, world_position_to_object_position};
-use crate::game::world::tile::{Tile, position_to_tile_position};
+use crate::game::world::tile::{Tile, TileType, position_to_tile_position};
 
 pub const PLAYER_REACH: f32 = 4.0;
 
@@ -70,15 +70,20 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
             }
         } else if let Some(chunk) = state.chunks.get_mut(&chunk_position) {
             let tile_position = position_to_tile_position(collider_position.x, collider_position.y);
-            if let Some(tile) = &chunk.base[tile_position.x][tile_position.y] {
+            let tile = &chunk.tiles[1][tile_position.x][tile_position.y];
+            if tile._type != TileType::None {
                 let tile_data = state.tile_registry.get(&tile._type).unwrap();
                 if let Some(tile_break_level) = tile_data.break_level {
                     if break_level >= tile_break_level && tool_type.can_break(tile_data.required_tool.unwrap_or(ToolType::None)) {
                         if let Some(tile_drops) = &tile_data.drops {
                             drops.extend(tile_drops.iter().map(|x| (x.0.clone(), x.1, collider_position)))
                         }
-                        chunk.base[tile_position.x][tile_position.y] = None;
+                        chunk.tiles[1][tile_position.x][tile_position.y] = Tile { _type: TileType::None };
                         state.tile_queue.push(chunk_position, tile_position);
+                        println!("pushed to queue");
+                        if tile_data.collidable {
+                            state.chunk_tile_colliders_to_update.insert(chunk_position);
+                        }
                         to_reload = Some(chunk_position);
                     }
                 }
@@ -250,10 +255,15 @@ fn player_place_object(handle: &mut RainHandle, state: &mut State, mouse_positio
                 let tile_position = position_to_tile_position(mouse_position.x, mouse_position.y);
                 let chunk_position = position_to_chunk_position(mouse_position.x, mouse_position.y);
                 if let Some(chunk) = state.chunks.get_mut(&chunk_position) {
-                    if chunk.base[tile_position.x][tile_position.y].is_none() {
-                        chunk.base[tile_position.x][tile_position.y] = Some(Tile { _type: placeable_tile });
+                    if chunk.tiles[1][tile_position.x][tile_position.y]._type == TileType::None {
+                        chunk.tiles[1][tile_position.x][tile_position.y] = Tile { _type: placeable_tile };
                         inventory.remove_item_from_slot(player_inventory.selected_hotbar, 1);
+
                         state.tile_queue.push(chunk_position, tile_position);
+                        let tile_data = state.tile_registry.get(&placeable_tile).unwrap();
+                        if tile_data.collidable {
+                            state.chunk_tile_colliders_to_update.insert(chunk_position);
+                        }
                         to_reload = Some(chunk_position);
                     }
                 }

@@ -20,6 +20,8 @@ pub type TileRegistry = HashMap<TileType, TileData>;
 pub struct TileData {
     pub tile_type: TileType,
     pub texture: String,
+    pub collidable: bool,
+    pub swimmable: bool,
     pub tileset: Option<String>,
     pub break_level: Option<i32>,
     pub required_tool: Option<ToolType>,
@@ -31,7 +33,7 @@ pub struct Tile {
     pub _type: TileType, 
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct TilePosition {
     pub x: usize,
     pub y: usize,
@@ -57,17 +59,18 @@ pub fn position_to_tile_position(x: f32, y: f32) -> TilePosition {
 #[derive(PartialEq, Clone, Deserialize, PartialOrd, Copy, Ord, Eq, Debug, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum TileType {
-    Water = 0,
-    Clay = 1,
-    Sand = 2,
-    Mud = 3,
-    Grass = 4,
-    Grass2 = 5,
-    Dirt = 6,
-    Stone = 7,
-    Cobblestone = 8,
-    WoodFloor = 9,
-    WoodWall = 10,
+    None = 0,
+    Water = 1,
+    Clay = 2,
+    Sand = 3,
+    Mud = 4,
+    Grass = 5,
+    Grass2 = 6,
+    Dirt = 7,
+    Stone = 8,
+    Cobblestone = 9,
+    WoodFloor = 10,
+    WoodWall = 11,
 }
 
 #[derive(Serialize, Deserialize)]

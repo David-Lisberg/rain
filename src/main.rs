@@ -45,7 +45,7 @@ use crate::game::player::movement::system_player_dash;
 use crate::game::player::movement::system_player_walk;
 use crate::game::core::load::{load_animations, load_enemy_registry, load_inventory_registry, load_item_registry, load_object_registry, load_recipe_registry, load_tile_registry, load_world_gen_config};
 use crate::game::core::load::load_textures;
-use crate::game::world::chunk::ChunkData;
+use crate::game::world::chunk::{ChunkData, system_update_chunk_colliders};
 use crate::game::world::chunk::ChunkPosition;
 use crate::game::world::chunk::system_manage_chunks;
 use crate::game::world::config::WorldGenConfig;
@@ -136,17 +136,19 @@ pub struct State {
     inventory_screen: InventoryScreen,
     tile_queue: TileQueue,
     chunks_to_reload: HashSet<ChunkPosition>,
+    chunk_water_colliders_to_update: HashSet<ChunkPosition>,
+    chunk_tile_colliders_to_update: HashSet<ChunkPosition>,
 }
 
 impl RainState for State {
     fn update(&mut self, handle: &mut RainHandle) {
+        system_world_generation(handle, self);
+        system_manage_chunks(handle, self);
+
         system_manage_animation_events(handle);
         system_clear_animation_state(handle);
         system_player_input(handle, self);
         system_inventory_interface(handle, self);
-
-        system_world_generation(handle, self);
-        system_manage_chunks(handle, self);
 
         system_manage_enemies(handle, self);
         system_swimming(handle, self);
@@ -178,6 +180,7 @@ impl RainState for State {
         system_camera_zoom(handle, self);
         system_tile_highlight(handle);
         system_update_tiles(handle, self);
+        system_update_chunk_colliders(self);
 
         system_reset_world(handle, self);
 
@@ -251,6 +254,8 @@ fn main() -> anyhow::Result<()> {
         inventory_screen: InventoryScreen::new(),
         tile_queue: TileQueue::new(),
         chunks_to_reload: HashSet::new(),
+        chunk_water_colliders_to_update: HashSet::new(),
+        chunk_tile_colliders_to_update: HashSet::new(),
     };
     let _ = RainApp::new(state)
         .size(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32)

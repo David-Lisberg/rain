@@ -17,7 +17,7 @@ use crate::game::core::collision::Collider;
 use crate::game::utility::noise::{noise_normalize, octave_noise_2d};
 use crate::game::world::config::BiomeType;
 use crate::game::world::generation::CHUNK_GENERATION_DISTANCE;
-use crate::game::world::tile::{Tile, TilePosition, TileRegistry, TileType};
+use crate::game::world::tile::{Tile, TileRegistry, TileType};
 use crate::game::world::object::{Object, ObjectType, reload_object_mesh};
 use crate::game::player::movement::Player;
 use crate::game::world::tileset::{ChunkTileSet, UV_LOOKUP};
@@ -50,10 +50,10 @@ pub fn position_to_chunk_position(x: f32, y: f32) -> ChunkPosition {
 
 pub struct ChunkData {
     pub position: ChunkPosition,
-    pub ground: [[Tile; CHUNK_DIM]; CHUNK_DIM],
-    pub base: [[Option<Tile>; CHUNK_DIM]; CHUNK_DIM],
+    pub tiles: [[[Tile; CHUNK_DIM]; CHUNK_DIM]; 2],
     pub objects: Vec<Object>,
     pub water_colliders: Vec<Collider>,
+    pub tile_colliders: Vec<Collider>,
 }
 
 pub struct ChunkInfo {
@@ -228,12 +228,37 @@ pub fn generate_chunk(handle: &mut RainHandle, state: &mut State, chunk_position
         }
     }
 
+    let water_colliders: Vec<Collider> = chunk_greedy_mesh_colliders(&tiles, chunk_position, &state.tile_registry, tile_is_swimmable);
+    let tile_colliders: Vec<Collider> = chunk_greedy_mesh_colliders(&tiles, chunk_position, &state.tile_registry, tile_is_collidable);
+
+    ChunkData {
+        position: chunk_position,
+        tiles: [tiles, [[Tile { _type: TileType::None }; CHUNK_DIM]; CHUNK_DIM]],
+        objects,
+        water_colliders,
+        tile_colliders,
+    }
+}
+
+fn tile_is_swimmable(tile_registry: &TileRegistry, tile_type: TileType) -> bool {
+    let tile_data = tile_registry.get(&tile_type).unwrap();
+    tile_data.swimmable
+}
+
+fn tile_is_collidable(tile_registry: &TileRegistry, tile_type: TileType) -> bool {
+    let tile_data = tile_registry.get(&tile_type).unwrap();
+    tile_data.collidable
+}
+
+fn chunk_greedy_mesh_colliders(
+    tiles: &[[Tile; CHUNK_DIM]; CHUNK_DIM], chunk_position: ChunkPosition, tile_registry: &TileRegistry, condition: fn(&TileRegistry, TileType) -> bool
+) -> Vec<Collider> {
     let mut processed: [[bool; CHUNK_DIM]; CHUNK_DIM] = std::array::from_fn(|_| std::array::from_fn(|_| false));
     let mut index: (usize, usize) = (0, 0);
-    let mut water_colliders: Vec<Collider> = Vec::new();
+    let mut colliders: Vec<Collider> = Vec::new();
 
     loop {
-        while index.1 < tiles.len() && (tiles[index.0][index.1]._type != TileType::Water || processed[index.0][index.1]) {
+        while index.1 < tiles.len() && (!condition(tile_registry, tiles[index.0][index.1]._type) || processed[index.0][index.1]) {
             index = increment(index, tiles.len());
         }
 
@@ -243,7 +268,7 @@ pub fn generate_chunk(handle: &mut RainHandle, state: &mut State, chunk_position
         }
 
         index = increment(index, tiles.len());
-        while index.1 < tiles.len() && index.0 > start.0 && tiles[index.0][index.1]._type == TileType::Water && !processed[index.0][index.1] {
+        while index.1 < tiles.len() && index.0 > start.0 && condition(tile_registry, tiles[index.0][index.1]._type) && !processed[index.0][index.1] {
             index = increment(index, tiles.len());
         }
         let width = (index.0 as i32 - start.0 as i32 + (index.1 - start.1) as i32 * tiles.len() as i32) as usize;
@@ -253,7 +278,7 @@ pub fn generate_chunk(handle: &mut RainHandle, state: &mut State, chunk_position
             let mut valid = true;
             for offset in 0..width {
                 let i = (start.0 + offset, start.1 + height);
-                if i.1 >= tiles.len() || tiles[i.0][i.1]._type != TileType::Water || processed[i.0][i.1] {
+                if i.1 >= tiles.len() || !condition(tile_registry, tiles[i.0][i.1]._type) || processed[i.0][i.1] {
                     valid = false;
                     break;
                 }
@@ -275,16 +300,9 @@ pub fn generate_chunk(handle: &mut RainHandle, state: &mut State, chunk_position
         let x = (chunk_position.x * CHUNK_DIM as i32) as f32 + start.0 as f32;
         let y = (chunk_position.y * CHUNK_DIM as i32) as f32 + start.1 as f32;
         let collider = Collider::new(x, y, width as f32, height as f32);
-        water_colliders.push(collider);
+        colliders.push(collider);
     }
-    
-    ChunkData {
-        position: chunk_position,
-        ground: tiles,
-        base: std::array::from_fn(|_| std::array::from_fn(|_| None)),
-        objects,
-        water_colliders,
-    }
+    colliders
 }
 
 fn increment(mut value: (usize, usize), max: usize) -> (usize, usize) {
@@ -308,17 +326,11 @@ pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData, tile_reg
     for tile_index in 0..2 {
         for i in 0..CHUNK_DIM {
             for j in 0..CHUNK_DIM {
-                let tile_data = match tile_index {
-                    0 => tile_registry.get(&chunk.ground[i][j]._type).unwrap(),
-                    1 => {
-                        if let Some(tile) = &chunk.base[i][j] {
-                            tile_registry.get(&tile._type).unwrap()
-                        } else {
-                            continue;
-                        }
-                    }
-                    _ => continue,
-                };
+                let tile = &chunk.tiles[tile_index][i][j];
+                if tile._type == TileType::None {
+                    continue;
+                }
+                let tile_data = tile_registry.get(&tile._type).unwrap();
 
                 let (tile_texture, uv_rect) = if let Some(mask) = tileset[tile_index][i][j] {
                     let texture = handle.fetch_texture(tile_data.tileset.as_ref().unwrap()).unwrap();
@@ -423,9 +435,9 @@ pub fn system_manage_chunks(handle: &mut RainHandle, state: &mut State) {
         }
     }
 
-    for chunk_position in state.chunks_to_reload.iter() {
-        let chunk_entity = handle.world.query::<&ChunkPosition>().iter().find(|x| *x.1 == *chunk_position).unwrap().0;
-        to_load.push((chunk_entity, *chunk_position));
+    for chunk_position in state.chunks_to_reload.drain() {
+        let chunk_entity = handle.world.query::<&ChunkPosition>().iter().find(|x| *x.1 == chunk_position).unwrap().0;
+        to_load.push((chunk_entity, chunk_position));
     }
 
     if !to_deload.is_empty() || !to_load.is_empty() {
@@ -501,15 +513,11 @@ pub const BLOB_TILESET: [((i32, i32), u8); 8] = [((0, 1), 1), ((1, 1), 2), ((1, 
 fn generate_chunk_tileset(handle: &mut RainHandle, state: &mut State, chunk_position: ChunkPosition) -> [ChunkTileSet; 2] {
     let mut tileset: [ChunkTileSet; 2] = [[[None; CHUNK_DIM]; CHUNK_DIM]; 2];
     for index in 0..2 {
-        let mut padded: [[TileType; CHUNK_DIM + 2]; CHUNK_DIM + 2] = [[TileType::Water; CHUNK_DIM + 2]; CHUNK_DIM + 2];
+        let mut padded: [[TileType; CHUNK_DIM + 2]; CHUNK_DIM + 2] = [[TileType::None; CHUNK_DIM + 2]; CHUNK_DIM + 2];
         if let Some(chunk) = state.chunks.get(&chunk_position) {
             for x in 0..CHUNK_DIM {
                 for y in 0..CHUNK_DIM {
-                    padded[x + 1][y + 1] = match index {
-                        0 => chunk.ground[x][y]._type,
-                        1 => chunk.base[x][y].map_or(TileType::Water, |tile| tile._type),
-                        _ => continue,
-                    }
+                    padded[x + 1][y + 1] = chunk.tiles[index][x][y]._type;
                 }
             }
         }
@@ -523,11 +531,7 @@ fn generate_chunk_tileset(handle: &mut RainHandle, state: &mut State, chunk_posi
             let chunk = state.chunks.get(&position).unwrap();
             for (i, padded_i) in range_x.zip(padded_x) {
                 for (j, padded_j) in range_y.clone().zip(padded_y.clone()) {
-                    padded[padded_i][padded_j] = match index {
-                        0 => chunk.ground[i][j]._type,
-                        1 => chunk.base[i][j].map_or(TileType::Water, |tile| tile._type),
-                        _ => continue,
-                    }
+                    padded[padded_i][padded_j] = chunk.tiles[index][i][j]._type;
                 }
             }
         }
@@ -558,4 +562,25 @@ fn construct_chunk_tileset(state: &mut State, padded: [[TileType; CHUNK_DIM + 2]
         }
     }
     tileset_masks
+}
+
+pub fn system_update_chunk_colliders(state: &mut State) {
+    system_update_chunk_water_colliders(state);
+    system_update_chunk_tile_colliders(state);
+}
+
+fn system_update_chunk_water_colliders(state: &mut State) {
+    for chunk_position in state.chunk_water_colliders_to_update.drain() {
+        if let Some(chunk) = state.chunks.get_mut(&chunk_position) {
+            chunk.water_colliders = chunk_greedy_mesh_colliders(&chunk.tiles[0], chunk_position, &state.tile_registry, tile_is_swimmable)
+        }
+    }
+}
+
+fn system_update_chunk_tile_colliders(state: &mut State) {
+    for chunk_position in state.chunk_tile_colliders_to_update.drain() {
+        if let Some(chunk) = state.chunks.get_mut(&chunk_position) {
+            chunk.tile_colliders = chunk_greedy_mesh_colliders(&chunk.tiles[1], chunk_position, &state.tile_registry, tile_is_collidable)
+        }
+    }
 }

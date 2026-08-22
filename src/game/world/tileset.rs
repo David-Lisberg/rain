@@ -5,7 +5,7 @@ use rain::engine::core::RainHandle;
 
 use crate::State;
 use crate::game::world::chunk::{BLOB_TILESET, CHUNK_DIM, ChunkPosition};
-use crate::game::world::tile::TilePosition;
+use crate::game::world::tile::{TilePosition, TileType};
 
 pub struct TileQueue {
     queue: VecDeque<(ChunkPosition, TilePosition)>,
@@ -57,7 +57,8 @@ pub fn system_update_tiles(handle: &mut RainHandle, state: &mut State) {
                 continue;
             };
 
-            let Some(tile) = chunk.base[tile_position.x][tile_position.y] else {
+            let tile_type = chunk.tiles[1][tile_position.x][tile_position.y]._type;
+            if tile_type == TileType::None {
                 let mask = tileset[1][tile_position.x][tile_position.y].unwrap_or(0);
                 for ((x_offset, y_offset), weight) in BLOB_TILESET {
                     if mask & weight != 0 {
@@ -68,8 +69,8 @@ pub fn system_update_tiles(handle: &mut RainHandle, state: &mut State) {
                     }
                 }
                 continue;
-            };
-            let tile_data = state.tile_registry.get(&tile._type).unwrap();
+            }
+            let tile_data = state.tile_registry.get(&tile_type).unwrap();
             if tile_data.tileset.is_some() {
                 let old_mask = tileset[1][tile_position.x][tile_position.y].unwrap_or(0);
                 let mut mask: u8 = 0;
@@ -77,13 +78,11 @@ pub fn system_update_tiles(handle: &mut RainHandle, state: &mut State) {
                     let (adjacent_chunk_position, adjacent_tile_position) = get_adjacent_chunk_position_tile_position(
                         tile_position, chunk_position, x_offset, y_offset
                     );
-                    let adjacent_tile_type = match state.chunks.get(&adjacent_chunk_position)
-                        .and_then(|chunk| chunk.base[adjacent_tile_position.x][adjacent_tile_position.y])
-                    {
-                        Some(tile) => tile._type,
+                    let adjacent_tile_type = match state.chunks.get(&adjacent_chunk_position) {
+                        Some(chunk) => chunk.tiles[1][adjacent_tile_position.x][adjacent_tile_position.y]._type,
                         None => continue,
                     };
-                    if adjacent_tile_type == tile._type {
+                    if adjacent_tile_type == tile_type {
                         mask |= weight;
                     }
                     if (old_mask ^ mask) & weight != 0 {
@@ -92,6 +91,7 @@ pub fn system_update_tiles(handle: &mut RainHandle, state: &mut State) {
                 }
                 tileset[1][tile_position.x][tile_position.y] = Some(mask);
             }
+            state.chunks_to_reload.insert(chunk_position);
             handle.world.insert_one(chunk_entity.unwrap(), tileset).unwrap();
         }
     }
