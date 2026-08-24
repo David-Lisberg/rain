@@ -98,24 +98,6 @@ pub fn position_to_tile_position(x: f32, y: f32) -> TilePosition {
     }
 }
 
-#[repr(u8)]
-#[derive(PartialEq, Clone, Deserialize, PartialOrd, Copy, Ord, Eq, Debug, Hash)]
-#[serde(rename_all = "snake_case")]
-pub enum TileType {
-    None = 0,
-    Water = 1,
-    Clay = 2,
-    Sand = 3,
-    Mud = 4,
-    Grass = 5,
-    Grass2 = 6,
-    Dirt = 7,
-    Stone = 8,
-    Cobblestone = 9,
-    WoodFloor = 10,
-    WoodWall = 11,
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct Vec2JSON {
     pub x: f32,

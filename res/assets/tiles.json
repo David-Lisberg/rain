@@ -1,66 +1,66 @@
-{
-    "none": {
-        "tile_type": "none",
+[
+    {
+        "name": "none",
         "texture": "",
         "collidable": false,
         "swimmable": false
     },
-    "water": {
-        "tile_type": "water",
+    {
+        "name": "water",
         "texture": "tile_water",
         "collidable": false,
         "swimmable": true
     },
-    "clay": {
-        "tile_type": "clay",
+    {
+        "name": "clay",
         "texture": "tile_clay",
         "collidable": false,
         "swimmable": false
     },
-    "sand": {
-        "tile_type": "sand",
+    {
+        "name": "sand",
         "texture": "tile_sand",
         "collidable": false,
         "swimmable": false
     },
-    "mud": {
-        "tile_type": "mud",
+    {
+        "name": "mud",
         "texture": "tile_mud",
         "collidable": false,
         "swimmable": false
     },
-    "grass": {
-        "tile_type": "grass",
+    {
+        "name": "grass",
         "texture": "tile_grass",
         "collidable": false,
         "swimmable": false
     },
-    "grass2": {
-        "tile_type": "grass2",
+    {
+        "name": "grass2",
         "texture": "tile_grass2",
         "collidable": false,
         "swimmable": false
     },
-    "dirt": {
-        "tile_type": "dirt",
+    {
+        "name": "dirt",
         "texture": "tile_dirt",
         "collidable": false,
         "swimmable": false
     },
-    "stone": {
-        "tile_type": "stone",
+    {
+        "name": "stone",
         "texture": "tile_stone",
         "collidable": false,
         "swimmable": false
     },
-    "cobblestone": {
-        "tile_type": "cobblestone",
+    {
+        "name": "cobblestone",
         "texture": "tile_cobblestone",
         "collidable": false,
         "swimmable": false
     },
-    "wood_floor": {
-        "tile_type": "wood_floor",
+    {
+        "name": "wood_floor",
         "texture": "tile_wood_floor",
         "collidable": false,
         "swimmable": false,
@@ -68,8 +68,8 @@
         "required_tool": "axe",
         "drops": [[{ "type": "wood_floor", "category": "other" }, 1]]
     },
-    "wood_wall": {
-        "tile_type": "wood_wall",
+    {
+        "name": "wood_wall",
         "texture": "tile_wood_wall",
         "tileset": "tile_wood_wall_tileset",
         "collidable": true,
@@ -78,4 +78,4 @@
         "required_tool": "axe",
         "drops": [[{ "type": "wood_wall", "category": "other" }, 1]]
     }
-}
+]
