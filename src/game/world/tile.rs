@@ -14,11 +14,44 @@ use crate::game::player::item::{Item, ToolType};
 use crate::game::player::movement::Player;
 use crate::game::world::chunk::CHUNK_DIM;
 
-pub type TileRegistry = HashMap<TileType, TileData>;
+
+pub struct TileRegistry {
+    data: Vec<TileData>,
+    ids: HashMap<String, u32>
+}
+
+impl TileRegistry {
+    pub fn new(data: Vec<TileData>) -> Self {
+        let mut ids: HashMap<String, u32> = HashMap::new();
+        for (i, tile_data) in data.iter().enumerate() {
+            ids.insert(tile_data.name.clone(), i as u32);
+        }
+
+        Self {
+            data,
+            ids,
+        }
+    }
+
+    pub fn from_name(&self, name: &str) -> Option<&TileData> {
+        let Some(id) = self.ids.get(name) else {
+            return None;
+        };
+        self.data.get(*id as usize)
+    }
+
+    pub fn from_id(&self, id: u32) -> Option<&TileData> {
+        self.data.get(id as usize)
+    }
+
+    pub fn get_id(&self, name: &str) -> Option<u32> {
+        self.ids.get(name).cloned()
+    }
+}
 
 #[derive(Deserialize)]
 pub struct TileData {
-    pub tile_type: TileType,
+    pub name: String,
     pub texture: String,
     pub collidable: bool,
     pub swimmable: bool,
@@ -30,7 +63,17 @@ pub struct TileData {
 
 #[derive(Clone, Copy)]
 pub struct Tile {
-    pub _type: TileType, 
+    pub type_id: u32,
+    pub state: u32,
+}
+
+impl Tile {
+    pub fn new(type_id: u32) -> Self {
+        Self {
+            type_id,
+            state: 0,
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]

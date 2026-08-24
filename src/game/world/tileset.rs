@@ -5,7 +5,7 @@ use rain::engine::core::RainHandle;
 
 use crate::State;
 use crate::game::world::chunk::{BLOB_TILESET, CHUNK_DIM, ChunkPosition};
-use crate::game::world::tile::{TilePosition, TileType};
+use crate::game::world::tile::TilePosition;
 
 pub struct TileQueue {
     queue: VecDeque<(ChunkPosition, TilePosition)>,
@@ -57,8 +57,8 @@ pub fn system_update_tiles(handle: &mut RainHandle, state: &mut State) {
                 continue;
             };
 
-            let tile_type = chunk.tiles[1][tile_position.x][tile_position.y]._type;
-            if tile_type == TileType::None {
+            let tile_type = chunk.tiles[1][tile_position.x][tile_position.y].type_id;
+            if tile_type == state.tile_registry.get_id("none").unwrap() {
                 let mask = tileset[1][tile_position.x][tile_position.y].unwrap_or(0);
                 for ((x_offset, y_offset), weight) in BLOB_TILESET {
                     if mask & weight != 0 {
@@ -70,7 +70,7 @@ pub fn system_update_tiles(handle: &mut RainHandle, state: &mut State) {
                 }
                 continue;
             }
-            let tile_data = state.tile_registry.get(&tile_type).unwrap();
+            let tile_data = state.tile_registry.from_id(tile_type).unwrap();
             if tile_data.tileset.is_some() {
                 let old_mask = tileset[1][tile_position.x][tile_position.y].unwrap_or(0);
                 let mut mask: u8 = 0;
@@ -79,7 +79,7 @@ pub fn system_update_tiles(handle: &mut RainHandle, state: &mut State) {
                         tile_position, chunk_position, x_offset, y_offset
                     );
                     let adjacent_tile_type = match state.chunks.get(&adjacent_chunk_position) {
-                        Some(chunk) => chunk.tiles[1][adjacent_tile_position.x][adjacent_tile_position.y]._type,
+                        Some(chunk) => chunk.tiles[1][adjacent_tile_position.x][adjacent_tile_position.y].type_id,
                         None => continue,
                     };
                     if adjacent_tile_type == tile_type {

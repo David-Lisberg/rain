@@ -51,7 +51,7 @@ impl AnimationFrame {
     }
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct UVRect {
     pub offset: [f32; 2],
     pub scale: [f32; 2],

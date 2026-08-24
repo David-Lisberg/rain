@@ -7,7 +7,7 @@
     - deer
 - new tiles/objects
     - wood path
-- fix tilesets across chunks (reloading?)
+    - wood fence
 - object connected textures
 - new biomes
     - snowy biome
@@ -54,3 +54,5 @@
 - fix breaking objects with no item
 - convert _ types into strings
 - tile placement on water
+- auto texture atlas to save space in texture storage
+- fix text blurbs not disappearing after closing inventory

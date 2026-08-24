@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use glam::Vec2;
 use hecs::Entity;
+use rain::engine::animation::UVRect;
 use rain::engine::color::Color;
 use rain::engine::component::{Position2D, Priority, Visible};
 use rain::engine::core::RainHandle;
@@ -38,6 +39,7 @@ pub struct ObjectDataRaw {
     pub texture: String,
     pub size: Vec2,
     pub collidable: bool,
+    pub uv_rect: Option<UVRect>,
     pub loot_table: Option<LootTable>,
     pub drops: Option<Vec<(Item, i32)>>,
     pub hit_ticks: Option<i32>,
@@ -56,6 +58,7 @@ pub struct ObjectData {
     pub texture: Arc<Texture>,
     pub size: Vec2,
     pub collidable: bool,
+    pub uv_rect: UVRect,
     pub loot_table: LootTable,
     pub drops: Vec<(Item, i32)>,
     pub hit_ticks: i32,
@@ -79,6 +82,7 @@ impl ObjectData {
             texture: handle.fetch_texture(&raw.texture).unwrap(),
             size: raw.size,
             collidable: raw.collidable,
+            uv_rect: raw.uv_rect.unwrap_or(UVRect::default()),
             loot_table: raw.loot_table.unwrap_or(LootTable(Vec::new())),
             drops: raw.drops.unwrap_or(Vec::new()),
             hit_ticks: raw.hit_ticks.unwrap_or(1),
@@ -103,6 +107,7 @@ pub struct Object {
     pub position: Vec2,
     pub hit_ticks: i32,
     pub transparent: bool,
+    pub uv_rect: UVRect,
     pub entity: Option<Entity>,
 }
 
@@ -129,6 +134,7 @@ impl Object {
             position,
             hit_ticks: data.hit_ticks,
             transparent: false,
+            uv_rect: data.uv_rect,
             entity,
         }
     }
@@ -185,15 +191,19 @@ pub fn construct_object_mesh(handle: &mut RainHandle, state: &mut State) -> Vec<
             false => Color::rain_color_to_array(&Color::WHITE),
         };
 
+        let uv_scale = [object_data.texture.uv[0] / 1.0, object_data.texture.uv[1] / 1.0];
+        let uv_rect = UVRect::new(object.uv_rect.offset[0] * uv_scale[0], object.uv_rect.offset[1] * uv_scale[1], 
+            object.uv_rect.scale[0] * uv_scale[0], object.uv_rect.scale[1] * uv_scale[1]);
+
         let vertices = vec![
             ModelVertex { position: [object.position.x, object.position.y, object_data.depth_z], 
-                uv: [0.0, object_data.texture.uv[1]], color, layer: object_data.texture.index },
+                uv: [uv_rect.offset[0], uv_rect.scale[1]], color, layer: object_data.texture.index },
             ModelVertex { position: [object.position.x + object_data.size.x, object.position.y, object_data.depth_z], 
-                uv: [object_data.texture.uv[0], object_data.texture.uv[1]], color, layer: object_data.texture.index },
+                uv: [uv_rect.scale[0], uv_rect.scale[1]], color, layer: object_data.texture.index },
             ModelVertex { position: [object.position.x + object_data.size.x, object.position.y + object_data.size.y, object_data.depth_z], 
-                uv: [object_data.texture.uv[0], 0.0], color, layer: object_data.texture.index },
+                uv: [uv_rect.scale[0], uv_rect.offset[1]], color, layer: object_data.texture.index },
             ModelVertex { position: [object.position.x, object.position.y + object_data.size.y, object_data.depth_z], 
-                uv: [0.0, 0.0], color, layer: object_data.texture.index },
+                uv: [uv_rect.offset[0], uv_rect.offset[1]], color, layer: object_data.texture.index },
         ];
         let index = if object_data.depth_z < DEPTH_PLAYER {
             0
