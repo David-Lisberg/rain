@@ -19,7 +19,7 @@ use crate::game::player::item::*;
 use crate::game::player::movement::Player;
 use crate::game::utility::direction::Direction4;
 use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
-use crate::game::world::object::{Object, ObjectBehavior, ObjectType, destroy_object, reload_object_mesh, world_position_to_object_position};
+use crate::game::world::object::{Object, ObjectBehavior, destroy_object, reload_object_mesh, world_position_to_object_position};
 use crate::game::world::tile::{Tile, position_to_tile_position};
 
 pub const PLAYER_REACH: f32 = 4.0;
@@ -62,7 +62,7 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
         
         let chunk_position = position_to_chunk_position(collider_position.x, collider_position.y);
         if let Some(object) = check_collision_with_object(state, &collider) {
-            let object_data = state.object_registry.get(&object._type).unwrap().clone();
+            let object_data = state.object_registry.from_id(object.type_id).unwrap().clone();
             if break_level >= object_data.break_level && tool_type.can_break(object_data.required_tool) {
                 if destroy_object(state, &object, hit_ticks) {
                     to_destroy.push(object);
@@ -93,7 +93,7 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
     }
     let player_entity = handle.world.query::<&Player>().iter().next().unwrap().0;
     for object in to_destroy {
-        let object_data = state.object_registry.get(&object._type).unwrap().clone();
+        let object_data = state.object_registry.from_id(object.type_id).unwrap().clone();
         drops.extend(object_data.drops.iter().map(|x| (x.0.clone(), x.1, object_data.center(object.position))));
         drops.extend(roll_loot(state, &object_data.loot_table).iter().map(|x| (x.0.clone(), x.1, object_data.center(object.position))));
         for behavior in object_data.behaviors.iter() {
@@ -190,7 +190,7 @@ fn player_interact_object(handle: &mut RainHandle, state: &mut State, mouse_posi
         let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
         if let Some(chunk) = state.chunks.get(&adjacent_position) {
             for object in &chunk.objects {
-                let object_data = state.object_registry.get(&object._type).unwrap();
+                let object_data = state.object_registry.from_id(object.type_id).unwrap();
                 let object_collider = object_data.collider.add_vec2(object.position);
 
                 if object_collider.aabb_collision_point(&mouse_position) {
@@ -202,7 +202,7 @@ fn player_interact_object(handle: &mut RainHandle, state: &mut State, mouse_posi
 
     let player_entity = handle.world.query::<&Player>().iter().next().unwrap().0;
     if let Some(object) = target_object {
-        let object_data = state.object_registry.get(&object._type).unwrap();
+        let object_data = state.object_registry.from_id(object.type_id).unwrap();
         for behavior in object_data.behaviors.iter() {
             match behavior {
                 ObjectBehavior::Inventory(ui) => {
@@ -225,7 +225,7 @@ fn player_interact_object(handle: &mut RainHandle, state: &mut State, mouse_posi
 fn player_place_object(handle: &mut RainHandle, state: &mut State, mouse_position: Vec2) -> bool {
     let mut updated = false;
     let mut to_reload: Option<ChunkPosition> = None;
-    let mut object_to_place: Option<(ObjectType, Vec2, ChunkPosition)> = None;
+    let mut object_to_place: Option<(u32, Vec2, ChunkPosition)> = None;
     
     for (_, (_, collider, inventory, player_inventory)) in handle.world.query_mut::<(
         &Player, &Collider, &mut Inventory, &PlayerInventory
@@ -233,8 +233,9 @@ fn player_place_object(handle: &mut RainHandle, state: &mut State, mouse_positio
         let slot = inventory.slots.get(player_inventory.selected_hotbar).unwrap();
         if let Some(item) = &slot.item {
             let item_data = state.item_registry.get(&item._type).unwrap();
-            if let Some(placeable) = item_data.placeable {
-                let object_data = state.object_registry.get(&placeable).unwrap();
+            if let Some(placeable_object) = &item_data.placeable_object {
+                let object_id = state.object_registry.get_id(placeable_object).unwrap();
+                let object_data = state.object_registry.from_id(object_id).unwrap();
                 let object_position = world_position_to_object_position(mouse_position);
                 let object_collider = object_data.collider.add_vec2(object_position);
 
@@ -247,7 +248,7 @@ fn player_place_object(handle: &mut RainHandle, state: &mut State, mouse_positio
                     let chunk_position = position_to_chunk_position(object_position.x, object_position.y);
                     
                     if !object_colliders.iter().any(|other_collider| object_collider.aabb_collision(&other_collider)) {
-                        object_to_place = Some((placeable, object_position, chunk_position));
+                        object_to_place = Some((object_id, object_position, chunk_position));
                         inventory.remove_item_from_slot(player_inventory.selected_hotbar, 1);
                     }
                 }

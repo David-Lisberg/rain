@@ -18,7 +18,7 @@ use crate::game::utility::noise::{noise_normalize, octave_noise_2d};
 use crate::game::world::config::BiomeType;
 use crate::game::world::generation::CHUNK_GENERATION_DISTANCE;
 use crate::game::world::tile::{Tile, TileRegistry};
-use crate::game::world::object::{Object, ObjectType, reload_object_mesh};
+use crate::game::world::object::{Object, reload_object_mesh};
 use crate::game::player::movement::Player;
 use crate::game::world::tileset::{ChunkTileSet, UV_LOOKUP};
 
@@ -195,7 +195,7 @@ pub fn generate_chunk(handle: &mut RainHandle, state: &mut State, chunk_position
             let x = (chunk_position.x * CHUNK_DIM as i32) as f64 + i as f64;
             let y = (chunk_position.y * CHUNK_DIM as i32) as f64 + j as f64;
 
-            let mut object: Option<(ObjectType, Vec2)> = None;
+            let mut object: Option<(u32, Vec2)> = None;
 
             let mut noise_value = octave_noise_2d(x * NOISE_OBJECT_SCALE_FACTOR, y * NOISE_OBJECT_SCALE_FACTOR, 2, 0.5, &state.perlin[0]);
             let mut noise_density = octave_noise_2d(x * NOISE_DENSITY_SCALE_FACTOR, y * NOISE_DENSITY_SCALE_FACTOR, 2, 0.5, &state.perlin[0]);
@@ -210,7 +210,7 @@ pub fn generate_chunk(handle: &mut RainHandle, state: &mut State, chunk_position
                     if noise_value >= *low && noise_value < *high && random_value <= *chance {
                         for tile_type in tile_types.iter() {
                             if tiles[i][j].type_id == state.tile_registry.get_id(tile_type).unwrap() {
-                                object = Some((*object_type, position));
+                                object = Some((state.object_registry.get_id(object_type).unwrap(), position));
                                 break;
                             }
                         }

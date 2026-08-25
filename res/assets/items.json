@@ -2,17 +2,17 @@
     "twig": {
         "name": "Twig",
         "texture": "object_twig",
-        "placeable": "twig"
+        "placeable_object": "twig"
     },
     "grass": {
         "name": "Grass",
         "texture": "object_grass",
-        "placeable": "grass"
+        "placeable_object": "grass"
     },
     "stone": {
         "name": "Stone",
         "texture": "object_stone",
-        "placeable": "stone"
+        "placeable_object": "stone"
     },
     "twine": {
         "name": "Twine",
@@ -73,7 +73,7 @@
     "barrel": {
         "name": "Barrel",
         "texture": "object_barrel",
-        "placeable": "barrel"
+        "placeable_object": "barrel"
     },
     "wood_floor": {
         "name": "Wood Floor",

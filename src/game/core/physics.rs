@@ -31,7 +31,7 @@ pub fn system_physics_movement_2d(handle: &mut RainHandle, state: &mut State) {
                 let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
                 if let Some(chunk) = state.chunks.get(&adjacent_position) {
                     for object in &chunk.objects {
-                        let object_data = state.object_registry.get(&object._type).unwrap();
+                        let object_data = state.object_registry.from_id(object.type_id).unwrap();
                         if object_data.collidable {
                             other_colliders.push(object_data.collider.add_vec2(object.position));
                         }

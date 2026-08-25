@@ -90,7 +90,7 @@ pub fn check_collision_with_object(state: &mut State, collider: &Collider) -> Op
         let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
         if let Some(chunk) = state.chunks.get(&adjacent_position) {
             for object in chunk.objects.iter() {
-                let object_data = state.object_registry.get(&object._type).unwrap();
+                let object_data = state.object_registry.from_id(object.type_id).unwrap();
                 if collider.aabb_collision(&object_data.collider.add_vec2(object.position)) {
                     collided.push(object.clone());
                 }
@@ -105,7 +105,7 @@ pub fn check_collision_with_object(state: &mut State, collider: &Collider) -> Op
         let mut min_index = 0;
 
         for (i, object) in collided.iter().enumerate() {
-            let object_data = state.object_registry.get(&object._type).unwrap();
+            let object_data = state.object_registry.from_id(object.type_id).unwrap();
             let distance = (object_data.center(object.position) - collider.center()).length();
             if distance < min_distance {
                 min_distance = distance;
@@ -123,7 +123,7 @@ pub fn collect_object_colliders(state: &mut State, position: Vec2) -> Vec<Collid
         let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
         if let Some(chunk) = state.chunks.get(&adjacent_position) {
             for object in &chunk.objects {
-                let object_data = state.object_registry.get(&object._type).unwrap();
+                let object_data = state.object_registry.from_id(object.type_id).unwrap();
                 object_colliders.push(object_data.collider.add_vec2(object.position))
             }
         }

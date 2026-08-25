@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use rain::engine::core::RainHandle;
 
 use crate::game::entity::enemy::EnemyRegistry;
@@ -7,7 +5,7 @@ use crate::game::player::crafting::RecipeRegistry;
 use crate::game::player::inventory::InventoryRegistry;
 use crate::game::player::item::ItemRegistry;
 use crate::game::world::config::WorldGenConfig;
-use crate::game::world::object::{ObjectData, ObjectDataRaw, ObjectRegistry, ObjectType};
+use crate::game::world::object::{ObjectData, ObjectDataRaw, ObjectRegistry};
 use crate::game::world::tile::{TileData, TileRegistry};
 
 type TextureRegistry = Vec<(String, String)>;
@@ -71,10 +69,11 @@ pub fn load_tile_registry(path: &str) -> TileRegistry {
 
 pub fn load_object_registry(handle: &mut RainHandle, path: &str) -> ObjectRegistry {
     let json = std::fs::read_to_string(path).expect("Error loading object registry.");
-    let raw: HashMap<ObjectType, ObjectDataRaw> = serde_json::from_str(&json).expect("Error parsing object registry.");
-    raw.into_iter()
-        .map(|(key, raw_data)| (key, ObjectData::from_raw(handle, raw_data)))
-        .collect()
+    let raw: Vec<ObjectDataRaw> = serde_json::from_str(&json).expect("Error parsing object registry.");
+    let data: Vec<ObjectData> = raw.into_iter()
+        .map(|raw_data| ObjectData::from_raw(handle, raw_data))
+        .collect();
+    ObjectRegistry::new(data)
 }
 
 pub fn load_world_gen_config(path: &str) -> WorldGenConfig {

@@ -249,7 +249,7 @@ fn main() -> anyhow::Result<()> {
         enemy_registry: load_enemy_registry("res/assets/enemies.json"),
         inventory_registry: load_inventory_registry("res/assets/inventory.json"),
         tile_registry: load_tile_registry("res/assets/tiles.json"),
-        object_registry: HashMap::new(),
+        object_registry: ObjectRegistry::new(Vec::new()),
         tileset_lookup: generate_tileset_lookup(),
         inventory_screen: InventoryScreen::new(),
         tile_queue: TileQueue::new(),

@@ -25,7 +25,39 @@ use crate::game::world::chunk::{ChunkPosition, position_to_chunk_position};
 
 pub const OBJECT_GENERATION_DISTANCE: i32 = 5;
 
-pub type ObjectRegistry = HashMap<ObjectType, ObjectData>;
+pub struct ObjectRegistry {
+    data: Vec<ObjectData>,
+    ids: HashMap<String, u32>
+}
+
+impl ObjectRegistry {
+    pub fn new(data: Vec<ObjectData>) -> Self {
+        let mut ids: HashMap<String, u32> = HashMap::new();
+        for (i, tile_data) in data.iter().enumerate() {
+            ids.insert(tile_data.name.clone(), i as u32);
+        }
+
+        Self {
+            data,
+            ids,
+        }
+    }
+
+    pub fn from_name(&self, name: &str) -> Option<&ObjectData> {
+        let Some(id) = self.ids.get(name) else {
+            return None;
+        };
+        self.data.get(*id as usize)
+    }
+
+    pub fn from_id(&self, id: u32) -> Option<&ObjectData> {
+        self.data.get(id as usize)
+    }
+
+    pub fn get_id(&self, name: &str) -> Option<u32> {
+        self.ids.get(name).cloned()
+    }
+}
 
 #[derive(Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -35,7 +67,7 @@ pub enum ObjectBehavior {
 
 #[derive(Deserialize, Clone)]
 pub struct ObjectDataRaw {
-    pub object_type: ObjectType,
+    pub name: String,
     pub texture: String,
     pub size: Vec2,
     pub collidable: bool,
@@ -50,11 +82,12 @@ pub struct ObjectDataRaw {
     pub offset: Option<Vec2>,
     pub behaviors: Option<Vec<ObjectBehavior>>,
     pub placeable_on_water: Option<bool>,
+    pub coverable: Option<Collider>,
 }
 
 #[derive(Clone)]
 pub struct ObjectData {
-    pub object_type: ObjectType,
+    pub name: String,
     pub texture: Arc<Texture>,
     pub size: Vec2,
     pub collidable: bool,
@@ -69,6 +102,7 @@ pub struct ObjectData {
     pub offset: Vec2,
     pub behaviors: Vec<ObjectBehavior>,
     pub placeable_on_water: bool,
+    pub coverable: Option<Collider>,
 }
 
 impl ObjectData {
@@ -78,7 +112,7 @@ impl ObjectData {
         collider.x += offset.x;
         collider.y += offset.y;
         Self {
-            object_type: raw.object_type,
+            name: raw.name,
             texture: handle.fetch_texture(&raw.texture).unwrap(),
             size: raw.size,
             collidable: raw.collidable,
@@ -93,6 +127,7 @@ impl ObjectData {
             offset,
             behaviors: raw.behaviors.unwrap_or(Vec::new()),
             placeable_on_water: raw.placeable_on_water.unwrap_or(false),
+            coverable: raw.coverable,
         }
     }
 
@@ -103,7 +138,7 @@ impl ObjectData {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Object {
-    pub _type: ObjectType,
+    pub type_id: u32,
     pub position: Vec2,
     pub hit_ticks: i32,
     pub transparent: bool,
@@ -112,8 +147,8 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn from_data(handle: &mut RainHandle, state: &mut State, object_type: ObjectType, mut position: Vec2) -> Self {
-        let data = state.object_registry.get(&object_type).unwrap();
+    pub fn from_data(handle: &mut RainHandle, state: &mut State, object_type: u32, mut position: Vec2) -> Self {
+        let data = state.object_registry.from_id(object_type).unwrap();
         position += data.offset;
         let entity: Option<Entity> = if data.behaviors.is_empty() {
             None
@@ -130,7 +165,7 @@ impl Object {
             Some(e)
         };
         Self {
-            _type: data.object_type,
+            type_id: object_type,
             position,
             hit_ticks: data.hit_ticks,
             transparent: false,
@@ -144,18 +179,18 @@ impl Object {
     // }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Hash)]
-#[serde(rename_all = "snake_case")]
-pub enum ObjectType {
-    Tree1,
-    Tree2,
-    Tree3,
-    Twig,
-    Grass,
-    Stone,
-    Flint,
-    Barrel,
-}
+// #[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Hash)]
+// #[serde(rename_all = "snake_case")]
+// pub enum ObjectType {
+//     Tree1,
+//     Tree2,
+//     Tree3,
+//     Twig,
+//     Grass,
+//     Stone,
+//     Flint,
+//     Barrel,
+// }
 
 pub struct ObjectMesh;
 
@@ -185,7 +220,7 @@ pub fn construct_object_mesh(handle: &mut RainHandle, state: &mut State) -> Vec<
     
     objects.sort_by(|a, b| a.position.y.partial_cmp(&b.position.y).unwrap());
     for object in objects.iter() {
-        let object_data = state.object_registry.get(&object._type).unwrap();
+        let object_data = state.object_registry.from_id(object.type_id).unwrap();
         let color = match object.transparent {
             true => Color::rain_color_to_array(&Color::from_f32(1.0, 1.0, 1.0, 0.5)),
             false => Color::rain_color_to_array(&Color::WHITE),
@@ -278,7 +313,7 @@ pub fn system_object_transparency(handle: &mut RainHandle, state: &mut State) {
         for chunk_position in std::mem::take(&mut state.transparent_object_chunks) {
             if let Some(chunk) = state.chunks.get_mut(&chunk_position) {
                 for object in &mut chunk.objects {
-                    let object_data = state.object_registry.get(&object._type).unwrap();
+                    let object_data = state.object_registry.from_id(object.type_id).unwrap();
                     if object.transparent {
                         if !under_object(collider, object_data, object) {
                             object.transparent = false;
@@ -295,7 +330,7 @@ pub fn system_object_transparency(handle: &mut RainHandle, state: &mut State) {
             let adjacent_position = ChunkPosition::new(chunk_position.x + adjacent.0, chunk_position.y + adjacent.1);
             if let Some(chunk) = state.chunks.get_mut(&adjacent_position) {
                 for object in &mut chunk.objects {
-                    let object_data = state.object_registry.get(&object._type).unwrap();
+                    let object_data = state.object_registry.from_id(object.type_id).unwrap();
                     if under_object(collider, object_data, object) {
                         if !object.transparent {
                             updated = true;
@@ -321,15 +356,12 @@ pub fn system_object_transparency(handle: &mut RainHandle, state: &mut State) {
 
 fn under_object(collider: &Collider, object_data: &ObjectData, object: &Object) -> bool {
     let other_collider = object_data.collider.add_vec2(object.position);
-    let object_collider = match object._type {
-        ObjectType::Tree1 => Collider::new(
-            other_collider.x + 0.2, 
-            other_collider.y + 0.2, 
-            other_collider.width - 0.4, 
-            object_data.size.y - other_collider.y + object.position.y - 0.6
-        ),
-        _ => return false,
+
+    let Some(object_collider) = object_data.coverable.clone() else {
+        return false;
     };
+    let object_collider = object_collider.add_vec2(object.position);
+
     collider.aabb_collision(&object_collider)
 }
 
