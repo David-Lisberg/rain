@@ -1,5 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 use std::ops::Range;
+use std::sync::Arc;
 
 use glam::{IVec2, Vec2};
 use hecs::Entity;
@@ -343,7 +344,7 @@ pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData, tile_reg
                     uv_rect[3] *= texture.uv[1];
                     (texture, uv_rect)
                 } else {
-                    let texture = handle.fetch_texture(&tile_data.texture).unwrap();
+                    let texture = Arc::clone(&tile_data.texture);
                     let uv_rect = [0.0, 0.0, texture.uv[0], texture.uv[1]];
                     (texture, uv_rect)
                 };

@@ -1,6 +1,7 @@
 use glam::Vec2;
 use hecs::Entity;
 use rain::engine::core::RainHandle;
+use rain::engine::texture::Texture;
 use serde::{Deserialize, Serialize};
 use rain::engine::color::Color;
 use rain::engine::component::*;
@@ -8,12 +9,12 @@ use rain::engine::component::*;
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
+use std::sync::Arc;
 
 use crate::game::player::action::PLAYER_REACH;
 use crate::game::player::item::{Item, ToolType};
 use crate::game::player::movement::Player;
 use crate::game::world::chunk::CHUNK_DIM;
-
 
 pub struct TileRegistry {
     data: Vec<TileData>,
@@ -50,7 +51,7 @@ impl TileRegistry {
 }
 
 #[derive(Deserialize)]
-pub struct TileData {
+pub struct TileDataRaw {
     pub name: String,
     pub texture: String,
     pub collidable: bool,
@@ -58,7 +59,47 @@ pub struct TileData {
     pub tileset: Option<String>,
     pub break_level: Option<i32>,
     pub required_tool: Option<ToolType>,
-    pub drops: Option<Vec<(Item, i32)>>
+    pub drops: Option<Vec<(Item, i32)>>,
+    pub properties: Option<Vec<String>>,
+}
+
+pub struct TileData {
+    pub name: String,
+    pub texture: Arc<Texture>,
+    pub collidable: bool,
+    pub swimmable: bool,
+    pub tileset: Option<String>,
+    pub break_level: Option<i32>,
+    pub required_tool: ToolType,
+    pub drops: Vec<(Item, i32)>,
+    pub properties: Vec<String>,
+    pub property_map: HashMap<String, u32>,
+}
+
+impl TileData {
+    pub fn from_raw(handle: &mut RainHandle, property_registry: &TilePropertyRegistry, raw: TileDataRaw) -> Self {
+        let properties = raw.properties.unwrap_or(Vec::new());
+        let mut property_map: HashMap<String, u32> = HashMap::new();
+        let mut i = 0;
+        for property in properties.iter() {
+            let property_data = property_registry.get(property).unwrap();
+            property_map.insert(property.clone(), i);
+            i += property_data.shift;
+        }
+
+        Self {
+            name: raw.name,
+            texture: handle.fetch_texture(&raw.texture).unwrap(),
+            collidable: raw.collidable,
+            swimmable: raw.swimmable,
+            tileset: raw.tileset,
+            break_level: raw.break_level,
+            required_tool: raw.required_tool.unwrap_or(ToolType::None),
+            drops: raw.drops.unwrap_or(Vec::new()),
+            properties,
+            property_map,
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -72,6 +113,58 @@ impl Tile {
         Self {
             type_id,
             state: 0,
+        }
+    }
+
+    pub fn set_property(&mut self, tile_data: &TileData, property_registry: &TilePropertyRegistry, property: &str, value: &str) {
+        let Some(offset) = tile_data.property_map.get(property) else {
+            return;
+        };
+        let property_data = property_registry.get(property).unwrap();
+        let real_value = property_data.value_map.get(value).unwrap();
+        let state = *real_value << *offset;
+        self.state |= state;
+    }
+
+    pub fn get_property(&mut self, tile_data: &TileData, property_registry: &TilePropertyRegistry, property: &str) -> Option<String> {
+        let Some(offset) = tile_data.property_map.get(property) else {
+            return None;
+        };
+        let property_data = property_registry.get(property).unwrap();
+        let mut index = self.state >> offset;
+        index &= (1 << property_data.shift) - 1;
+        Some(property_data.values[index as usize].clone())
+    }
+}
+
+pub type TilePropertyRegistry = HashMap<String, TilePropertyData>;
+
+#[derive(Deserialize)]
+pub struct TilePropertyDataRaw {
+    pub name: String,
+    values: Vec<String>,
+}
+
+pub struct TilePropertyData {
+    name: String,
+    values: Vec<String>,
+    value_map: HashMap<String, u32>,
+    shift: u32,
+}
+
+impl TilePropertyData {
+    pub fn from_raw(raw: TilePropertyDataRaw) -> Self {
+        let mut value_map: HashMap<String, u32> = HashMap::new();
+        for (i, value) in raw.values.iter().enumerate() {
+            value_map.insert(value.clone(), i as u32);
+        }
+        let shift = usize::BITS - (raw.values.len() - 1).leading_zeros()    ;
+
+        Self {
+            name: raw.name,
+            values: raw.values,
+            value_map,
+            shift,
         }
     }
 }

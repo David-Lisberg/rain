@@ -74,10 +74,8 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
             if tile.type_id != state.tile_registry.get_id("none").unwrap() {
                 let tile_data = state.tile_registry.from_id(tile.type_id).unwrap();
                 if let Some(tile_break_level) = tile_data.break_level {
-                    if break_level >= tile_break_level && tool_type.can_break(tile_data.required_tool.unwrap_or(ToolType::None)) {
-                        if let Some(tile_drops) = &tile_data.drops {
-                            drops.extend(tile_drops.iter().map(|x| (x.0.clone(), x.1, collider_position)))
-                        }
+                    if break_level >= tile_break_level && tool_type.can_break(tile_data.required_tool) {
+                        drops.extend(tile_data.drops.iter().map(|x| (x.0.clone(), x.1, collider_position)));
                         chunk.tiles[1][tile_position.x][tile_position.y] = Tile::new(state.tile_registry.get_id("none").unwrap());
                         state.tile_queue.push(chunk_position, tile_position);
                         println!("pushed to queue");

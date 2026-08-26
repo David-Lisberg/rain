@@ -13,6 +13,7 @@ use rand::rngs::ThreadRng;
 use crate::game::core::animation::system_manage_animation_events;
 use crate::game::core::camera::*;
 use crate::game::core::collision::Collider;
+use crate::game::core::load::load_tile_property_registry;
 use crate::game::core::physics::*;
 use crate::game::core::ui::render_ui;
 use crate::game::entity::ai::system_enemy_ai;
@@ -53,6 +54,7 @@ use crate::game::world::generation::system_world_generation;
 use crate::game::world::object::{ObjectRegistry, system_object_transparency};
 use crate::game::world::reset::Persistent;
 use crate::game::world::reset::system_reset_world;
+use crate::game::world::tile::TilePropertyRegistry;
 use crate::game::world::tile::{TileHighlight, TileRegistry, system_tile_highlight};
 use crate::game::world::tileset::{TileQueue, generate_tileset_lookup, system_update_tiles};
 use crate::game::world::water::Swimmable;
@@ -131,6 +133,7 @@ pub struct State {
     enemy_registry: EnemyRegistry,
     inventory_registry: InventoryRegistry,
     tile_registry: TileRegistry,
+    tile_property_registry: TilePropertyRegistry,
     object_registry: ObjectRegistry,
     tileset_lookup: [u8; 256],
     inventory_screen: InventoryScreen,
@@ -197,6 +200,7 @@ impl RainState for State {
         load_animations(handle);
 
         self.object_registry = load_object_registry(handle, "res/assets/objects.json");
+        self.tile_registry = load_tile_registry(handle, &self.tile_property_registry, "res/assets/tiles.json");
 
         let player_texture = handle.fetch_texture("player_front").unwrap();
         let player_collider = Collider::from_center(0.0, 0.0, 0.8, 0.8);
@@ -248,7 +252,8 @@ fn main() -> anyhow::Result<()> {
         recipe_registry: load_recipe_registry("res/assets/recipes.json"),
         enemy_registry: load_enemy_registry("res/assets/enemies.json"),
         inventory_registry: load_inventory_registry("res/assets/inventory.json"),
-        tile_registry: load_tile_registry("res/assets/tiles.json"),
+        tile_registry: TileRegistry::new(Vec::new()),
+        tile_property_registry: load_tile_property_registry("res/assets/tile_properties.json"),
         object_registry: ObjectRegistry::new(Vec::new()),
         tileset_lookup: generate_tileset_lookup(),
         inventory_screen: InventoryScreen::new(),

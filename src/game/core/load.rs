@@ -6,7 +6,7 @@ use crate::game::player::inventory::InventoryRegistry;
 use crate::game::player::item::ItemRegistry;
 use crate::game::world::config::WorldGenConfig;
 use crate::game::world::object::{ObjectData, ObjectDataRaw, ObjectRegistry};
-use crate::game::world::tile::{TileData, TileRegistry};
+use crate::game::world::tile::{TileData, TileDataRaw, TilePropertyData, TilePropertyDataRaw, TilePropertyRegistry, TileRegistry};
 
 type TextureRegistry = Vec<(String, String)>;
 type AnimationRegistry = Vec<(String, String)>;
@@ -61,10 +61,22 @@ pub fn load_inventory_registry(path: &str) -> InventoryRegistry {
     serde_json::from_str(&json).expect("Error parsing inventory registry.")
 }
 
-pub fn load_tile_registry(path: &str) -> TileRegistry {
+pub fn load_tile_registry(handle: &mut RainHandle, property_registry: &TilePropertyRegistry, path: &str) -> TileRegistry {
     let json = std::fs::read_to_string(path).expect("Error loading tile registry.");
-    let raw: Vec<TileData> = serde_json::from_str(&json).expect("Error parsing tile registry.");
-    TileRegistry::new(raw)
+    let raw: Vec<TileDataRaw> = serde_json::from_str(&json).expect("Error parsing tile registry.");
+    let data: Vec<TileData> = raw.into_iter()
+        .map(|raw_data| TileData::from_raw(handle, property_registry, raw_data))
+        .collect();
+    TileRegistry::new(data)
+}
+
+pub fn load_tile_property_registry(path: &str) -> TilePropertyRegistry {
+    let json = std::fs::read_to_string(path).expect("Error loading tile property registry.");
+    let raw: Vec<TilePropertyDataRaw> = serde_json::from_str(&json).expect("Error parsing tile property registry.");
+    
+    raw.into_iter()
+        .map(|raw_data| (raw_data.name.clone(), TilePropertyData::from_raw(raw_data)))
+        .collect()
 }
 
 pub fn load_object_registry(handle: &mut RainHandle, path: &str) -> ObjectRegistry {
