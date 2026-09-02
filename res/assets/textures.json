@@ -57,6 +57,6 @@
     ["tile_wood_floor", "res/texture/tile_wood_floor.png"],
     ["tile_wood_wall", "res/texture/tile_wood_wall.png"],
     ["tile_wood_wall_tileset", "res/texture/tile_wood_wall_tileset.png"],
-    ["object_wood_fence", "res/texture/object_wood_fence.png"],
-    ["object_wood_fence_tiling", "res/texture/object_wood_fence_tiling.png"]
+    ["tile_wood_fence", "res/texture/tile_wood_fence.png"],
+    ["tile_wood_fence_tiling", "res/texture/tile_wood_fence_tiling.png"]
 ]

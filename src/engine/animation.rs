@@ -57,6 +57,12 @@ pub struct UVRect {
     pub scale: [f32; 2],
 }
 
+impl UVRect {
+    pub fn to_array(&self) -> [f32; 4] {
+        [self.offset[0], self.offset[1], self.scale[0], self.scale[1]]
+    }
+}
+
 #[derive(Clone)]
 pub struct Animation {
     pub name: String,

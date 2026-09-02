@@ -84,5 +84,10 @@
         "name": "Wood Wall",
         "texture": "tile_wood_wall",
         "placeable_tile": "wood_wall"
+    },
+    "wood_fence": {
+        "name": "Wood Fence",
+        "texture": "tile_wood_fence",
+        "placeable_tile": "wood_fence"
     }
 }

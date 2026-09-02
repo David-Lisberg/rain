@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use rain::engine::core::RainHandle;
 
 use crate::game::entity::enemy::EnemyRegistry;
@@ -6,7 +8,8 @@ use crate::game::player::inventory::InventoryRegistry;
 use crate::game::player::item::ItemRegistry;
 use crate::game::world::config::WorldGenConfig;
 use crate::game::world::object::{ObjectData, ObjectDataRaw, ObjectRegistry};
-use crate::game::world::tile::{TileData, TileDataRaw, TileRegistry};
+use crate::game::world::property_map::{TilePropertyTextureMap, TilePropertyTextureMapEntry, TilePropertyTextureMapEntryRaw, TilePropertyTextureMapRegistry};
+use crate::game::world::tile::{TileDataRaw, TileRegistry};
 use crate::game::world::property::{TilePropertyData, TilePropertyDataRaw, TilePropertyRegistry};
 
 type TextureRegistry = Vec<(String, String)>;
@@ -65,10 +68,7 @@ pub fn load_inventory_registry(path: &str) -> InventoryRegistry {
 pub fn load_tile_registry(handle: &mut RainHandle, property_registry: &TilePropertyRegistry, path: &str) -> TileRegistry {
     let json = std::fs::read_to_string(path).expect("Error loading tile registry.");
     let raw: Vec<TileDataRaw> = serde_json::from_str(&json).expect("Error parsing tile registry.");
-    let data: Vec<TileData> = raw.into_iter()
-        .map(|raw_data| TileData::from_raw(handle, property_registry, raw_data))
-        .collect();
-    TileRegistry::new(data)
+    TileRegistry::new(handle, property_registry, raw)
 }
 
 pub fn load_tile_property_registry(path: &str) -> TilePropertyRegistry {
@@ -83,6 +83,16 @@ pub fn load_tile_property_registry(path: &str) -> TilePropertyRegistry {
     ]);
     registry.insert(bool_data.name.clone(), bool_data);
     registry
+}
+
+pub fn load_tile_property_texture_map_registry(path: &str) -> TilePropertyTextureMapRegistry {
+    let json = std::fs::read_to_string(path).expect("Error loading tile property texture map registry.");
+    let raw: HashMap<String, Vec<TilePropertyTextureMapEntryRaw>> = serde_json::from_str(&json).expect("Error parsing tile property texture map registry.");
+    raw.iter()
+        .map(|(name, data)| (name.clone(), TilePropertyTextureMap { entries: data.iter()
+            .map(|x| TilePropertyTextureMapEntry::from_raw(x.clone()))
+            .collect()
+        })).collect()
 }
 
 pub fn load_object_registry(handle: &mut RainHandle, path: &str) -> ObjectRegistry {

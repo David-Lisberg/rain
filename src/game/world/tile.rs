@@ -1,5 +1,6 @@
 use glam::Vec2;
 use hecs::Entity;
+use rain::engine::animation::UVRect;
 use rain::engine::core::RainHandle;
 use rain::engine::texture::Texture;
 use serde::{Deserialize, Serialize};
@@ -23,15 +24,25 @@ pub struct TileRegistry {
 }
 
 impl TileRegistry {
-    pub fn new(data: Vec<TileData>) -> Self {
+    pub fn new(handle: &mut RainHandle, property_registry: &TilePropertyRegistry, raw: Vec<TileDataRaw>) -> Self {
         let mut ids: HashMap<String, u32> = HashMap::new();
-        for (i, tile_data) in data.iter().enumerate() {
-            ids.insert(tile_data.name.clone(), i as u32);
+        let mut data: Vec<TileData> = Vec::new();
+        for (i, tile_data_raw) in raw.iter().enumerate() {
+            let tile_data = TileData::from_raw(handle, property_registry, tile_data_raw.clone(), i as u32);
+            ids.insert(tile_data.name.clone(), tile_data.id);
+            data.push(tile_data);
         }
 
         Self {
             data,
             ids,
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            data: Vec::new(),
+            ids: HashMap::new(),
         }
     }
 
@@ -51,7 +62,7 @@ impl TileRegistry {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct TileDataRaw {
     pub name: String,
     pub texture: String,
@@ -61,11 +72,13 @@ pub struct TileDataRaw {
     pub break_level: Option<i32>,
     pub required_tool: Option<ToolType>,
     pub drops: Option<Vec<(Item, i32)>>,
-    pub properties: Option<Vec<TileProperty>>,
+    pub properties: Option<Vec<TilePropertyRaw>>,
+    pub property_texture_map: Option<String>,
 }
 
 pub struct TileData {
     pub name: String,
+    pub id: u32,
     pub texture: Arc<Texture>,
     pub collidable: bool,
     pub swimmable: bool,
@@ -74,29 +87,34 @@ pub struct TileData {
     pub required_tool: ToolType,
     pub drops: Vec<(Item, i32)>,
     pub properties: Vec<TileProperty>,
-    pub property_map: HashMap<String, u32>,
+    pub property_map: HashMap<String, usize>,
     pub default_state: u32,
+    pub property_texture_map: Option<String>,
 }
 
 impl TileData {
-    pub fn from_raw(handle: &mut RainHandle, property_registry: &TilePropertyRegistry, raw: TileDataRaw) -> Self {
-        let properties = raw.properties.unwrap_or(Vec::new());
-        let mut property_map: HashMap<String, u32> = HashMap::new();
+    pub fn from_raw(handle: &mut RainHandle, property_registry: &TilePropertyRegistry, raw: TileDataRaw, id: u32) -> Self {
+        let mut properties_raw = raw.properties.unwrap_or(Vec::new());
+        let mut properties: Vec<TileProperty> = Vec::new();
+        let mut property_map: HashMap<String, usize> = HashMap::new();
         let mut i = 0;
         let mut default_state: u32 = 0;
-        for property in properties.iter() {
-            let property_data = property_registry.get(&property.property_type).unwrap();
-            property_map.insert(property.name.clone(), i);
-            if let Some(default) = &property.default {
+        for property_raw in properties_raw.drain(..) {
+            let property_data = property_registry.get(&property_raw.property_type).unwrap();
+            if let Some(default) = &property_raw.default {
                 let value = property_data.value_map.get(default).unwrap();
                 default_state |= *value << i;
             }
-            i += property_data.shift;
+            let property = TileProperty::from_raw(property_raw, i);
+            property_map.insert(property.name.clone(), properties.len());
+            properties.push(property);
 
+            i += property_data.shift;
         }
 
         Self {
             name: raw.name,
+            id,
             texture: handle.fetch_texture(&raw.texture).unwrap(),
             collidable: raw.collidable,
             swimmable: raw.swimmable,
@@ -107,15 +125,35 @@ impl TileData {
             properties,
             property_map,
             default_state,
+            property_texture_map: raw.property_texture_map,
         }
     }
 }
 
 #[derive(Deserialize, Clone)]
-pub struct TileProperty {
+pub struct TilePropertyRaw {
     name: String,
     property_type: String,
     default: Option<String>,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct TileProperty {
+    pub name: String,
+    pub property_type: String,
+    pub default: Option<String>,
+    pub offset: u32,
+}
+
+impl TileProperty {
+    pub fn from_raw(raw: TilePropertyRaw, offset: u32) -> Self {
+        Self {
+            name: raw.name,
+            property_type: raw.property_type,
+            default: raw.default,
+            offset,
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -125,10 +163,10 @@ pub struct Tile {
 }
 
 impl Tile {
-    pub fn new(type_id: u32) -> Self {
+    pub fn new(data: &TileData) -> Self {
         Self {
-            type_id,
-            state: 0,
+            type_id: data.id,
+            state: data.default_state,
         }
     }
 }

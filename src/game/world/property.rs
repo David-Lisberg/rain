@@ -42,22 +42,36 @@ impl TilePropertyData {
 
 impl Tile {
     pub fn set_property(&mut self, tile_data: &TileData, property_registry: &TilePropertyRegistry, property: &str, value: &str) {
-        let Some(offset) = tile_data.property_map.get(property) else {
-            return;
-        };
         let property_data = property_registry.get(property).unwrap();
         let real_value = property_data.value_map.get(value).unwrap();
-        let state = *real_value << *offset;
+        self.set_property_mask(tile_data, property, *real_value)
+    }
+
+    pub fn set_property_mask(&mut self, tile_data: &TileData, property: &str, value: u32) {
+        let Some(property_index) = tile_data.property_map.get(property) else {
+            return;
+        };
+        let state = value << tile_data.properties[*property_index].offset;
         self.state |= state;
     }
 
-    pub fn get_property(&mut self, tile_data: &TileData, property_registry: &TilePropertyRegistry, property: &str) -> Option<String> {
-        let Some(offset) = tile_data.property_map.get(property) else {
+    pub fn get_property(&self, tile_data: &TileData, property_registry: &TilePropertyRegistry, property_name: &str) -> Option<String> {
+        let Some(property_index) = tile_data.property_map.get(property_name) else {
+            return None;
+        };
+        let property = &tile_data.properties[*property_index];
+        let property_data = property_registry.get(&property.property_type).unwrap();
+        let mut index = self.state >> property.offset;
+        index &= (1 << property_data.shift) - 1;
+        Some(property_data.values[index as usize].clone())
+    }
+    
+    pub fn get_property_mask(&self, tile_data: &TileData, property_registry: &TilePropertyRegistry, property: &str) -> Option<u32> {
+        let Some(property_index) = tile_data.property_map.get(property) else {
             return None;
         };
         let property_data = property_registry.get(property).unwrap();
-        let mut index = self.state >> offset;
-        index &= (1 << property_data.shift) - 1;
-        Some(property_data.values[index as usize].clone())
+        let index = self.state >> tile_data.properties[*property_index].offset;
+        Some(index & (1 << property_data.shift) - 1)
     }
 }

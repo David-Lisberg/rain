@@ -9,6 +9,7 @@ use rain::engine::component::*;
 use rain::engine::core::RainHandle;
 use rain::engine::mesh::ModelMesh;
 use rain::engine::resource::ARRAY_512X512_ID;
+use rain::engine::texture::Texture;
 use rain::engine::vertex::{ModelVertex, QUAD_INDICES};
 use rand::RngExt;
 use wgpu::util::DeviceExt;
@@ -18,6 +19,7 @@ use crate::game::core::collision::Collider;
 use crate::game::utility::noise::{noise_normalize, octave_noise_2d};
 use crate::game::world::config::BiomeType;
 use crate::game::world::generation::CHUNK_GENERATION_DISTANCE;
+use crate::game::world::property_map::TilePropertyTextureMapRegistry;
 use crate::game::world::tile::{Tile, TileRegistry};
 use crate::game::world::object::{Object, reload_object_mesh};
 use crate::game::player::movement::Player;
@@ -143,7 +145,7 @@ pub fn generate_chunk(handle: &mut RainHandle, state: &mut State, chunk_position
                 tile_type.unwrap()
             };
 
-            Tile::new(state.tile_registry.get_id(&tile_type).unwrap())
+            Tile::new(state.tile_registry.from_name(&tile_type).unwrap())
         })
     });
 
@@ -184,8 +186,10 @@ pub fn generate_chunk(handle: &mut RainHandle, state: &mut State, chunk_position
             let tile = &mut tiles[tile_position.x as usize][tile_position.y as usize];
             
             match noise_value {
-                v if v >= 0.85 => *tile = Tile::new(state.tile_registry.get_id("clay").unwrap()),
-                v if v >= 0.5 && v < 0.85 && tile.type_id == state.tile_registry.get_id("grass").unwrap() => *tile = Tile::new(state.tile_registry.get_id("mud").unwrap()),
+                v if v >= 0.85 => *tile = Tile::new(state.tile_registry.from_name("clay").unwrap()),
+                v if v >= 0.5 && v < 0.85 && tile.type_id == state.tile_registry.get_id("grass").unwrap() => {
+                    *tile = Tile::new(state.tile_registry.from_name("mud").unwrap())
+                }
                 _ => {}
             }
         }
@@ -234,7 +238,7 @@ pub fn generate_chunk(handle: &mut RainHandle, state: &mut State, chunk_position
 
     ChunkData {
         position: chunk_position,
-        tiles: [tiles, [[Tile::new(state.tile_registry.get_id("none").unwrap()); CHUNK_DIM]; CHUNK_DIM]],
+        tiles: [tiles, [[Tile::new(state.tile_registry.from_name("none").unwrap()); CHUNK_DIM]; CHUNK_DIM]],
         objects,
         water_colliders,
         tile_colliders,
@@ -317,7 +321,10 @@ fn increment(mut value: (usize, usize), max: usize) -> (usize, usize) {
 
 const TRANSITION_LAYER_DEPTH: f32 = 0.0001;
 
-pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData, tile_registry: &TileRegistry, tileset: &[ChunkTileSet; 2], tileset_lookup: &[u8; 256]) -> ModelMesh {
+pub fn construct_chunk_mesh(handle: &mut RainHandle, state: &mut State, chunk_position: ChunkPosition, tileset: &[ChunkTileSet; 2],) -> Option<ModelMesh> {
+    let Some(chunk) = state.chunks.get(&chunk_position) else {
+        return None;
+    };
     let mut model_vertices: Vec<ModelVertex> = Vec::new();
     let mut model_indices: Vec<u32> = Vec::new();
 
@@ -328,20 +335,40 @@ pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData, tile_reg
         for i in 0..CHUNK_DIM {
             for j in 0..CHUNK_DIM {
                 let tile = &chunk.tiles[tile_index][i][j];
-                if tile.type_id == tile_registry.get_id("none").unwrap() {
+                if tile.type_id == state.tile_registry.get_id("none").unwrap() {
                     continue;
                 }
-                let tile_data = tile_registry.from_id(tile.type_id).unwrap();
+                let tile_data = state.tile_registry.from_id(tile.type_id).unwrap();
 
                 let (tile_texture, uv_rect) = if let Some(mask) = tileset[tile_index][i][j] {
                     let texture = handle.fetch_texture(tile_data.tileset.as_ref().unwrap()).unwrap();
-                    let tile_index = tileset_lookup[mask as usize];
+                    let tile_index = state.tileset_lookup[mask as usize];
                     
                     let mut uv_rect = UV_LOOKUP[tile_index as usize];
                     uv_rect[0] *= texture.uv[0];
                     uv_rect[1] *= texture.uv[1];
                     uv_rect[2] *= texture.uv[0];
                     uv_rect[3] *= texture.uv[1];
+                    (texture, uv_rect)
+                } else if let Some(map) = &tile_data.property_texture_map {
+                    let texture_map = state.tile_property_texture_map_registry.get(map).unwrap();
+                    let mut uv_rect: Option<[f32; 4]> = None;
+                    for entry in texture_map.entries.iter() {
+                        let mut matched = true;
+                        for (property, value) in entry.properties.iter() {
+                            if tile.get_property(tile_data, &state.tile_property_registry, property).unwrap() != *value {
+                                matched = false;
+                                break;
+                            }
+                        }
+                        if matched {
+                            uv_rect = Some(entry.uv.to_array());
+                            break;
+                        }
+                    }
+                    let texture = Arc::clone(&tile_data.texture);
+                    let uv_rect = uv_rect.unwrap_or([0.0, 0.0, texture.uv[0], texture.uv[1]]);
+                    println!("uv: {:?}", uv_rect);
                     (texture, uv_rect)
                 } else {
                     let texture = Arc::clone(&tile_data.texture);
@@ -393,7 +420,7 @@ pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData, tile_reg
         }
     }
     
-    ModelMesh {
+    Some(ModelMesh {
         vertices: handle.renderer.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("chunk_vertex_buffer"),
             contents: bytemuck::cast_slice(&model_vertices),
@@ -406,7 +433,7 @@ pub fn construct_chunk_mesh(handle: &mut RainHandle, chunk: &ChunkData, tile_reg
         }),
         num_indices: model_indices.len() as u32,
         array_id: ARRAY_512X512_ID,
-    }
+    })
 }
 
 pub fn system_manage_chunks(handle: &mut RainHandle, state: &mut State) {
@@ -464,8 +491,7 @@ pub fn reload_chunk(handle: &mut RainHandle, state: &mut State, e: Entity, chunk
     } else {
         generate_chunk_tileset(handle, state, chunk_position)
     };
-    if let Some(chunk) = state.chunks.get(&chunk_position) {
-        let mesh = construct_chunk_mesh(handle, chunk, &state.tile_registry, &tileset, &state.tileset_lookup);
+    if let Some(mesh) = construct_chunk_mesh(handle, state, chunk_position, &tileset) {
         handle.world.insert(e, (mesh, Visible, tileset)).unwrap();
     }
 }

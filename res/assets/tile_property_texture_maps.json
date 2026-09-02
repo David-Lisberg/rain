@@ -1,0 +1,148 @@
+{
+    "fencing": [   
+        {
+            "properties": [
+                ["north", "false"],
+                ["east", "false"],
+                ["south", "false"],
+                ["west", "false"]
+            ],
+            "uv": [[0.0, 0.0], [0.25, 0.25]]
+        },
+        {
+            "properties": [
+                ["north", "true"],
+                ["east", "true"],
+                ["south", "true"],
+                ["west", "true"]
+            ],
+            "uv": [[0.25, 0.0], [0.25, 0.25]]
+        },
+        {
+            "properties": [
+                ["north", "false"],
+                ["east", "true"],
+                ["south", "false"],
+                ["west", "true"]
+            ],
+            "uv": [[0.5, 0.0], [0.25, 0.25]]
+        },
+        {
+            "properties": [
+                ["north", "true"],
+                ["east", "false"],
+                ["south", "true"],
+                ["west", "false"]
+            ],
+            "uv": [[0.75, 0.0], [0.25, 0.25]]
+        },
+        {
+            "properties": [
+                ["north", "true"],
+                ["east", "true"],
+                ["south", "false"],
+                ["west", "true"]
+            ],
+            "uv": [[0.0, 0.25], [0.25, 0.25]]
+        },
+        {
+            "properties": [
+                ["north", "true"],
+                ["east", "true"],
+                ["south", "true"],
+                ["west", "false"]
+            ],
+            "uv": [[0.25, 0.25], [0.25, 0.25]]
+        },
+        {
+            "properties": [
+                ["north", "false"],
+                ["east", "true"],
+                ["south", "true"],
+                ["west", "true"]
+            ],
+            "uv": [[0.5, 0.25], [0.25, 0.25]]
+        },
+        {
+            "properties": [
+                ["north", "true"],
+                ["east", "false"],
+                ["south", "true"],
+                ["west", "true"]
+            ],
+            "uv": [[0.75, 0.25], [0.25, 0.25]]
+        },
+        {
+            "properties": [
+                ["north", "true"],
+                ["east", "true"],
+                ["south", "false"],
+                ["west", "false"]
+            ],
+            "uv": [[0.0, 0.5], [0.25, 0.25]]
+        },
+        {
+            "properties": [
+                ["north", "false"],
+                ["east", "true"],
+                ["south", "true"],
+                ["west", "false"]
+            ],
+            "uv": [[0.25, 0.5], [0.25, 0.25]]
+        },
+        {
+            "properties": [
+                ["north", "false"],
+                ["east", "false"],
+                ["south", "true"],
+                ["west", "true"]
+            ],
+            "uv": [[0.5, 0.5], [0.25, 0.25]]
+        },
+        {
+            "properties": [
+                ["north", "true"],
+                ["east", "false"],
+                ["south", "false"],
+                ["west", "true"]
+            ],
+            "uv": [[0.75, 0.5], [0.25, 0.25]]
+        },
+        {
+            "properties": [
+                ["north", "true"],
+                ["east", "false"],
+                ["south", "false"],
+                ["west", "false"]
+            ],
+            "uv": [[0.0, 0.75], [0.25, 0.25]]
+        },
+        {
+            "properties": [
+                ["north", "false"],
+                ["east", "true"],
+                ["south", "false"],
+                ["west", "false"]
+            ],
+            "uv": [[0.25, 0.75], [0.25, 0.25]]
+        },
+        {
+            "properties": [
+                ["north", "false"],
+                ["east", "false"],
+                ["south", "true"],
+                ["west", "false"]
+            ],
+            "uv": [[0.5, 0.75], [0.25, 0.25]]
+        },
+        {
+            "properties": [
+                ["north", "false"],
+                ["east", "false"],
+                ["south", "false"],
+                ["west", "true"]
+            ],
+            "uv": [[0.75, 0.75], [0.25, 0.25]]
+        }
+    ]
+}

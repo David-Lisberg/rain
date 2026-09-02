@@ -76,7 +76,7 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
                 if let Some(tile_break_level) = tile_data.break_level {
                     if break_level >= tile_break_level && tool_type.can_break(tile_data.required_tool) {
                         drops.extend(tile_data.drops.iter().map(|x| (x.0.clone(), x.1, collider_position)));
-                        chunk.tiles[1][tile_position.x][tile_position.y] = Tile::new(state.tile_registry.get_id("none").unwrap());
+                        chunk.tiles[1][tile_position.x][tile_position.y] = Tile::new(state.tile_registry.from_name("none").unwrap());
                         state.tile_queue.push(chunk_position, tile_position);
                         println!("pushed to queue");
                         if tile_data.collidable {
@@ -255,7 +255,7 @@ fn player_place_object(handle: &mut RainHandle, state: &mut State, mouse_positio
                 let chunk_position = position_to_chunk_position(mouse_position.x, mouse_position.y);
                 if let Some(chunk) = state.chunks.get_mut(&chunk_position) {
                     if chunk.tiles[1][tile_position.x][tile_position.y].type_id == state.tile_registry.get_id("none").unwrap() {
-                        chunk.tiles[1][tile_position.x][tile_position.y] = Tile::new(state.tile_registry.get_id(placeable_tile).unwrap());
+                        chunk.tiles[1][tile_position.x][tile_position.y] = Tile::new(state.tile_registry.from_name(placeable_tile).unwrap());
                         inventory.remove_item_from_slot(player_inventory.selected_hotbar, 1);
 
                         state.tile_queue.push(chunk_position, tile_position);

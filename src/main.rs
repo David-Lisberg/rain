@@ -13,7 +13,7 @@ use rand::rngs::ThreadRng;
 use crate::game::core::animation::system_manage_animation_events;
 use crate::game::core::camera::*;
 use crate::game::core::collision::Collider;
-use crate::game::core::load::load_tile_property_registry;
+use crate::game::core::load::{load_tile_property_registry, load_tile_property_texture_map_registry};
 use crate::game::core::physics::*;
 use crate::game::core::ui::render_ui;
 use crate::game::entity::ai::system_enemy_ai;
@@ -52,6 +52,7 @@ use crate::game::world::chunk::system_manage_chunks;
 use crate::game::world::config::WorldGenConfig;
 use crate::game::world::generation::system_world_generation;
 use crate::game::world::object::{ObjectRegistry, system_object_transparency};
+use crate::game::world::property_map::TilePropertyTextureMapRegistry;
 use crate::game::world::reset::Persistent;
 use crate::game::world::reset::system_reset_world;
 use crate::game::world::property::TilePropertyRegistry;
@@ -84,6 +85,7 @@ pub mod game {
         pub mod tileset;
         pub mod complex;
         pub mod property;
+        pub mod property_map;
     }
     pub mod core {
         pub mod physics;
@@ -135,6 +137,7 @@ pub struct State {
     inventory_registry: InventoryRegistry,
     tile_registry: TileRegistry,
     tile_property_registry: TilePropertyRegistry,
+    tile_property_texture_map_registry: TilePropertyTextureMapRegistry,
     object_registry: ObjectRegistry,
     tileset_lookup: [u8; 256],
     inventory_screen: InventoryScreen,
@@ -224,7 +227,7 @@ impl RainState for State {
         for (_, (_, inventory)) in handle.world.query_mut::<(&Player, &mut Inventory)>() {
             inventory.add_item(Item::new(ItemType::BoneHatchet), 1);
             inventory.add_item(Item::new(ItemType::Sling), 1);
-            inventory.add_item(Item::new(ItemType::WoodFloor), 50);
+            inventory.add_item(Item::new(ItemType::WoodFence), 50);
             inventory.add_item(Item::new(ItemType::WoodWall), 50);
         }
 
@@ -253,8 +256,9 @@ fn main() -> anyhow::Result<()> {
         recipe_registry: load_recipe_registry("res/assets/recipes.json"),
         enemy_registry: load_enemy_registry("res/assets/enemies.json"),
         inventory_registry: load_inventory_registry("res/assets/inventory.json"),
-        tile_registry: TileRegistry::new(Vec::new()),
+        tile_registry: TileRegistry::empty(),
         tile_property_registry: load_tile_property_registry("res/assets/tile_properties.json"),
+        tile_property_texture_map_registry: load_tile_property_texture_map_registry("res/assets/tile_property_texture_maps.json"),
         object_registry: ObjectRegistry::new(Vec::new()),
         tileset_lookup: generate_tileset_lookup(),
         inventory_screen: InventoryScreen::new(),

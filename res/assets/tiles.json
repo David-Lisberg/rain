@@ -80,12 +80,34 @@
     },
     {
         "name": "wood_fence",
-        "texture": "tile_wood_fence",
+        "texture": "tile_wood_fence_tiling",
         "collidable": true,
         "swimmable": false,
         "break_level": 1,
         "required_tool": "axe",
         "drops": [[{ "type": "wood_fence", "category": "other" }, 1]],
-        "prop"
+        "properties": [
+            {
+                "name": "north",
+                "property_type": "bool",
+                "default": "true"
+            },
+            {
+                "name": "east",
+                "property_type": "bool",
+                "default": "false"
+            },
+            {
+                "name": "south",
+                "property_type": "bool",
+                "default": "false"
+            },
+            {
+                "name": "west",
+                "property_type": "bool",
+                "default": "false"
+            }
+        ],
+        "property_texture_map": "fencing"
     }
 ]
