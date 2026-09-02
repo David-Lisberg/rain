@@ -54,7 +54,7 @@ use crate::game::world::generation::system_world_generation;
 use crate::game::world::object::{ObjectRegistry, system_object_transparency};
 use crate::game::world::reset::Persistent;
 use crate::game::world::reset::system_reset_world;
-use crate::game::world::tile::TilePropertyRegistry;
+use crate::game::world::property::TilePropertyRegistry;
 use crate::game::world::tile::{TileHighlight, TileRegistry, system_tile_highlight};
 use crate::game::world::tileset::{TileQueue, generate_tileset_lookup, system_update_tiles};
 use crate::game::world::water::Swimmable;
@@ -83,6 +83,7 @@ pub mod game {
         pub mod water;
         pub mod tileset;
         pub mod complex;
+        pub mod property;
     }
     pub mod core {
         pub mod physics;

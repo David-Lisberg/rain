@@ -77,5 +77,15 @@
         "break_level": 1,
         "required_tool": "axe",
         "drops": [[{ "type": "wood_wall", "category": "other" }, 1]]
+    },
+    {
+        "name": "wood_fence",
+        "texture": "tile_wood_fence",
+        "collidable": true,
+        "swimmable": false,
+        "break_level": 1,
+        "required_tool": "axe",
+        "drops": [[{ "type": "wood_fence", "category": "other" }, 1]],
+        "prop"
     }
 ]

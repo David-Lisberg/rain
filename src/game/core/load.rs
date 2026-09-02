@@ -6,7 +6,8 @@ use crate::game::player::inventory::InventoryRegistry;
 use crate::game::player::item::ItemRegistry;
 use crate::game::world::config::WorldGenConfig;
 use crate::game::world::object::{ObjectData, ObjectDataRaw, ObjectRegistry};
-use crate::game::world::tile::{TileData, TileDataRaw, TilePropertyData, TilePropertyDataRaw, TilePropertyRegistry, TileRegistry};
+use crate::game::world::tile::{TileData, TileDataRaw, TileRegistry};
+use crate::game::world::property::{TilePropertyData, TilePropertyDataRaw, TilePropertyRegistry};
 
 type TextureRegistry = Vec<(String, String)>;
 type AnimationRegistry = Vec<(String, String)>;
@@ -74,9 +75,14 @@ pub fn load_tile_property_registry(path: &str) -> TilePropertyRegistry {
     let json = std::fs::read_to_string(path).expect("Error loading tile property registry.");
     let raw: Vec<TilePropertyDataRaw> = serde_json::from_str(&json).expect("Error parsing tile property registry.");
     
-    raw.into_iter()
+    let mut registry: TilePropertyRegistry = raw.into_iter()
         .map(|raw_data| (raw_data.name.clone(), TilePropertyData::from_raw(raw_data)))
-        .collect()
+        .collect();
+    let bool_data = TilePropertyData::new("bool".to_string(), vec![
+        "false".to_string(), "true".to_string()
+    ]);
+    registry.insert(bool_data.name.clone(), bool_data);
+    registry
 }
 
 pub fn load_object_registry(handle: &mut RainHandle, path: &str) -> ObjectRegistry {

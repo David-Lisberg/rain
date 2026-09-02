@@ -15,6 +15,7 @@ use crate::game::player::action::PLAYER_REACH;
 use crate::game::player::item::{Item, ToolType};
 use crate::game::player::movement::Player;
 use crate::game::world::chunk::CHUNK_DIM;
+use crate::game::world::property::TilePropertyRegistry;
 
 pub struct TileRegistry {
     data: Vec<TileData>,
@@ -60,7 +61,7 @@ pub struct TileDataRaw {
     pub break_level: Option<i32>,
     pub required_tool: Option<ToolType>,
     pub drops: Option<Vec<(Item, i32)>>,
-    pub properties: Option<Vec<String>>,
+    pub properties: Option<Vec<TileProperty>>,
 }
 
 pub struct TileData {
@@ -72,8 +73,9 @@ pub struct TileData {
     pub break_level: Option<i32>,
     pub required_tool: ToolType,
     pub drops: Vec<(Item, i32)>,
-    pub properties: Vec<String>,
+    pub properties: Vec<TileProperty>,
     pub property_map: HashMap<String, u32>,
+    pub default_state: u32,
 }
 
 impl TileData {
@@ -81,10 +83,16 @@ impl TileData {
         let properties = raw.properties.unwrap_or(Vec::new());
         let mut property_map: HashMap<String, u32> = HashMap::new();
         let mut i = 0;
+        let mut default_state: u32 = 0;
         for property in properties.iter() {
-            let property_data = property_registry.get(property).unwrap();
-            property_map.insert(property.clone(), i);
+            let property_data = property_registry.get(&property.property_type).unwrap();
+            property_map.insert(property.name.clone(), i);
+            if let Some(default) = &property.default {
+                let value = property_data.value_map.get(default).unwrap();
+                default_state |= *value << i;
+            }
             i += property_data.shift;
+
         }
 
         Self {
@@ -98,8 +106,16 @@ impl TileData {
             drops: raw.drops.unwrap_or(Vec::new()),
             properties,
             property_map,
+            default_state,
         }
     }
+}
+
+#[derive(Deserialize, Clone)]
+pub struct TileProperty {
+    name: String,
+    property_type: String,
+    default: Option<String>,
 }
 
 #[derive(Clone, Copy)]
@@ -113,58 +129,6 @@ impl Tile {
         Self {
             type_id,
             state: 0,
-        }
-    }
-
-    pub fn set_property(&mut self, tile_data: &TileData, property_registry: &TilePropertyRegistry, property: &str, value: &str) {
-        let Some(offset) = tile_data.property_map.get(property) else {
-            return;
-        };
-        let property_data = property_registry.get(property).unwrap();
-        let real_value = property_data.value_map.get(value).unwrap();
-        let state = *real_value << *offset;
-        self.state |= state;
-    }
-
-    pub fn get_property(&mut self, tile_data: &TileData, property_registry: &TilePropertyRegistry, property: &str) -> Option<String> {
-        let Some(offset) = tile_data.property_map.get(property) else {
-            return None;
-        };
-        let property_data = property_registry.get(property).unwrap();
-        let mut index = self.state >> offset;
-        index &= (1 << property_data.shift) - 1;
-        Some(property_data.values[index as usize].clone())
-    }
-}
-
-pub type TilePropertyRegistry = HashMap<String, TilePropertyData>;
-
-#[derive(Deserialize)]
-pub struct TilePropertyDataRaw {
-    pub name: String,
-    values: Vec<String>,
-}
-
-pub struct TilePropertyData {
-    name: String,
-    values: Vec<String>,
-    value_map: HashMap<String, u32>,
-    shift: u32,
-}
-
-impl TilePropertyData {
-    pub fn from_raw(raw: TilePropertyDataRaw) -> Self {
-        let mut value_map: HashMap<String, u32> = HashMap::new();
-        for (i, value) in raw.values.iter().enumerate() {
-            value_map.insert(value.clone(), i as u32);
-        }
-        let shift = usize::BITS - (raw.values.len() - 1).leading_zeros()    ;
-
-        Self {
-            name: raw.name,
-            values: raw.values,
-            value_map,
-            shift,
         }
     }
 }
