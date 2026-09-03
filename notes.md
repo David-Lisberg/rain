@@ -8,20 +8,10 @@
 
 - ECS for game specific components 
 
-# Components
-
-## ECS
-
-## Renderer
-
 ## Resource Manager
 
 - Load textures and audio
 - Maintain textures and audio
-
-## Audio
-
-## Utilities
 
 ## Texture loading
 
@@ -52,17 +42,6 @@
         - Ex: Idle until sees player, remove idle and add tracking
 - Bosses
     - Boss state machine component
-
-
-## Roadmap to first boss
-
-- Enemies
-    - Deer
-    - Owl
-    - Bear
-
-- Boss
-    - Giant owl
 
 # Tiles/Objects
 

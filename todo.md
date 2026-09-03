@@ -58,3 +58,6 @@
 - proper error management
 - debugging tools
     - console
+- profiling tools
+- runtime string to id conversion for registry lookups
+- allow frame rate to be higher than 60 fps
