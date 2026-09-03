@@ -99,9 +99,11 @@ const CONNECTOR_ADJACENT: [((i32, i32), &'static str); 4] = [((0, 1), "north"), 
 
 pub fn system_update_tile_connector(state: &mut State) {
     let mut tiles_to_update: Vec<(ChunkPosition, TilePosition, Tile)> = Vec::new();
+    let mut updated: Vec<(ChunkPosition, TilePosition)> = Vec::new();
 
     if !state.tile_connector_queue.queue.is_empty() {
         while let Some((chunk_position, tile_position)) = state.tile_connector_queue.pop() {
+            updated.push((chunk_position, tile_position));
             let Some(chunk) = state.chunks.get_mut(&chunk_position) else {
                 continue;
             };
@@ -117,16 +119,19 @@ pub fn system_update_tile_connector(state: &mut State) {
                     };
                     let adjacent_tile_type = adjacent_chunk.tiles[1][adjacent_tile_position.x][adjacent_tile_position.y].type_id;
                     let tile_data = state.tile_registry.from_id(adjacent_tile_type).unwrap();
+                    println!("test1: {:?}", tile_position);
                     if tile_data.connector.is_some() {
-                        state.tile_queue.push(adjacent_chunk_position, adjacent_tile_position);
+                        println!("test2");
+                        state.tile_connector_queue.push(adjacent_chunk_position, adjacent_tile_position);
                     }
 
                 }
                 continue;
             }
             let tile_data = state.tile_registry.from_id(tile.type_id).unwrap();
-            println!("dsf {}", tile_data.name);
             if let Some(connector) = &tile_data.connector {
+                println!("TEST {}", tile_data.name);
+                let previous_state = tile.state;
                 for ((x_offset, y_offset), property) in CONNECTOR_ADJACENT {
                     let (adjacent_chunk_position, adjacent_tile_position) = get_adjacent_chunk_position_tile_position(
                         tile_position, chunk_position, x_offset, y_offset
@@ -135,34 +140,31 @@ pub fn system_update_tile_connector(state: &mut State) {
                         continue;
                     };
                     let adjacent_tile_type = adjacent_chunk.tiles[1][adjacent_tile_position.x][adjacent_tile_position.y].type_id;
-                    let previous_state = tile.state;
-                    for tile_name in connector.can_connect.iter() {
-                        let id = state.tile_registry.get_id(tile_name).unwrap();
-                        if id == adjacent_tile_type {
-                            tile.set_property(tile_data, &state.tile_property_registry, property, "true");
-                        } else {
-                            tile.set_property(tile_data, &state.tile_property_registry, property, "false");
-                        }
-                    }
 
-                    if previous_state != tile.state {
-                        tiles_to_update.push((chunk_position, tile_position, tile));
+                    let can_connect = connector.can_connect.iter().any(|tile_name| {
+                        state.tile_registry.get_id(tile_name).unwrap() == adjacent_tile_type
+                    });
+
+                    if can_connect {
+                        tile.set_property(tile_data, &state.tile_property_registry, property, "true");
+                    } else {
+                        tile.set_property(tile_data, &state.tile_property_registry, property, "false");
                     }
 
                     let adjacent_tile_data = state.tile_registry.from_id(adjacent_tile_type).unwrap();
-                    if adjacent_tile_data.connector.is_some() {
-                        println!("pushing: {}", adjacent_tile_data.name);
-                        state.tile_queue.push(adjacent_chunk_position, adjacent_tile_position);
+                    println!("TESTsss {} {} {}", adjacent_tile_data.name, previous_state, tile.state);
+                    if adjacent_tile_data.connector.is_some() && !updated.contains(&(adjacent_chunk_position, adjacent_tile_position)) {
+                        state.tile_connector_queue.push(adjacent_chunk_position, adjacent_tile_position);
                     }
+                }
+                if previous_state != tile.state {
+                    tiles_to_update.push((chunk_position, tile_position, tile));
                 }
             }
             state.chunks_to_reload.insert(chunk_position);
         }
     }
 
-    if !tiles_to_update.is_empty() {
-        println!("tiles updated: {}", tiles_to_update.len());
-    }
     for (chunk_position, tile_position, tile) in tiles_to_update {
         let Some(chunk) = state.chunks.get_mut(&chunk_position) else {
             continue;

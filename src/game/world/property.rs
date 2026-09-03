@@ -49,15 +49,22 @@ impl Tile {
         let property_data = property_registry.get(&property.property_type).unwrap();
         let real_value = property_data.value_map.get(value).unwrap();
         let state = *real_value << property.offset;
+        let mask = ((1 << property_data.shift) - 1) << property.offset;
+
+        self.state &= !mask;
         self.state |= state;
     }
 
-    /* this doesn't work */
-    pub fn set_property_mask(&mut self, tile_data: &TileData, property: &str, value: u32) {
-        let Some(property_index) = tile_data.property_map.get(property) else {
+    pub fn set_property_mask(&mut self, tile_data: &TileData, property_registry: &TilePropertyRegistry, property_name: &str, value: u32) {
+        let Some(property_index) = tile_data.property_map.get(property_name) else {
             return;
         };
+        let property = &tile_data.properties[*property_index];
+        let property_data = property_registry.get(&property.property_type).unwrap();
+        let mask = ((1 << property_data.shift) - 1) << property.offset;
         let state = value << tile_data.properties[*property_index].offset;
+
+        self.state &= !mask;
         self.state |= state;
     }
 

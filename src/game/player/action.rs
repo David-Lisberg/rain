@@ -79,7 +79,6 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
                         chunk.tiles[1][tile_position.x][tile_position.y] = Tile::new(state.tile_registry.from_name("none").unwrap());
                         state.tile_queue.push(chunk_position, tile_position);
                         state.tile_connector_queue.push(chunk_position, tile_position);
-                        println!("pushed to queue");
                         if tile_data.collidable {
                             state.chunk_tile_colliders_to_update.insert(chunk_position);
                         }
