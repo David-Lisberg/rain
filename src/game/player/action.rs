@@ -78,6 +78,7 @@ pub fn item_attack(handle: &mut RainHandle, state: &mut State, direction: Vec2) 
                         drops.extend(tile_data.drops.iter().map(|x| (x.0.clone(), x.1, collider_position)));
                         chunk.tiles[1][tile_position.x][tile_position.y] = Tile::new(state.tile_registry.from_name("none").unwrap());
                         state.tile_queue.push(chunk_position, tile_position);
+                        state.tile_connector_queue.push(chunk_position, tile_position);
                         println!("pushed to queue");
                         if tile_data.collidable {
                             state.chunk_tile_colliders_to_update.insert(chunk_position);
@@ -259,6 +260,7 @@ fn player_place_object(handle: &mut RainHandle, state: &mut State, mouse_positio
                         inventory.remove_item_from_slot(player_inventory.selected_hotbar, 1);
 
                         state.tile_queue.push(chunk_position, tile_position);
+                        state.tile_connector_queue.push(chunk_position, tile_position);
                         let tile_data = state.tile_registry.from_name(placeable_tile).unwrap();
                         if tile_data.collidable {
                             state.chunk_tile_colliders_to_update.insert(chunk_position);

@@ -41,12 +41,18 @@ impl TilePropertyData {
 }
 
 impl Tile {
-    pub fn set_property(&mut self, tile_data: &TileData, property_registry: &TilePropertyRegistry, property: &str, value: &str) {
-        let property_data = property_registry.get(property).unwrap();
+    pub fn set_property(&mut self, tile_data: &TileData, property_registry: &TilePropertyRegistry, property_name: &str, value: &str) {
+        let Some(property_index) = tile_data.property_map.get(property_name) else {
+            return;
+        };
+        let property = &tile_data.properties[*property_index];
+        let property_data = property_registry.get(&property.property_type).unwrap();
         let real_value = property_data.value_map.get(value).unwrap();
-        self.set_property_mask(tile_data, property, *real_value)
+        let state = *real_value << property.offset;
+        self.state |= state;
     }
 
+    /* this doesn't work */
     pub fn set_property_mask(&mut self, tile_data: &TileData, property: &str, value: u32) {
         let Some(property_index) = tile_data.property_map.get(property) else {
             return;

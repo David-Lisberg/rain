@@ -90,7 +90,7 @@
             {
                 "name": "north",
                 "property_type": "bool",
-                "default": "true"
+                "default": "false"
             },
             {
                 "name": "east",
@@ -108,6 +108,12 @@
                 "default": "false"
             }
         ],
-        "property_texture_map": "fencing"
+        "property_texture_map": "fencing",
+        "connector": {
+            "can_connect": [
+                "wood_fence",
+                "wood_wall"
+            ]
+        }
     }
 ]

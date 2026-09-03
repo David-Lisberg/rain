@@ -57,7 +57,10 @@ use crate::game::world::reset::Persistent;
 use crate::game::world::reset::system_reset_world;
 use crate::game::world::property::TilePropertyRegistry;
 use crate::game::world::tile::{TileHighlight, TileRegistry, system_tile_highlight};
-use crate::game::world::tileset::{TileQueue, generate_tileset_lookup, system_update_tiles};
+use crate::game::world::tile_queue::TileQueue;
+use crate::game::world::tile_queue::system_update_tile_connector;
+use crate::game::world::tile_queue::system_update_tiles;
+use crate::game::world::tileset::generate_tileset_lookup;
 use crate::game::world::water::Swimmable;
 use crate::game::world::water::system_swimming;
 
@@ -78,6 +81,7 @@ pub mod game {
         pub mod generation;
         pub mod chunk;
         pub mod tile;
+        pub mod tile_queue;
         pub mod object;
         pub mod config;
         pub mod reset;
@@ -142,6 +146,7 @@ pub struct State {
     tileset_lookup: [u8; 256],
     inventory_screen: InventoryScreen,
     tile_queue: TileQueue,
+    tile_connector_queue: TileQueue,
     chunks_to_reload: HashSet<ChunkPosition>,
     chunk_water_colliders_to_update: HashSet<ChunkPosition>,
     chunk_tile_colliders_to_update: HashSet<ChunkPosition>,
@@ -187,6 +192,7 @@ impl RainState for State {
         system_camera_zoom(handle, self);
         system_tile_highlight(handle);
         system_update_tiles(handle, self);
+        system_update_tile_connector(self);
         system_update_chunk_colliders(self);
 
         system_reset_world(handle, self);
@@ -263,6 +269,7 @@ fn main() -> anyhow::Result<()> {
         tileset_lookup: generate_tileset_lookup(),
         inventory_screen: InventoryScreen::new(),
         tile_queue: TileQueue::new(),
+        tile_connector_queue: TileQueue::new(),
         chunks_to_reload: HashSet::new(),
         chunk_water_colliders_to_update: HashSet::new(),
         chunk_tile_colliders_to_update: HashSet::new(),

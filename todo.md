@@ -38,7 +38,7 @@
         - placing single items
 - metal deposits
     - ores in rock fields
-    - panning in rivers
+    - panning in riversd
 - clear water
     - clay deposits under water
 - rework render engine depth sorting
@@ -52,7 +52,9 @@
 - seperate object instances from chunks
     - if searching 9 chunks for collisions becomes too expensive
 - fix breaking objects with no item
-- convert _ types into strings
 - tile placement on water
 - auto texture atlas to save space in texture storage
 - fix text blurbs not disappearing after closing inventory
+- proper error management
+- debugging tools
+    - console

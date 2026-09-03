@@ -12,6 +12,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::sync::Arc;
 
+use crate::State;
 use crate::game::player::action::PLAYER_REACH;
 use crate::game::player::item::{Item, ToolType};
 use crate::game::player::movement::Player;
@@ -74,6 +75,7 @@ pub struct TileDataRaw {
     pub drops: Option<Vec<(Item, i32)>>,
     pub properties: Option<Vec<TilePropertyRaw>>,
     pub property_texture_map: Option<String>,
+    pub connector: Option<TileConnector>,
 }
 
 pub struct TileData {
@@ -90,6 +92,7 @@ pub struct TileData {
     pub property_map: HashMap<String, usize>,
     pub default_state: u32,
     pub property_texture_map: Option<String>,
+    pub connector: Option<TileConnector>,
 }
 
 impl TileData {
@@ -126,8 +129,14 @@ impl TileData {
             property_map,
             default_state,
             property_texture_map: raw.property_texture_map,
+            connector: raw.connector,
         }
     }
+}
+
+#[derive(Clone, Deserialize)]
+pub struct TileConnector {
+    pub can_connect: Vec<String>,
 }
 
 #[derive(Deserialize, Clone)]

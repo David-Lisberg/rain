@@ -368,7 +368,6 @@ pub fn construct_chunk_mesh(handle: &mut RainHandle, state: &mut State, chunk_po
                     }
                     let texture = Arc::clone(&tile_data.texture);
                     let uv_rect = uv_rect.unwrap_or([0.0, 0.0, texture.uv[0], texture.uv[1]]);
-                    println!("uv: {:?}", uv_rect);
                     (texture, uv_rect)
                 } else {
                     let texture = Arc::clone(&tile_data.texture);
