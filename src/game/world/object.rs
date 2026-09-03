@@ -355,8 +355,6 @@ pub fn system_object_transparency(handle: &mut RainHandle, state: &mut State) {
 }
 
 fn under_object(collider: &Collider, object_data: &ObjectData, object: &Object) -> bool {
-    let other_collider = object_data.collider.add_vec2(object.position);
-
     let Some(object_collider) = object_data.coverable.clone() else {
         return false;
     };

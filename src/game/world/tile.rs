@@ -1,6 +1,5 @@
 use glam::Vec2;
 use hecs::Entity;
-use rain::engine::animation::UVRect;
 use rain::engine::core::RainHandle;
 use rain::engine::texture::Texture;
 use serde::{Deserialize, Serialize};
@@ -12,7 +11,6 @@ use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::sync::Arc;
 
-use crate::State;
 use crate::game::player::action::PLAYER_REACH;
 use crate::game::player::item::{Item, ToolType};
 use crate::game::player::movement::Player;

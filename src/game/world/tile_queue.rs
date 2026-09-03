@@ -109,28 +109,8 @@ pub fn system_update_tile_connector(state: &mut State) {
             };
 
             let mut tile = chunk.tiles[1][tile_position.x][tile_position.y];
-            if tile.type_id == state.tile_registry.get_id("none").unwrap() {
-                for ((x_offset, y_offset), _) in CONNECTOR_ADJACENT {
-                    let (adjacent_chunk_position, adjacent_tile_position) = get_adjacent_chunk_position_tile_position(
-                        tile_position, chunk_position, x_offset, y_offset
-                    );
-                    let Some(adjacent_chunk) = state.chunks.get(&adjacent_chunk_position) else {
-                        continue;
-                    };
-                    let adjacent_tile_type = adjacent_chunk.tiles[1][adjacent_tile_position.x][adjacent_tile_position.y].type_id;
-                    let tile_data = state.tile_registry.from_id(adjacent_tile_type).unwrap();
-                    println!("test1: {:?}", tile_position);
-                    if tile_data.connector.is_some() {
-                        println!("test2");
-                        state.tile_connector_queue.push(adjacent_chunk_position, adjacent_tile_position);
-                    }
-
-                }
-                continue;
-            }
             let tile_data = state.tile_registry.from_id(tile.type_id).unwrap();
             if let Some(connector) = &tile_data.connector {
-                println!("TEST {}", tile_data.name);
                 let previous_state = tile.state;
                 for ((x_offset, y_offset), property) in CONNECTOR_ADJACENT {
                     let (adjacent_chunk_position, adjacent_tile_position) = get_adjacent_chunk_position_tile_position(
@@ -152,13 +132,28 @@ pub fn system_update_tile_connector(state: &mut State) {
                     }
 
                     let adjacent_tile_data = state.tile_registry.from_id(adjacent_tile_type).unwrap();
-                    println!("TESTsss {} {} {}", adjacent_tile_data.name, previous_state, tile.state);
                     if adjacent_tile_data.connector.is_some() && !updated.contains(&(adjacent_chunk_position, adjacent_tile_position)) {
                         state.tile_connector_queue.push(adjacent_chunk_position, adjacent_tile_position);
                     }
                 }
                 if previous_state != tile.state {
                     tiles_to_update.push((chunk_position, tile_position, tile));
+                }
+            } else {
+                for ((x_offset, y_offset), _) in CONNECTOR_ADJACENT {
+                    let (adjacent_chunk_position, adjacent_tile_position) = get_adjacent_chunk_position_tile_position(
+                        tile_position, chunk_position, x_offset, y_offset
+                    );
+                    let Some(adjacent_chunk) = state.chunks.get(&adjacent_chunk_position) else {
+                        continue;
+                    };
+                    let adjacent_tile_type = adjacent_chunk.tiles[1][adjacent_tile_position.x][adjacent_tile_position.y].type_id;
+
+                    let adjacent_tile_data = state.tile_registry.from_id(adjacent_tile_type).unwrap();
+                    if adjacent_tile_data.connector.is_some() {
+                        state.tile_connector_queue.push(adjacent_chunk_position, adjacent_tile_position);
+                    }
+
                 }
             }
             state.chunks_to_reload.insert(chunk_position);
