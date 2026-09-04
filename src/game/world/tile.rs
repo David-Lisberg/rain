@@ -11,6 +11,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::sync::Arc;
 
+use crate::game::core::collision::Collider;
 use crate::game::player::action::PLAYER_REACH;
 use crate::game::player::item::{Item, ToolType};
 use crate::game::player::movement::Player;
@@ -65,8 +66,8 @@ impl TileRegistry {
 pub struct TileDataRaw {
     pub name: String,
     pub texture: String,
-    pub collidable: bool,
     pub swimmable: bool,
+    pub collider: Option<TileCollider>,
     pub tileset: Option<String>,
     pub break_level: Option<i32>,
     pub required_tool: Option<ToolType>,
@@ -80,8 +81,8 @@ pub struct TileData {
     pub name: String,
     pub id: u32,
     pub texture: Arc<Texture>,
-    pub collidable: bool,
     pub swimmable: bool,
+    pub collider: TileCollider,
     pub tileset: Option<String>,
     pub break_level: Option<i32>,
     pub required_tool: ToolType,
@@ -117,7 +118,7 @@ impl TileData {
             name: raw.name,
             id,
             texture: handle.fetch_texture(&raw.texture).unwrap(),
-            collidable: raw.collidable,
+            collider: raw.collider.unwrap_or(TileCollider::None),
             swimmable: raw.swimmable,
             tileset: raw.tileset,
             break_level: raw.break_level,
@@ -161,6 +162,13 @@ impl TileProperty {
             offset,
         }
     }
+}
+
+#[derive(Deserialize, Clone, PartialEq)]
+pub enum TileCollider {
+    Full,
+    Partial(Collider),
+    None,
 }
 
 #[derive(Clone, Copy)]

@@ -18,7 +18,7 @@ use crate::game::core::collision::Collider;
 use crate::game::utility::noise::{noise_normalize, octave_noise_2d};
 use crate::game::world::config::BiomeType;
 use crate::game::world::generation::CHUNK_GENERATION_DISTANCE;
-use crate::game::world::tile::{Tile, TileRegistry};
+use crate::game::world::tile::{Tile, TileCollider, TileRegistry};
 use crate::game::world::object::{Object, reload_object_mesh};
 use crate::game::player::movement::Player;
 use crate::game::world::tileset::{ChunkTileSet, UV_LOOKUP};
@@ -250,7 +250,7 @@ fn tile_is_swimmable(tile_registry: &TileRegistry, tile_id: u32) -> bool {
 
 fn tile_is_collidable(tile_registry: &TileRegistry, tile_id: u32) -> bool {
     let tile_data = tile_registry.from_id(tile_id).unwrap();
-    tile_data.collidable
+    tile_data.collider == TileCollider::Full
 }
 
 fn chunk_greedy_mesh_colliders(
